@@ -1,0 +1,53 @@
+---
+import { Menu } from "lucide-react";
+---
+
+<nav
+  class="fixed top-0 w-full z-50 transition-all duration-300 bg-brand-black/80 backdrop-blur-md border-b border-white/5"
+>
+  <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-3 group">
+      <img
+        src="/logo.svg"
+        alt="JS Solutions Logo"
+        class="h-12 w-auto transition-transform duration-300 group-hover:scale-105"
+      />
+      <span class="text-xl font-bold font-heading text-white tracking-tight">
+        JS <span class="text-transparent bg-clip-text bg-gold-gradient"
+          >Solutions</span
+        >
+      </span>
+    </a>
+
+    <div class="hidden md:flex items-center gap-8 text-brand-off-white">
+      <a
+        href="#about"
+        class="text-sm font-medium hover:text-brand-gold transition-colors"
+        >Nosotros</a
+      >
+      <a
+        href="#services"
+        class="text-sm font-medium hover:text-brand-gold transition-colors"
+        >Servicios</a
+      >
+      <a
+        href="#solutions"
+        class="text-sm font-medium hover:text-brand-gold transition-colors"
+        >Soluciones</a
+      >
+      <a
+        href="#contact"
+        class="px-6 py-2.5 bg-gold-gradient text-black font-bold text-sm rounded-full transition-all transform hover:scale-105 hover:shadow-[0_0_15px_rgba(212,175,55,0.3)]"
+      >
+        Diagnóstico Gratuito
+      </a>
+    </div>
+
+    <button
+      class="md:hidden text-white hover:text-brand-gold transition-colors"
+      aria-label="Menu"
+    >
+      <Menu className="w-6 h-6" client:visible />
+    </button>
+  </div>
+</nav>

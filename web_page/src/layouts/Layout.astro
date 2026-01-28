@@ -1,0 +1,93 @@
+---
+import { ClientRouter } from "astro:transitions";
+import "@fontsource/inter";
+import "@fontsource/space-grotesk";
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="description"
+      content="JS Solutions - Inteligencia Artificial Aplicada para Empresas Reales. Automatización, Chatbots y Sistemas a Medida para transformar tu negocio."
+    />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://jssolutions.co/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://jssolutions.co/" />
+    <meta property="og:title" content={title} />
+    <meta
+      property="og:description"
+      content="JS Solutions - Inteligencia Artificial Aplicada para Empresas Reales. Automatización, Chatbots y Sistemas a Medida para transformar tu negocio."
+    />
+    <meta property="og:image" content="https://jssolutions.co/og-image.jpg" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://jssolutions.co/" />
+    <meta property="twitter:title" content={title} />
+    <meta
+      property="twitter:description"
+      content="JS Solutions - Inteligencia Artificial Aplicada para Empresas Reales. Automatización, Chatbots y Sistemas a Medida para transformar tu negocio."
+    />
+    <meta
+      property="twitter:image"
+      content="https://jssolutions.co/og-image.jpg"
+    />
+
+    <ClientRouter />
+  </head>
+  <body
+    class="bg-brand-black text-brand-off-white font-sans antialiased overflow-x-hidden selection:bg-brand-gold selection:text-black"
+  >
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --accent: 212, 175, 55;
+    --accent-light: 197, 160, 40;
+  }
+  html {
+    background: #0a0a0a;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Space Grotesk", sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0a0a;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #d4af37;
+  }
+</style>

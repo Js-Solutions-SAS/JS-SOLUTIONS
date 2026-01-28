@@ -1,0 +1,21 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Navbar from "../components/Navbar.astro";
+import Hero from "../components/Hero";
+import ServicesBento from "../components/ServicesBento";
+import SegmentToggle from "../components/SegmentToggle";
+import Footer from "../components/Footer.astro";
+---
+
+<Layout title="JS Solutions | Inteligencia Artificial & Automatización">
+  <Navbar />
+  <main class="relative bg-brand-black w-full overflow-hidden">
+    <Hero client:load />
+
+    <div class="relative z-10 w-full">
+      <ServicesBento client:visible />
+      <SegmentToggle client:visible />
+    </div>
+  </main>
+  <Footer />
+</Layout>
