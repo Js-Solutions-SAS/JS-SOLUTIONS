@@ -44,10 +44,69 @@ import { Menu } from "lucide-react";
     </div>
 
     <button
-      class="md:hidden text-white hover:text-brand-gold transition-colors"
+      id="mobile-menu-btn"
+      class="md:hidden text-white hover:text-brand-gold transition-colors relative z-50"
       aria-label="Menu"
     >
-      <Menu className="w-6 h-6" client:visible />
+      <Menu className="w-8 h-8" client:visible />
     </button>
   </div>
+
+  <!-- Mobile Menu Overlay -->
+  <div
+    id="mobile-menu-overlay"
+    class="fixed inset-0 bg-brand-black/95 backdrop-blur-xl z-40 transform translate-x-full transition-transform duration-300 md:hidden flex flex-col items-center justify-center gap-8 opacity-0"
+  >
+    <a
+      href="#about"
+      class="mobile-link text-2xl font-bold text-white hover:text-brand-gold transition-colors"
+      >Nosotros</a
+    >
+    <a
+      href="#services"
+      class="mobile-link text-2xl font-bold text-white hover:text-brand-gold transition-colors"
+      >Servicios</a
+    >
+    <a
+      href="#solutions"
+      class="mobile-link text-2xl font-bold text-white hover:text-brand-gold transition-colors"
+      >Soluciones</a
+    >
+    <a
+      href="#contact"
+      class="mobile-link px-8 py-3 bg-gold-gradient text-black font-bold text-xl rounded-full hover:scale-105 transition-transform"
+    >
+      Diagnóstico Gratuito
+    </a>
+  </div>
 </nav>
+
+<script>
+  const menuBtn = document.getElementById("mobile-menu-btn");
+  const menuOverlay = document.getElementById("mobile-menu-overlay");
+  const mobileLinks = document.querySelectorAll(".mobile-link");
+  let isMenuOpen = false;
+
+  function toggleMenu() {
+    isMenuOpen = !isMenuOpen;
+
+    if (isMenuOpen) {
+      menuOverlay?.classList.remove("translate-x-full", "opacity-0");
+      menuOverlay?.classList.add("translate-x-0", "opacity-100");
+      document.body.style.overflow = "hidden"; // Prevent scrolling
+    } else {
+      menuOverlay?.classList.add("translate-x-full", "opacity-0");
+      menuOverlay?.classList.remove("translate-x-0", "opacity-100");
+      document.body.style.overflow = "";
+    }
+  }
+
+  menuBtn?.addEventListener("click", toggleMenu);
+
+  // Close menu when clicking a link
+  mobileLinks.forEach((link) => {
+    link.addEventListener("click", () => {
+      if (isMenuOpen) toggleMenu();
+    });
+  });
+</script>
