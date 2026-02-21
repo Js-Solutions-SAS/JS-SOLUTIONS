@@ -2,78 +2,31 @@
   "nodes": [
     {
       "parameters": {
-        "rules": {
-          "values": [
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "leftValue": "={{ JSON.parse(\n  $json.Mensaje\n    .filter(m => m.trim().startsWith('{'))\n    .slice(-1)[0]\n    .split('||')[0]\n    .trim()\n).sessionID }}\n",
-                    "rightValue": "={{ String($node[\"pushRedis\"].json.session_id).trim() }}\n",
-                    "operator": {
-                      "type": "string",
-                      "operation": "notEquals"
-                    },
-                    "id": "81c7205c-84c9-480e-8b5a-1a12b5ff7baa"
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "Ignorar"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "4fca4c39-e8bf-490b-8e2e-176c95d9156e",
-                    "leftValue": "={{ DateTime.fromISO(JSON.parse($json.Mensaje.filter(m => m.trim().startsWith('{')).slice(-1)[0].split('||')[0].trim()).date_time, { zone: 'America/Bogota' }).toMillis() < DateTime.now().setZone('America/Bogota').minus({ seconds: 7 }).toMillis() }}",
-                    "rightValue": true,
-                    "operator": {
-                      "type": "boolean",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "Continuar"
-            }
-          ]
-        },
+        "promptType": "define",
+        "text": "=Crea una cotización técnica profesional en formato markdown.\n\nTranscripción del diagnóstico:\n{{ $json.transcripcion }}\n\nDatos del cliente:\n{{ $json.datos_cliente }}\n\nDatos del proveedor:\n{{ $json.datos_proveedor }}\n\nDetalles adicionales:\n{{ $json.detalles }}\n\nFEEDBACK DE CORRECCIÓN:\n{{ $json.feedback ? $json.feedback : 'N/A' }}",
         "options": {
-          "fallbackOutput": "extra",
-          "renameFallbackOutput": "Esperar"
+          "systemMessage": "=# ROL\nEres el Director de Operaciones de JS SOLUTIONS. Tu especialidad es estructurar propuestas comerciales de alto valor para automatización, desarrollo de software y tecnologías de IA.\n\n# ESTRUCTURA DE LA COTIZACIÓN (OBLIGATORIO)\nDebes seguir este orden estrictamente:\n1. PORTADA TÉCNICA (Título, Cliente, Fecha).\n2. RESUMEN EJECUTIVO: Análisis de la necesidad tecnológica detectada.\n3. SERVICIOS TÉCNICOS Y ALCANCE:\n   - Automatización de Procesos (n8n, CRM, Workflows).\n   - Desarrollo de Aplicaciones (Web/Mobile/Custom).\n   - Agentes de Voz (IA Conversacional, Phone Agents).\n   - Content Factory (Estrategia de contenido y producción escalable).\n4. STACK TECNOLÓGICO: Herramientas a utilizar.\n5. PROPUESTA ECONÓMICA: Desglose de inversión por módulos.\n6. CRONOGRAMA DE IMPLEMENTACIÓN.\n7. CONDICIONES COMERCIALES Y SOPORTE (SLA).\n\n# REGLAS DE CONTENIDO\n- No inventes precios si no vienen en el input, usa variables tipo $X.XXX.XXX.\n- Sé muy técnico pero persuasivo.\n- Para Agentes de Voz, destaca la disponibilidad 24/7 y la integración con CRM."
         }
       },
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.2,
-      "position": [-688, 1104],
-      "id": "73aa4241-bdf3-4318-895f-81be6848c744",
-      "name": "Switch"
+      "id": "b1e1d21d-8cbc-4d65-8dc4-7c90b562ac8e",
+      "name": "Agente Cotizador",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [1920, 1840]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Convierte esta cotización a HTML5 premium para JS SOLUTIONS.\n\nFecha: {{ $('Preparar Datos Bot').item.json.fecha_elaboracion }}\nCliente: {{ $('Preparar Datos Bot').item.json.datos_cliente }}\n\nCotización Markdown:\n{{ $json.output }}",
+        "options": {
+          "systemMessage": "=# ROL\nDiseñador UI/UX Senior para JS SOLUTIONS. Generas documentos con estética Dark Mode o Corporativa Elegante.\n\n# SALIDA\n- Solo HTML completo.\n- Logo Link (DIRECTO): https://i.ibb.co/LhqZpS0/logo.jpg\n\n# DISEÑO Y ESTILO (CSS)\n- Variables: --gold: #FFB800; --black: #000000; --dark-gray: #1a1a1a; --text: #f4f4f4;\n- Tipografía: 'Montserrat', sans-serif para títulos; 'Roboto' para cuerpo.\n- Layout: Cada sección principal debe empezar en una página nueva (break-before: page).\n- Estilo de Tablas: Bordes dorados, fondo oscuro.\n- Bloques de Servicio: Diseña tarjetas con borde izquierdo --gold para diferenciar Automatización, Agentes de Voz y Content Factory.\n\n# FOOTER\nJS SOLUTIONS | Innovación Tecnológica y Automatización | www.jssolutions.com.co\nCalle 14 # 11-19 Local 058, CC Santiago Plaza, Cartago, Valle del Cauca."
+        }
+      },
+      "id": "e24722be-9085-40bf-8f98-a27e7858cf37",
+      "name": "Agente HTML",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [2176, 1840]
     }
-  ],
-  "connections": {
-    "Switch": {
-      "main": [[], [], []]
-    }
-  },
-  "pinData": {},
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "b04d226497cdc806d4b65c48d09c823047f6131a6e6568526b981dd7b9fac8e9"
-  }
+  ]
 }
