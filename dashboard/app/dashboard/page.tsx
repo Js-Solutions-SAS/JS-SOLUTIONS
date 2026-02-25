@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FolderOpen,
@@ -393,7 +393,7 @@ export default function DashboardPage() {
                           <span className="font-semibold text-neutral-900 block">
                             {task.name}
                           </span>
-                          <span className="text-xs font-medium text-neutral-400 mt-0.5 block flex items-center gap-1">
+                          <span className="text-xs font-medium text-neutral-400 mt-0.5 flex items-center gap-1">
                             <ChevronRight className="w-3 h-3" /> Fase {idx + 1}
                           </span>
                         </div>
