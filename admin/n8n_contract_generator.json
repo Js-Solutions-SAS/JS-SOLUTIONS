@@ -1,0 +1,117 @@
+{
+  "name": "Generador de Contratos JS Solutions",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generar-contrato-webhook",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "e4f8d1c6-11f8-48b2-b13c-abc4573cd8f1",
+      "name": "Webhook (Trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "sheetUrl": "URL_A_TU_GOOGLE_SHEET",
+        "lookupColumn": "Lead_ID_O_EMAIL",
+        "lookupValue": "={{ $json.body.leadId }}",
+        "options": {}
+      },
+      "id": "67dc2d3e-9087-4b1a-b33a-4422ebd58c70",
+      "name": "Buscar en Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "operation": "documentCreateFromTemplate",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_LA_PLANTILLA_GOOGLE_DOCS",
+          "mode": "id"
+        },
+        "name": "=Contrato_JS_Solutions_{{ $json.Empresa }}",
+        "documentFields": {
+          "Nombre_Empresa": "={{ $json.Empresa }}",
+          "Servicio": "={{ $json.Servicio }}",
+          "Monto": "={{ $json.Monto }}"
+        },
+        "options": {}
+      },
+      "id": "8b9e63de-6fd9-47ed-bad1-c914e6bd766f",
+      "name": "Google Docs (Duplicar y Rellenar)",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetUrl": "URL_A_TU_GOOGLE_SHEET",
+        "updateKey": "Lead_ID_O_EMAIL",
+        "updateValue": "={{ $('Webhook (Trigger)').item.json.body.leadId }}",
+        "columns": {
+          "Estado": "Contrato Enviado",
+          "URL_Contrato": "={{ $json.url }}"
+        },
+        "options": {}
+      },
+      "id": "af005cc1-3e4b-4b1f-bbda-95b77e20b33c",
+      "name": "Activar Fila en Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [800, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook (Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Buscar en Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar en Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Google Docs (Duplicar y Rellenar)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Docs (Duplicar y Rellenar)": {
+      "main": [
+        [
+          {
+            "node": "Activar Fila en Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f9df27b8-6d2c-47fc-b5c0-0ed1fbaf7a7c",
+  "meta": {
+    "instanceId": "6df0ea8f37bc4c40bfaa9e6cfca1f185"
+  },
+  "tags": []
+}
