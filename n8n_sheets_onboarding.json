@@ -1,0 +1,718 @@
+{
+  "name": "Onboarding Clientes JS Solutions",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "onboarding-cliente",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "7bdfa57f-d5ed-4e2b-bb2a-fa057df7422f",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "resource": "folder",
+        "name": "={{ $json.body['Empresa'] }} - {{ $json.body['Nombre'] }}",
+        "options": {}
+      },
+      "id": "e30e1c12-7da3-42e1-afbc-4fa8f752eaf4",
+      "name": "Crear Carpeta Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [220, 300],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "operation": "copy",
+        "documentId": "ID_DE_TU_PLANTILLA_DOCS_AQUI",
+        "title": "={{ $json.body['Empresa'] }} - Brief de Proyecto",
+        "options": {
+          "parents": ["={{ $json.id }}"]
+        }
+      },
+      "id": "dcf11181-70bf-4f27-a068-19e075c3ef23",
+      "name": "Duplicar Brief",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "",
+          "name": "Google Docs OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendRow",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_TU_GOOGLE_SHEETS_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Cliente": "={{ $node['Webhook'].json.body['Email'] }}",
+            "Nombre": "={{ $node['Webhook'].json.body['Nombre'] }}",
+            "Email": "={{ $node['Webhook'].json.body['Email'] }}",
+            "Empresa": "={{ $node['Webhook'].json.body['Empresa'] }}",
+            "Tipo de Servicio": "={{ $node['Webhook'].json.body['Tipo de Servicio'] }}",
+            "URL Carpeta": "={{ $node['Crear Carpeta Drive'].json.webViewLink }}",
+            "Fecha Creación": "={{ new Date().toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "af93cb19-7d0f-4886-9aeb-a02b37cae0b7",
+      "name": "Google Sheets - CRM",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [660, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendRow",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_TU_GOOGLE_SHEETS_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=1",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Proyecto": "={{ $node['Webhook'].json.body['Empresa'] }}-01",
+            "Nombre Proyecto": "={{ $node['Webhook'].json.body['Empresa'] }} - {{ $node['Webhook'].json.body['Tipo de Servicio'] }}",
+            "Estado": "Iniciado",
+            "Tipo de Servicio": "={{ $node['Webhook'].json.body['Tipo de Servicio'] }}",
+            "Empresa Cliente": "={{ $node['Webhook'].json.body['Empresa'] }}",
+            "Link Carpeta Drive": "={{ $node['Crear Carpeta Drive'].json.webViewLink }}",
+            "Link Brief": "={{ $node['Duplicar Brief'].json.documentId }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "b0af8e24-4bfc-4a0d-8ea0-cb5d0bf3cb0c",
+      "name": "Google Sheets - Proyectos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [860, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $node['Webhook'].json.body['Tipo de Servicio'] }}",
+                    "rightValue": "Desarrollo Web",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Desarrollo Web"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $node['Webhook'].json.body['Tipo de Servicio'] }}",
+                    "rightValue": "Automatizaciones",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Automatizaciones"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $node['Webhook'].json.body['Tipo de Servicio'] }}",
+                    "rightValue": "Consultoría",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Consultoría"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ac8cd232-a9b0-466d-aba7-c3db1ad4f331",
+      "name": "Enrutador Servicio",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1060, 300]
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendRow",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_TU_GOOGLE_SHEETS_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=2",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Tarea": "WEB-1",
+            "Proyecto": "={{ $node['Webhook'].json.body['Empresa'] }}",
+            "Nombre Tarea": "Setup de Hosting y Repositorio",
+            "Estado": "Pendiente",
+            "Responsable": "IT",
+            "Fecha Límite": "={{ new Date(new Date().setDate(new Date().getDate() + 2)).toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "abc1",
+      "name": "Tareas Web 1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1360, 100],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendRow",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_TU_GOOGLE_SHEETS_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=2",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Tarea": "WEB-2",
+            "Proyecto": "={{ $node['Webhook'].json.body['Empresa'] }}",
+            "Nombre Tarea": "Diseño UI/UX Base",
+            "Estado": "Pendiente",
+            "Responsable": "Diseño",
+            "Fecha Límite": "={{ new Date(new Date().setDate(new Date().getDate() + 5)).toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "abc2",
+      "name": "Tareas Web 2",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1560, 100],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendRow",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_TU_GOOGLE_SHEETS_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=2",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Tarea": "WEB-3",
+            "Proyecto": "={{ $node['Webhook'].json.body['Empresa'] }}",
+            "Nombre Tarea": "Desarrollo Frontend Inicial",
+            "Estado": "Pendiente",
+            "Responsable": "Desarrollo",
+            "Fecha Límite": "={{ new Date(new Date().setDate(new Date().getDate() + 10)).toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "abc3",
+      "name": "Tareas Web 3",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1760, 100],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendRow",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_TU_GOOGLE_SHEETS_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=2",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Tarea": "AUTO-1",
+            "Proyecto": "={{ $node['Webhook'].json.body['Empresa'] }}",
+            "Nombre Tarea": "Levantamiento de Requerimientos y APIs",
+            "Estado": "Pendiente",
+            "Responsable": "Automatizaciones",
+            "Fecha Límite": "={{ new Date(new Date().setDate(new Date().getDate() + 2)).toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "def1",
+      "name": "Tareas Auto 1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1360, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendRow",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_TU_GOOGLE_SHEETS_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=2",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Tarea": "AUTO-2",
+            "Proyecto": "={{ $node['Webhook'].json.body['Empresa'] }}",
+            "Nombre Tarea": "Diseño Lógico del Flujo (Draw.io)",
+            "Estado": "Pendiente",
+            "Responsable": "Arquitectura",
+            "Fecha Límite": "={{ new Date(new Date().setDate(new Date().getDate() + 4)).toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "def2",
+      "name": "Tareas Auto 2",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1560, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendRow",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_TU_GOOGLE_SHEETS_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=2",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Tarea": "AUTO-3",
+            "Proyecto": "={{ $node['Webhook'].json.body['Empresa'] }}",
+            "Nombre Tarea": "Implementación de Nodos en n8n",
+            "Estado": "Pendiente",
+            "Responsable": "Automatizaciones",
+            "Fecha Límite": "={{ new Date(new Date().setDate(new Date().getDate() + 8)).toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "def3",
+      "name": "Tareas Auto 3",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1760, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendRow",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_TU_GOOGLE_SHEETS_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=2",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Tarea": "CONS-1",
+            "Proyecto": "={{ $node['Webhook'].json.body['Empresa'] }}",
+            "Nombre Tarea": "Revisión Formulario de Admisión",
+            "Estado": "Pendiente",
+            "Responsable": "Estrategia",
+            "Fecha Límite": "={{ new Date(new Date().setDate(new Date().getDate() + 1)).toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "ghi1",
+      "name": "Tareas Cons 1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1360, 500],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendRow",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_TU_GOOGLE_SHEETS_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=2",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Tarea": "CONS-2",
+            "Proyecto": "={{ $node['Webhook'].json.body['Empresa'] }}",
+            "Nombre Tarea": "Session 1: Roadmap Blueprint",
+            "Estado": "Pendiente",
+            "Responsable": "Estrategia",
+            "Fecha Límite": "={{ new Date(new Date().setDate(new Date().getDate() + 4)).toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "ghi2",
+      "name": "Tareas Cons 2",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1560, 500],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendRow",
+        "documentId": {
+          "__rl": true,
+          "value": "ID_DE_TU_GOOGLE_SHEETS_AQUI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=2",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID Tarea": "CONS-3",
+            "Proyecto": "={{ $node['Webhook'].json.body['Empresa'] }}",
+            "Nombre Tarea": "Entrega de Documentación",
+            "Estado": "Pendiente",
+            "Responsable": "Soporte",
+            "Fecha Límite": "={{ new Date(new Date().setDate(new Date().getDate() + 7)).toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "ghi3",
+      "name": "Tareas Cons 3",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1760, 500],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Crear Carpeta Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Carpeta Drive": {
+      "main": [
+        [
+          {
+            "node": "Duplicar Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicar Brief": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - CRM": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Proyectos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Proyectos": {
+      "main": [
+        [
+          {
+            "node": "Enrutador Servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrutador Servicio": {
+      "main": [
+        [
+          {
+            "node": "Tareas Web 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tareas Auto 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tareas Cons 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tareas Web 1": {
+      "main": [
+        [
+          {
+            "node": "Tareas Web 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tareas Web 2": {
+      "main": [
+        [
+          {
+            "node": "Tareas Web 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tareas Auto 1": {
+      "main": [
+        [
+          {
+            "node": "Tareas Auto 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tareas Auto 2": {
+      "main": [
+        [
+          {
+            "node": "Tareas Auto 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tareas Cons 1": {
+      "main": [
+        [
+          {
+            "node": "Tareas Cons 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tareas Cons 2": {
+      "main": [
+        [
+          {
+            "node": "Tareas Cons 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
