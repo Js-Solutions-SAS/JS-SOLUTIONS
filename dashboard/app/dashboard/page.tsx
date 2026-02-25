@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FolderOpen,
@@ -10,7 +11,7 @@ import {
   ArrowRight,
   Sparkles,
   LayoutDashboard,
-  Search,
+  //Search
   ExternalLink,
   ChevronRight,
   PlayCircle,
@@ -39,14 +40,37 @@ interface ProjectData {
 }
 
 export default function DashboardPage() {
-  const [identifier, setIdentifier] = useState("");
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-8 h-8 border-4 border-brand-gold/30 border-t-brand-gold rounded-full animate-spin"></div>
+        <p className="text-neutral-500 font-medium animate-pulse">
+          Cargando portal...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function DashboardContent() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
+  const [hasStarted, setHasStarted] = useState(false);
 
-  const fetchProjectDetails = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!identifier.trim()) return;
+  const fetchProjectDetails = useCallback(async () => {
+    if (!token) return;
 
     setIsLoading(true);
     setError(null);
@@ -57,7 +81,7 @@ export default function DashboardPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ identifier }),
+        body: JSON.stringify({ clientToken: token }),
       });
 
       const data = await response.json();
@@ -80,7 +104,13 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (token && hasStarted && !projectData && !isLoading) {
+      fetchProjectDetails();
+    }
+  }, [token, hasStarted, projectData, isLoading, fetchProjectDetails]);
 
   // --- Helpers de UI ---
   const getStatusIcon = (status: Task["status"]) => {
@@ -118,9 +148,33 @@ export default function DashboardPage() {
 
       <main className="w-full max-w-5xl z-10 relative">
         <AnimatePresence mode="wait">
-          {!projectData ? (
+          {!token ? (
             <motion.div
-              key="login"
+              key="invalid-token"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="w-full max-w-md mx-auto text-center"
+            >
+              <div className="glassmorphism rounded-3xl p-8 sm:p-12 space-y-6">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-50 mb-2">
+                  <AlertCircle
+                    className="w-10 h-10 text-red-500"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <h1 className="text-3xl font-extrabold tracking-tight text-neutral-900">
+                  Enlace Inválido
+                </h1>
+                <p className="text-neutral-500 font-medium">
+                  No hemos detectado un token de acceso válido en tu enlace. Por
+                  favor, solicita a tu asesor de JS Solutions que te envíe un
+                  nuevo Magic Link.
+                </p>
+              </div>
+            </motion.div>
+          ) : !hasStarted && !projectData ? (
+            <motion.div
+              key="welcome"
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -20, filter: "blur(10px)" }}
@@ -144,33 +198,13 @@ export default function DashboardPage() {
               </div>
 
               <div className="glassmorphism rounded-3xl p-6 sm:p-8">
-                <form onSubmit={fetchProjectDetails} className="space-y-5">
-                  <div className="space-y-1.5 focus-within:text-black text-neutral-500 transition-colors">
-                    <label
-                      htmlFor="identifier"
-                      className="text-sm font-semibold ml-1"
-                    >
-                      Identificador del Proyecto
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Search className="w-5 h-5 opacity-50" />
-                      </div>
-                      <input
-                        id="identifier"
-                        type="text"
-                        required
-                        value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
-                        className="block w-full pl-11 pr-4 py-3.5 bg-neutral-100/50 border border-neutral-200/80 rounded-2xl text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:ring-4 focus:ring-neutral-900/5 focus:border-neutral-900 transition-all outline-none"
-                        placeholder="Ej: correo@empresa.com"
-                      />
-                    </div>
-                  </div>
-
+                <div className="space-y-5">
                   <button
-                    type="submit"
-                    disabled={isLoading || !identifier.trim()}
+                    onClick={() => {
+                      setHasStarted(true);
+                      fetchProjectDetails();
+                    }}
+                    disabled={isLoading}
                     className="group relative w-full flex items-center justify-center py-3.5 px-4 rounded-2xl text-white bg-neutral-900 hover:bg-black focus:outline-none focus:ring-4 focus:ring-neutral-900/20 font-semibold transition-all disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden"
                   >
                     <span
@@ -179,7 +213,7 @@ export default function DashboardPage() {
                         isLoading ? "translate-y-[-150%]" : "translate-y-0",
                       )}
                     >
-                      Ingresar al Portal{" "}
+                      Cargar Estado del Proyecto{" "}
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </span>
                     <span
@@ -188,15 +222,16 @@ export default function DashboardPage() {
                         isLoading ? "translate-y-0" : "translate-y-[150%]",
                       )}
                     >
-                      <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                      <span className="w-5 h-5 border-2 border-brand-gold/50 border-t-brand-gold rounded-full animate-spin"></span>
                       <span className="ml-2">Conectando...</span>
                     </span>
                   </button>
-                </form>
+                </div>
 
                 <AnimatePresence>
                   {error && (
                     <motion.div
+                      key="error-box"
                       initial={{ opacity: 0, height: 0, marginTop: 0 }}
                       animate={{ opacity: 1, height: "auto", marginTop: 16 }}
                       exit={{ opacity: 0, height: 0, marginTop: 0 }}
@@ -206,12 +241,18 @@ export default function DashboardPage() {
                         <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                         <p>{error}</p>
                       </div>
+                      <button
+                        onClick={() => setHasStarted(false)}
+                        className="mt-3 text-sm font-medium text-neutral-500 hover:text-black transition-colors w-full text-center"
+                      >
+                        Intentar de nuevo
+                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
             </motion.div>
-          ) : (
+          ) : projectData ? (
             <motion.div
               key="dashboard"
               initial={{ opacity: 0, y: 30, scale: 0.98 }}
@@ -239,13 +280,6 @@ export default function DashboardPage() {
                     </h2>
                     <div className="flex items-center gap-2 text-sm font-medium text-neutral-500 mt-0.5">
                       <span>{projectData.serviceType}</span>
-                      <span className="w-1 h-1 rounded-full bg-neutral-300"></span>
-                      <button
-                        onClick={() => setProjectData(null)}
-                        className="hover:text-black transition-colors"
-                      >
-                        Cambiar proyecto
-                      </button>
                     </div>
                   </div>
                 </motion.div>
@@ -413,6 +447,18 @@ export default function DashboardPage() {
                 </div>
               </motion.div>
             </motion.div>
+          ) : (
+            <div
+              key="loading-state"
+              className="flex items-center justify-center h-64"
+            >
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-8 h-8 border-4 border-brand-gold/30 border-t-brand-gold rounded-full animate-spin"></div>
+                <p className="text-neutral-500 font-medium animate-pulse">
+                  Consultando datos del proyecto...
+                </p>
+              </div>
+            </div>
           )}
         </AnimatePresence>
       </main>
