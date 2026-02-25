@@ -11,7 +11,7 @@ import {
   ArrowRight,
   Sparkles,
   LayoutDashboard,
-  //Search
+  //Search, This will be used in the future
   ExternalLink,
   ChevronRight,
   PlayCircle,
