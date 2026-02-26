@@ -24,9 +24,9 @@ interface CapacityBoardProps {
 
 function bandLabel(entry: TeamCapacityEntry): string {
   const band = utilizationBand(entry);
-  if (band === "over") return "Overallocated";
-  if (band === "warning") return "At Risk";
-  return "Healthy";
+  if (band === "over") return "Sobrecargado";
+  if (band === "warning") return "En Riesgo";
+  return "Saludable";
 }
 
 function bandTone(entry: TeamCapacityEntry): "pending" | "progress" | "success" {
@@ -44,21 +44,21 @@ function barColor(entry: TeamCapacityEntry): string {
 }
 
 export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
-  const [roleFilter, setRoleFilter] = useState("All");
-  const [bandFilter, setBandFilter] = useState("All");
+  const [roleFilter, setRoleFilter] = useState("Todos");
+  const [bandFilter, setBandFilter] = useState("Todos");
   const [selectedEntry, setSelectedEntry] = useState<TeamCapacityEntry | null>(null);
 
   const roles = useMemo(() => {
-    const values = new Set(entries.map((entry) => entry.role || "Unassigned Role"));
-    return ["All", ...Array.from(values).sort((a, b) => a.localeCompare(b))];
+    const values = new Set(entries.map((entry) => entry.role || "Sin rol"));
+    return ["Todos", ...Array.from(values).sort((a, b) => a.localeCompare(b))];
   }, [entries]);
 
   const filtered = useMemo(() => {
     return entries
       .filter((entry) => {
-        const byRole = roleFilter === "All" || entry.role === roleFilter;
+        const byRole = roleFilter === "Todos" || entry.role === roleFilter;
         const byBand =
-          bandFilter === "All" || utilizationBand(entry) === bandFilter;
+          bandFilter === "Todos" || utilizationBand(entry) === bandFilter;
         return byRole && byBand;
       })
       .sort((a, b) => utilizationPercent(b) - utilizationPercent(a));
@@ -70,7 +70,7 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Team Members
+              Personas
               <Users2 className="h-4 w-4 text-brand-gold" />
             </CardTitle>
           </CardHeader>
@@ -82,7 +82,7 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Overallocated
+              Sobrecargados
               <ShieldAlert className="h-4 w-4 text-rose-300" />
             </CardTitle>
           </CardHeader>
@@ -94,7 +94,7 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              At Risk
+              En Riesgo
               <Gauge className="h-4 w-4 text-amber-200" />
             </CardTitle>
           </CardHeader>
@@ -106,7 +106,7 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Healthy
+              Saludables
               <Gauge className="h-4 w-4 text-emerald-300" />
             </CardTitle>
           </CardHeader>
@@ -118,7 +118,7 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Avg Utilization
+              Utilización Promedio
               <Gauge className="h-4 w-4 text-brand-gold" />
             </CardTitle>
           </CardHeader>
@@ -134,23 +134,23 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
             <Select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
               {roles.map((option) => (
                 <option key={option} value={option} className="bg-brand-charcoal text-white">
-                  Role: {option}
+                  Rol: {option}
                 </option>
               ))}
             </Select>
 
             <Select value={bandFilter} onChange={(event) => setBandFilter(event.target.value)}>
-              <option value="All" className="bg-brand-charcoal text-white">
-                Status: All
+              <option value="Todos" className="bg-brand-charcoal text-white">
+                Estado: Todos
               </option>
               <option value="healthy" className="bg-brand-charcoal text-white">
-                Status: Healthy
+                Estado: Saludable
               </option>
               <option value="warning" className="bg-brand-charcoal text-white">
-                Status: At Risk
+                Estado: En Riesgo
               </option>
               <option value="over" className="bg-brand-charcoal text-white">
-                Status: Overallocated
+                Estado: Sobrecargado
               </option>
             </Select>
           </div>
@@ -161,12 +161,12 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
             <table className="w-full text-sm">
               <thead className="bg-white/5">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Person</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Role</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Week</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Load</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Action</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Persona</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Rol</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Semana</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Carga</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Estado</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Acción</th>
                 </tr>
               </thead>
 
@@ -188,7 +188,7 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
                       <td className="px-4 py-3 text-brand-off-white/80">{entry.weekLabel}</td>
                       <td className="px-4 py-3">
                         <p className="text-xs text-brand-off-white/80">
-                          {entry.assignedHours}h / {entry.capacityHours}h · {entry.projectCount} project(s)
+                          {entry.assignedHours}h / {entry.capacityHours}h · {entry.projectCount} proyecto(s)
                         </p>
                         <div className="mt-2 h-2 w-48 rounded-full bg-white/10">
                           <div
@@ -204,7 +204,7 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-2">
                           <Button variant="outline" size="sm">
-                            View
+                            Ver
                           </Button>
                           {entry.ownerEmail ? (
                             <a
@@ -213,10 +213,10 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
                               className="inline-flex items-center gap-1 text-xs font-semibold text-brand-gold hover:underline"
                             >
                               <Mail className="h-3.5 w-3.5" />
-                              Contact
+                              Contactar
                             </a>
                           ) : (
-                            <span className="text-xs text-brand-off-white/55">No contact</span>
+                            <span className="text-xs text-brand-off-white/55">Sin contacto</span>
                           )}
                         </div>
                       </td>
@@ -229,7 +229,7 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
 
           {filtered.length === 0 && (
             <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-brand-off-white/70">
-              No capacity records match your current filters.
+              No hay registros de capacidad para los filtros seleccionados.
             </div>
           )}
         </CardContent>
@@ -240,20 +240,20 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
           {selectedEntry && (
             <>
               <DialogHeader>
-                <DialogTitle>Capacity Detail</DialogTitle>
+                <DialogTitle>Detalle de Capacidad</DialogTitle>
                 <DialogDescription>
-                  Use this detail to understand workload, risk level, and recommended actions for this teammate.
+                  Usa este detalle para entender carga, nivel de riesgo y acciones recomendadas para esta persona.
                 </DialogDescription>
               </DialogHeader>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Person</p>
+                  <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Persona</p>
                   <p className="mt-1 text-sm font-semibold text-white">{selectedEntry.personName}</p>
                   <p className="text-xs text-brand-off-white/70">{selectedEntry.role}</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Utilization</p>
+                  <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Utilización</p>
                   <p className="mt-1 text-sm font-semibold text-white">
                     {utilizationPercent(selectedEntry)}% ({selectedEntry.assignedHours}h / {selectedEntry.capacityHours}h)
                   </p>
@@ -262,15 +262,15 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
                   </Badge>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Planning Context</p>
-                  <p className="mt-1 text-sm text-brand-off-white/85">Week: {selectedEntry.weekLabel}</p>
-                  <p className="text-sm text-brand-off-white/85">Projects: {selectedEntry.projectCount}</p>
-                  <p className="text-sm text-brand-off-white/85">Focus: {selectedEntry.focusArea}</p>
+                  <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Contexto de Planeación</p>
+                  <p className="mt-1 text-sm text-brand-off-white/85">Semana: {selectedEntry.weekLabel}</p>
+                  <p className="text-sm text-brand-off-white/85">Proyectos: {selectedEntry.projectCount}</p>
+                  <p className="text-sm text-brand-off-white/85">Foco: {selectedEntry.focusArea}</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Guidance</p>
+                  <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Guía</p>
                   <p className="mt-1 text-sm text-brand-off-white/85">
-                    Over 100% means this person is overbooked. Rebalance deliverables or shift ownership before deadlines are impacted.
+                    Más de 100% significa que esta persona está sobreasignada. Rebalancea entregables o ajusta responsables antes de afectar fechas.
                   </p>
                 </div>
               </div>
