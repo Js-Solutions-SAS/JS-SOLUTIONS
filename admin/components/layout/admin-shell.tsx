@@ -13,6 +13,7 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  UsersRound,
   X,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ interface AdminShellProps {
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Entregas", href: "/entregas", icon: CalendarClock },
+  { name: "Capacidad", href: "/capacidad", icon: UsersRound },
   { name: "Cotizaciones", href: "/cotizaciones", icon: FileText },
   { name: "SOPs", href: "/sops", icon: BookOpen },
 ];
