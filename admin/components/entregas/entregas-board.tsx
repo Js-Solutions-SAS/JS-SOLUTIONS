@@ -40,14 +40,14 @@ interface DeliveryTask {
   createdAt: string;
 }
 
-const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEK_DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 function getDayKey(date: Date) {
   return date.toISOString().split("T")[0];
 }
 
 function formatDate(date: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("es-CO", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -65,28 +65,28 @@ function statusBadgeTone(status: string): "pending" | "progress" | "success" | "
 
 function statusLabel(status: string): string {
   const value = status.toLowerCase();
-  if (value.includes("pend")) return "Pending";
+  if (value.includes("pend")) return "Pendiente";
   if (value.includes("progreso") || value.includes("progress") || value.includes("curso")) {
-    return "In Progress";
+    return "En Progreso";
   }
-  if (value.includes("bloq") || value.includes("block")) return "Blocked";
+  if (value.includes("bloq") || value.includes("block")) return "Bloqueado";
   if (value.includes("complet") || value.includes("done") || value.includes("cerr")) {
-    return "Completed";
+    return "Completado";
   }
-  if (value.includes("review") || value.includes("revision")) return "In Review";
+  if (value.includes("review") || value.includes("revision")) return "En Revisión";
   return status;
 }
 
 function riskLabel(risk: "high" | "medium" | "low" | "none"): string {
-  if (risk === "high") return "Critical";
-  if (risk === "medium") return "Watch";
-  return "Stable";
+  if (risk === "high") return "Crítico";
+  if (risk === "medium") return "Atención";
+  return "Estable";
 }
 
 export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
   const [monthCursor, setMonthCursor] = useState(() => new Date());
-  const [industry, setIndustry] = useState("All");
-  const [status, setStatus] = useState("All");
+  const [industry, setIndustry] = useState("Todas");
+  const [status, setStatus] = useState("Todos");
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modalDate, setModalDate] = useState<string | null>(null);
   const [taskMilestoneId, setTaskMilestoneId] = useState("");
@@ -98,18 +98,18 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
 
   const industries = useMemo(() => {
     const values = new Set(milestones.map((milestone) => milestone.industry || "General"));
-    return ["All", ...Array.from(values).sort((a, b) => a.localeCompare(b))];
+    return ["Todas", ...Array.from(values).sort((a, b) => a.localeCompare(b))];
   }, [milestones]);
 
   const statuses = useMemo(() => {
-    const values = new Set(milestones.map((milestone) => milestone.status || "Pending"));
-    return ["All", ...Array.from(values).sort((a, b) => a.localeCompare(b))];
+    const values = new Set(milestones.map((milestone) => milestone.status || "Pendiente"));
+    return ["Todos", ...Array.from(values).sort((a, b) => a.localeCompare(b))];
   }, [milestones]);
 
   const filtered = useMemo(() => {
     return milestones.filter((milestone) => {
-      const byIndustry = industry === "All" || milestone.industry === industry;
-      const byStatus = status === "All" || milestone.status === status;
+      const byIndustry = industry === "Todas" || milestone.industry === industry;
+      const byStatus = status === "Todos" || milestone.status === status;
       return byIndustry && byStatus;
     });
   }, [industry, milestones, status]);
@@ -147,7 +147,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
     }
 
     return {
-      monthLabel: new Intl.DateTimeFormat("en-US", {
+      monthLabel: new Intl.DateTimeFormat("es-CO", {
         month: "long",
         year: "numeric",
       }).format(firstDay),
@@ -200,8 +200,8 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
 
   const assignTask = () => {
     if (!selectedModalMilestone || !taskTitle.trim() || !taskAssignee.trim()) {
-      toast.error("Missing fields", {
-        description: "Task title and assignee are required.",
+      toast.error("Campos faltantes", {
+        description: "El título de tarea y el responsable son obligatorios.",
       });
       return;
     }
@@ -223,8 +223,8 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
     setTaskTitle("");
     setTaskAssignee("");
     setTaskNotes("");
-    toast.success("Task assigned", {
-      description: `Task linked to ${selectedModalMilestone.title}.`,
+    toast.success("Tarea asignada", {
+      description: `Tarea vinculada a ${selectedModalMilestone.title}.`,
     });
   };
 
@@ -234,7 +234,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Active Deliverables
+              Entregables Activos
               <CalendarDays className="h-4 w-4 text-brand-gold" />
             </CardTitle>
           </CardHeader>
@@ -246,7 +246,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Overdue
+              Vencidos
               <AlertTriangle className="h-4 w-4 text-rose-300" />
             </CardTitle>
           </CardHeader>
@@ -258,7 +258,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Due in 7 Days
+              Próximos 7 Días
               <Clock3 className="h-4 w-4 text-amber-200" />
             </CardTitle>
           </CardHeader>
@@ -270,7 +270,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Blocked
+              Bloqueados
               <ShieldAlert className="h-4 w-4 text-orange-300" />
             </CardTitle>
           </CardHeader>
@@ -284,7 +284,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
         <Card>
           <CardHeader className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="text-white">Delivery Calendar</CardTitle>
+              <CardTitle className="text-white">Calendario de Entregas</CardTitle>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -314,7 +314,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
               <Select value={industry} onChange={(event) => setIndustry(event.target.value)}>
                 {industries.map((option) => (
                   <option key={option} value={option} className="bg-brand-charcoal text-white">
-                    Industry: {option}
+                    Industria: {option}
                   </option>
                 ))}
               </Select>
@@ -322,7 +322,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
               <Select value={status} onChange={(event) => setStatus(event.target.value)}>
                 {statuses.map((option) => (
                   <option key={option} value={option} className="bg-brand-charcoal text-white">
-                    Status: {option === "All" ? "All" : statusLabel(option)}
+                    Estado: {option === "Todos" ? "Todos" : statusLabel(option)}
                   </option>
                 ))}
               </Select>
@@ -365,7 +365,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
                     </div>
 
                     <p className="mt-3 line-clamp-2 text-[11px] text-brand-off-white/70">
-                      {hits.length > 0 ? `${hits.length} deliverable(s)` : "No deliverables"}
+                      {hits.length > 0 ? `${hits.length} entrega(s)` : "Sin entregas"}
                     </p>
                   </button>
                 );
@@ -380,7 +380,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
 
                 <div className="mt-3 space-y-2">
                   {selectedDateMilestones.length === 0 ? (
-                    <p className="text-sm text-brand-off-white/65">No milestones on this date.</p>
+                    <p className="text-sm text-brand-off-white/65">No hay hitos para esta fecha.</p>
                   ) : (
                     selectedDateMilestones.map((milestone) => (
                       <button
@@ -408,11 +408,11 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-white">Risk Watchlist</CardTitle>
+            <CardTitle className="text-white">Hitos en Riesgo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {riskMilestones.length === 0 && (
-              <p className="text-sm text-brand-off-white/70">No critical alerts for the selected filters.</p>
+              <p className="text-sm text-brand-off-white/70">Sin alertas críticas para los filtros seleccionados.</p>
             )}
 
             {riskMilestones.map((milestone) => {
@@ -430,11 +430,11 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
                   </div>
 
                   <p className="mt-2 text-xs text-brand-off-white/65">
-                    Owner: {milestone.owner} · Due: {formatDate(milestone.dueDate)}
+                    Responsable: {milestone.owner} · Fecha: {formatDate(milestone.dueDate)}
                   </p>
 
                   <p className="mt-2 text-xs text-brand-off-white/80">
-                    {remainingDays < 0 ? `Overdue by ${Math.abs(remainingDays)} day(s)` : `Due in ${remainingDays} day(s)`}
+                    {remainingDays < 0 ? `Vencido hace ${Math.abs(remainingDays)} día(s)` : `Vence en ${remainingDays} día(s)`}
                   </p>
 
                   <div className="mt-3 flex items-center gap-2">
@@ -443,7 +443,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
                       size="sm"
                       onClick={() => openDayModal(getDayKey(new Date(milestone.dueDate)), [milestone])}
                     >
-                      Open details
+                      Abrir detalle
                     </Button>
 
                     {milestone.externalUrl && milestone.externalUrl !== "#" && (
@@ -453,7 +453,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
                         rel="noopener noreferrer"
                         className="inline-flex text-xs font-semibold text-brand-gold hover:underline"
                       >
-                        Open workflow
+                        Abrir flujo
                       </a>
                     )}
                   </div>
@@ -467,21 +467,21 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
       <Dialog open={Boolean(modalDate)} onOpenChange={(open) => !open && setModalDate(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delivery Detail & Task Assignment</DialogTitle>
+            <DialogTitle>Detalle de Entrega y Asignación de Tareas</DialogTitle>
             <DialogDescription>
-              Review delivery checkpoints and assign execution tasks in one flow.
+              Revisa checkpoints de entrega y asigna tareas operativas desde un solo flujo.
             </DialogDescription>
           </DialogHeader>
 
           {modalDate && (
             <div className="space-y-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                Date: {formatDate(modalDate)}
+                Fecha: {formatDate(modalDate)}
               </p>
 
               {modalMilestones.length === 0 ? (
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-brand-off-white/70">
-                  No deliverables found for this date.
+                  No se encontraron entregables para esta fecha.
                 </div>
               ) : (
                 <>
@@ -505,7 +505,7 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
                     <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
                       <p className="font-semibold text-white">{selectedModalMilestone.title}</p>
                       <p className="mt-1 text-brand-off-white/75">
-                        {selectedModalMilestone.projectName} · Owner: {selectedModalMilestone.owner}
+                        {selectedModalMilestone.projectName} · Responsable: {selectedModalMilestone.owner}
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <Badge tone={statusBadgeTone(selectedModalMilestone.status)}>
@@ -522,42 +522,42 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
                     <Input
                       value={taskTitle}
                       onChange={(event) => setTaskTitle(event.target.value)}
-                      placeholder="Task title"
+                      placeholder="Título de la tarea"
                     />
                     <Input
                       value={taskAssignee}
                       onChange={(event) => setTaskAssignee(event.target.value)}
-                      placeholder="Assignee"
+                      placeholder="Responsable"
                     />
                     <Input
                       type="date"
                       value={taskDueDate}
                       onChange={(event) => setTaskDueDate(event.target.value)}
                     />
-                    <Button onClick={assignTask}>Assign Task</Button>
+                    <Button onClick={assignTask}>Asignar Tarea</Button>
                   </div>
 
                   <textarea
                     value={taskNotes}
                     onChange={(event) => setTaskNotes(event.target.value)}
-                    placeholder="Task notes (optional)"
+                    placeholder="Notas de la tarea (opcional)"
                     className="min-h-20 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-brand-off-white/45 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold/20"
                   />
 
                   <div className="space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                      Assigned Tasks ({activeTasks.length})
+                      Tareas Asignadas ({activeTasks.length})
                     </p>
                     {activeTasks.length === 0 ? (
                       <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-brand-off-white/70">
-                        No tasks assigned yet.
+                        Aún no hay tareas asignadas.
                       </p>
                     ) : (
                       activeTasks.map((task) => (
                         <div key={task.id} className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
                           <p className="font-semibold text-white">{task.title}</p>
                           <p className="text-brand-off-white/75">
-                            {task.assignee} · Due {task.dueDate ? formatDate(task.dueDate) : "TBD"}
+                            {task.assignee} · Fecha {task.dueDate ? formatDate(task.dueDate) : "Por definir"}
                           </p>
                           {task.notes && <p className="mt-1 text-brand-off-white/65">{task.notes}</p>}
                         </div>
