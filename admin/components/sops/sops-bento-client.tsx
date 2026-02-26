@@ -72,9 +72,9 @@ export function SopsBentoClient({ initialSops }: SopsBentoClientProps) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {filtered.map((sop, index) => (
+        {filtered.map((sop) => (
           <Card
-            key={`${sop.id || sop.title}-${index}`}
+            key={sop.id || sop.title}
             className="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-brand-gold/40 hover:shadow-[0_16px_38px_rgba(212,175,55,0.12)]"
           >
             <CardContent className="flex h-full flex-col p-5">

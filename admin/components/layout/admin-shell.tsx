@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   BookOpen,
+  CalendarClock,
   ChevronRight,
   FileText,
   LayoutDashboard,
@@ -25,6 +26,7 @@ interface AdminShellProps {
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Entregas", href: "/entregas", icon: CalendarClock },
   { name: "Cotizaciones", href: "/cotizaciones", icon: FileText },
   { name: "SOPs", href: "/sops", icon: BookOpen },
 ];
@@ -157,8 +159,24 @@ export function AdminShell({ children }: AdminShellProps) {
       </div>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-30 bg-black/60 md:hidden" onClick={() => setMobileOpen(false)}>
-          <div className="h-full w-72 border-r border-white/10 bg-brand-charcoal p-4" onClick={(event) => event.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-30 bg-black/60 md:hidden"
+          onClick={() => setMobileOpen(false)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" || event.key === "Enter") {
+              setMobileOpen(false);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar menú móvil"
+        >
+          <div
+            className="h-full w-72 border-r border-white/10 bg-brand-charcoal p-4"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+            role="presentation"
+          >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Image src="/logo.svg" alt="JS Solutions" width={24} height={24} className="h-6 w-auto" />
