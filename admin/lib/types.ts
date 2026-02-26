@@ -48,3 +48,25 @@ export interface DeliveryMetrics {
   dueIn7Days: number;
   blocked: number;
 }
+
+export type CapacityUtilizationBand = "healthy" | "warning" | "over";
+
+export interface TeamCapacityEntry {
+  id: string;
+  personName: string;
+  role: string;
+  weekLabel: string;
+  capacityHours: number;
+  assignedHours: number;
+  projectCount: number;
+  focusArea: string;
+  ownerEmail?: string;
+}
+
+export interface CapacityMetrics {
+  people: number;
+  overallocated: number;
+  atRisk: number;
+  healthy: number;
+  avgUtilization: number;
+}

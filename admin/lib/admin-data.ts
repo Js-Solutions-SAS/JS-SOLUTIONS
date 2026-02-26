@@ -1,12 +1,19 @@
 import "server-only";
 
 import type {
+  CapacityMetrics,
   DashboardMetrics,
   DeliveryMetrics,
   Milestone,
   Quote,
   SOP,
+  TeamCapacityEntry,
 } from "@/lib/types";
+import {
+  normalizeCapacityEntry,
+  utilizationBand,
+  utilizationPercent,
+} from "@/lib/capacity-utils";
 import { normalizeQuote, statusTone } from "@/lib/quote-utils";
 import {
   daysUntil,
@@ -116,6 +123,53 @@ const MOCK_MILESTONES: Milestone[] = [
   },
 ];
 
+const MOCK_TEAM_CAPACITY: TeamCapacityEntry[] = [
+  {
+    id: "cap-1",
+    personName: "Laura Medina",
+    role: "PM",
+    weekLabel: "2026-W09",
+    capacityHours: 40,
+    assignedHours: 38,
+    projectCount: 3,
+    focusArea: "Delivery",
+    ownerEmail: "laura@jssolutions.co",
+  },
+  {
+    id: "cap-2",
+    personName: "Luis Mejia",
+    role: "Automation Engineer",
+    weekLabel: "2026-W09",
+    capacityHours: 40,
+    assignedHours: 46,
+    projectCount: 4,
+    focusArea: "n8n",
+    ownerEmail: "luis@jssolutions.co",
+  },
+  {
+    id: "cap-3",
+    personName: "Sara Alvarez",
+    role: "Frontend Engineer",
+    weekLabel: "2026-W09",
+    capacityHours: 40,
+    assignedHours: 33,
+    projectCount: 2,
+    focusArea: "UI",
+    ownerEmail: "sara@jssolutions.co",
+  },
+  {
+    id: "cap-4",
+    personName: "Diego Pardo",
+    role: "QA",
+    weekLabel: "2026-W09",
+    capacityHours: 35,
+    assignedHours: 30,
+    projectCount: 3,
+    focusArea: "Testing",
+    ownerEmail: "diego@jssolutions.co",
+  },
+];
+
 export async function getQuotes(): Promise<Quote[]> {
   const webhookUrl = process.env.N8N_GET_QUOTES_URL;
 
@@ -220,5 +274,62 @@ export function getDeliveryMetrics(milestones: Milestone[]): DeliveryMetrics {
     overdue: overdue.length,
     dueIn7Days: dueIn7Days.length,
     blocked: blocked.length,
+  };
+}
+
+export async function getTeamCapacity(): Promise<TeamCapacityEntry[]> {
+  const webhookUrl = process.env.N8N_CAPACITY_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    return MOCK_TEAM_CAPACITY;
+  }
+
+  const response = await fetch(webhookUrl, {
+    method: "GET",
+    headers: {
+      ...DEFAULT_HEADERS,
+      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("No fue posible obtener capacidad del equipo desde n8n.");
+  }
+
+  const raw = await response.json();
+  const items = Array.isArray(raw) ? raw : raw.capacity || raw.data || [];
+
+  return items.map((item: Partial<TeamCapacityEntry>, index: number) =>
+    normalizeCapacityEntry(item, index),
+  );
+}
+
+export function getCapacityMetrics(entries: TeamCapacityEntry[]): CapacityMetrics {
+  const people = entries.length;
+  const overallocated = entries.filter(
+    (entry) => utilizationBand(entry) === "over",
+  ).length;
+  const atRisk = entries.filter(
+    (entry) => utilizationBand(entry) === "warning",
+  ).length;
+  const healthy = entries.filter(
+    (entry) => utilizationBand(entry) === "healthy",
+  ).length;
+  const avgUtilization = people
+    ? Math.round(
+        entries.reduce(
+          (accumulator, entry) => accumulator + utilizationPercent(entry),
+          0,
+        ) / people,
+      )
+    : 0;
+
+  return {
+    people,
+    overallocated,
+    atRisk,
+    healthy,
+    avgUtilization,
   };
 }
