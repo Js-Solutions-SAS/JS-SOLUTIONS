@@ -13,6 +13,7 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  ShieldAlert,
   UsersRound,
   X,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Entregas", href: "/entregas", icon: CalendarClock },
   { name: "Capacidad", href: "/capacidad", icon: UsersRound },
+  { name: "RAID", href: "/raid", icon: ShieldAlert },
   { name: "Cotizaciones", href: "/cotizaciones", icon: FileText },
   { name: "SOPs", href: "/sops", icon: BookOpen },
 ];
