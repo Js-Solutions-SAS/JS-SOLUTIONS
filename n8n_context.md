@@ -145,3 +145,33 @@ Para garantizar la **seguridad** de los datos y las credenciales (evitando expon
   6. Registro de snapshot en tabla histórica.
 
 > Especificación técnica completa: `n8n_capacity_management_spec.md`.
+
+---
+
+## 6. Módulo RAID Log (Riesgos, Supuestos, Issues, Dependencias)
+
+**Contexto:** Gobernanza operativa por proyecto para anticipar bloqueos, validar supuestos críticos y gestionar dependencias externas.
+
+### Funcionalidad Orquestada por n8n:
+
+- **Consolidación RAID por Proyecto:** Unifica registros de riesgos, supuestos, issues y dependencias desde Google Sheets/DB.
+- **Priorización y Escalamiento:** Detecta elementos críticos abiertos y notifica responsables.
+
+### Flujo de Operación:
+
+- **Lectura de RAID (BFF):**
+  - El frontend del admin consulta `GET /api/admin/raid`.
+  - La API de Next.js llama al webhook `N8N_RAID_WEBHOOK_URL`.
+  - n8n responde registros RAID por proyecto con `type`, `status`, `priority`, `owner`, `dueDate` y `externalUrl`.
+
+- **Workflow `WF_Raid_Log_Governance`:**
+  1. Trigger programado diario (08:00, Mon-Fri).
+  2. Lectura de `RAID_Log` (activos y cerrados recientes).
+  3. Normalización de categorías y estados:
+     - `Risk | Assumption | Issue | Dependency`
+     - `Open | Mitigated | Blocked | Closed`
+  4. Detección de `Critical Open` (Open/Blocked + High/Critical).
+  5. Notificación a PM/owner con enlace de acción al admin.
+  6. Registro de snapshot histórico para auditoría.
+
+> Especificación técnica completa: `n8n_raid_management_spec.md`.
