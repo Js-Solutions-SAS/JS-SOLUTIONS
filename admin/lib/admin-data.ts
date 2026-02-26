@@ -1,6 +1,9 @@
 import "server-only";
 
 import type {
+  ApprovalItem,
+  ApprovalMetrics,
+  ApprovalStageCoverage,
   CapacityMetrics,
   DashboardMetrics,
   DeliveryMetrics,
@@ -12,6 +15,11 @@ import type {
   SOP,
   TeamCapacityEntry,
 } from "@/lib/types";
+import {
+  isApprovalOverdue,
+  isApprovalResolved,
+  normalizeApprovalItem,
+} from "@/lib/approval-utils";
 import {
   normalizeCapacityEntry,
   utilizationBand,
@@ -268,6 +276,92 @@ const MOCK_RAID_ITEMS: RaidItem[] = [
   },
 ];
 
+const MOCK_APPROVAL_ITEMS: ApprovalItem[] = [
+  {
+    id: "apr-1",
+    projectId: "P-001",
+    projectName: "Portal de Licitaciones",
+    clientName: "Alcaldia Metropolitana",
+    industry: "Sector Publico",
+    owner: "Maria Torres",
+    stage: "Brief",
+    status: "Approved",
+    requestedAt: new Date(Date.now() - 10 * 86400000).toISOString(),
+    approvedAt: new Date(Date.now() - 9 * 86400000).toISOString(),
+    title: "Aprobacion de brief funcional",
+    notes: "Validado por PM y referente del cliente.",
+  },
+  {
+    id: "apr-2",
+    projectId: "P-001",
+    projectName: "Portal de Licitaciones",
+    clientName: "Alcaldia Metropolitana",
+    industry: "Sector Publico",
+    owner: "Camilo Vega",
+    stage: "Scope",
+    status: "In Review",
+    requestedAt: new Date(Date.now() - 7 * 86400000).toISOString(),
+    dueDate: new Date(Date.now() + 1 * 86400000).toISOString(),
+    title: "Validacion final de alcance",
+    notes: "Pendiente firma de comite legal.",
+  },
+  {
+    id: "apr-3",
+    projectId: "P-002",
+    projectName: "Ecommerce Omnicanal",
+    clientName: "Retail Horizon",
+    industry: "Retail / E-commerce",
+    owner: "Luis Mejia",
+    stage: "QA",
+    status: "Pending",
+    requestedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
+    dueDate: new Date(Date.now() + 2 * 86400000).toISOString(),
+    title: "Go/No-Go QA checkout",
+    notes: "Se requiere evidencia de regresion completa.",
+  },
+  {
+    id: "apr-4",
+    projectId: "P-002",
+    projectName: "Ecommerce Omnicanal",
+    clientName: "Retail Horizon",
+    industry: "Retail / E-commerce",
+    owner: "Laura Medina",
+    stage: "UAT",
+    status: "Blocked",
+    requestedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+    dueDate: new Date(Date.now() - 1 * 86400000).toISOString(),
+    title: "Aprobacion UAT flujo omnicanal",
+    notes: "Bloqueado por falta de usuarios de negocio en ventana acordada.",
+  },
+  {
+    id: "apr-5",
+    projectId: "P-003",
+    projectName: "Produccion automatizada de contenido",
+    clientName: "Nova Media House",
+    industry: "Produccion de Medios",
+    owner: "Sara Alvarez",
+    stage: "Contract",
+    status: "Approved",
+    requestedAt: new Date(Date.now() - 8 * 86400000).toISOString(),
+    approvedAt: new Date(Date.now() - 6 * 86400000).toISOString(),
+    title: "Anexo contractual de licenciamiento",
+  },
+  {
+    id: "apr-6",
+    projectId: "P-003",
+    projectName: "Produccion automatizada de contenido",
+    clientName: "Nova Media House",
+    industry: "Produccion de Medios",
+    owner: "Diego Pardo",
+    stage: "Scope Change",
+    status: "Pending",
+    requestedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+    dueDate: new Date(Date.now() + 3 * 86400000).toISOString(),
+    title: "Cambio de alcance para modulo editorial",
+    notes: "Incremento de 2 automatizaciones y ajuste de cronograma.",
+  },
+];
+
 export async function getQuotes(): Promise<Quote[]> {
   const webhookUrl = process.env.N8N_GET_QUOTES_URL;
 
@@ -506,5 +600,68 @@ export function getRaidProjectSummaries(items: RaidItem[]): RaidProjectSummary[]
     if (b.critical !== a.critical) return b.critical - a.critical;
     if (b.open !== a.open) return b.open - a.open;
     return a.projectName.localeCompare(b.projectName);
+  });
+}
+
+export async function getApprovals(): Promise<ApprovalItem[]> {
+  const webhookUrl = process.env.N8N_APPROVALS_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    return MOCK_APPROVAL_ITEMS;
+  }
+
+  const response = await fetch(webhookUrl, {
+    method: "GET",
+    headers: {
+      ...DEFAULT_HEADERS,
+      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("No fue posible obtener aprobaciones desde n8n.");
+  }
+
+  const raw = await response.json();
+  const items = Array.isArray(raw) ? raw : raw.approvals || raw.data || [];
+
+  return items.map((item: Partial<ApprovalItem>, index: number) =>
+    normalizeApprovalItem(item, index),
+  );
+}
+
+export function getApprovalMetrics(items: ApprovalItem[]): ApprovalMetrics {
+  return {
+    total: items.length,
+    pending: items.filter((item) => item.status === "Pending").length,
+    inReview: items.filter((item) => item.status === "In Review").length,
+    blocked: items.filter((item) => item.status === "Blocked").length,
+    approved: items.filter((item) => item.status === "Approved").length,
+    overdue: items.filter((item) => isApprovalOverdue(item)).length,
+  };
+}
+
+export function getApprovalStageCoverage(
+  items: ApprovalItem[],
+): ApprovalStageCoverage[] {
+  const stages: ApprovalStageCoverage["stage"][] = [
+    "Brief",
+    "Scope",
+    "QA",
+    "UAT",
+    "Contract",
+    "Scope Change",
+  ];
+
+  return stages.map((stage) => {
+    const entries = items.filter((item) => item.stage === stage);
+
+    return {
+      stage,
+      total: entries.length,
+      approved: entries.filter((item) => item.status === "Approved").length,
+      pending: entries.filter((item) => !isApprovalResolved(item.status)).length,
+    };
   });
 }

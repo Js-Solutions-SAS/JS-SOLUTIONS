@@ -115,3 +115,51 @@ export interface RaidMetrics {
   issues: number;
   dependencies: number;
 }
+
+export type ApprovalStage =
+  | "Brief"
+  | "Scope"
+  | "QA"
+  | "UAT"
+  | "Contract"
+  | "Scope Change";
+
+export type ApprovalStatus =
+  | "Pending"
+  | "In Review"
+  | "Approved"
+  | "Rejected"
+  | "Blocked";
+
+export interface ApprovalItem {
+  id: string;
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  industry: string;
+  owner: string;
+  stage: ApprovalStage;
+  status: ApprovalStatus;
+  requestedAt: string;
+  dueDate?: string;
+  approvedAt?: string;
+  title: string;
+  notes?: string;
+  externalUrl?: string;
+}
+
+export interface ApprovalMetrics {
+  total: number;
+  pending: number;
+  inReview: number;
+  blocked: number;
+  approved: number;
+  overdue: number;
+}
+
+export interface ApprovalStageCoverage {
+  stage: ApprovalStage;
+  total: number;
+  approved: number;
+  pending: number;
+}
