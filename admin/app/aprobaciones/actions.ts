@@ -12,7 +12,7 @@ export async function approveCheckpointAction(input: ApproveCheckpointInput) {
   if (!input.approvalId || !input.projectId || !input.stage) {
     return {
       ok: false,
-      message: "Missing required data to approve this checkpoint.",
+      message: "Faltan datos requeridos para aprobar este punto de control.",
     };
   }
 
@@ -22,7 +22,7 @@ export async function approveCheckpointAction(input: ApproveCheckpointInput) {
     revalidatePath("/aprobaciones");
     return {
       ok: true,
-      message: "Approval simulated (no webhook configured).",
+      message: "Aprobación simulada (sin webhook configurado).",
     };
   }
 
@@ -40,20 +40,20 @@ export async function approveCheckpointAction(input: ApproveCheckpointInput) {
     });
 
     if (!response.ok) {
-      throw new Error(`n8n responded with status ${response.status}`);
+      throw new Error(`n8n respondió con estado ${response.status}`);
     }
 
     revalidatePath("/aprobaciones");
 
     return {
       ok: true,
-      message: "Checkpoint approved and synced with n8n.",
+      message: "Punto de control aprobado y sincronizado con n8n.",
     };
   } catch (error) {
     console.error("approveCheckpointAction", error);
     return {
       ok: false,
-      message: "Could not register this approval. Check n8n connectivity.",
+      message: "No se pudo registrar esta aprobación. Revisa la conectividad con n8n.",
     };
   }
 }

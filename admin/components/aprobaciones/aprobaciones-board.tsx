@@ -60,28 +60,43 @@ function statusTone(status: ApprovalStatus): "pending" | "progress" | "success" 
 }
 
 function formatDate(value?: string): string {
-  if (!value) return "No date";
-  return new Intl.DateTimeFormat("en-US", {
+  if (!value) return "Sin fecha";
+  return new Intl.DateTimeFormat("es-CO", {
     month: "short",
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
 }
 
+function stageLabel(stage: ApprovalStage): string {
+  if (stage === "Scope") return "Alcance";
+  if (stage === "Contract") return "Contrato";
+  if (stage === "Scope Change") return "Cambio de Alcance";
+  return stage;
+}
+
+function statusLabel(status: ApprovalStatus): string {
+  if (status === "Pending") return "Pendiente";
+  if (status === "In Review") return "En Revisión";
+  if (status === "Approved") return "Aprobado";
+  if (status === "Rejected") return "Rechazado";
+  return "Bloqueado";
+}
+
 function stageDescription(stage: ApprovalStage): string {
-  if (stage === "Brief") return "Validates business goals, constraints, and expected outcomes.";
-  if (stage === "Scope") return "Confirms project boundaries, effort, and delivery commitments.";
-  if (stage === "QA") return "Confirms technical quality, testing evidence, and release readiness.";
-  if (stage === "UAT") return "Confirms end-user acceptance from business stakeholders.";
-  if (stage === "Contract") return "Confirms legal/commercial documents are accepted.";
-  return "Captures and approves approved scope modifications.";
+  if (stage === "Brief") return "Valida objetivos de negocio, restricciones y resultados esperados.";
+  if (stage === "Scope") return "Confirma límites del proyecto, esfuerzo y compromisos de entrega.";
+  if (stage === "QA") return "Confirma calidad técnica, evidencia de pruebas y preparación para salida.";
+  if (stage === "UAT") return "Confirma aceptación de usuario final por parte del negocio.";
+  if (stage === "Contract") return "Confirma que los documentos legales/comerciales están aceptados.";
+  return "Registra y aprueba modificaciones del alcance acordado.";
 }
 
 export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
   const [items, setItems] = useState(initialItems);
-  const [projectFilter, setProjectFilter] = useState("All");
-  const [stageFilter, setStageFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [projectFilter, setProjectFilter] = useState("Todos");
+  const [stageFilter, setStageFilter] = useState("Todos");
+  const [statusFilter, setStatusFilter] = useState("Todos");
   const [search, setSearch] = useState("");
   const [runningId, setRunningId] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ApprovalItem | null>(null);
@@ -89,17 +104,17 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
 
   const projects = useMemo(() => {
     const values = new Set(items.map((item) => item.projectName));
-    return ["All", ...Array.from(values).sort((a, b) => a.localeCompare(b))];
+    return ["Todos", ...Array.from(values).sort((a, b) => a.localeCompare(b))];
   }, [items]);
 
   const filtered = useMemo(() => {
     return items
       .filter((item) => {
-        const byProject = projectFilter === "All" || item.projectName === projectFilter;
+        const byProject = projectFilter === "Todos" || item.projectName === projectFilter;
         const byStage =
-          stageFilter === "All" || (isApprovalStage(stageFilter) && item.stage === stageFilter);
+          stageFilter === "Todos" || (isApprovalStage(stageFilter) && item.stage === stageFilter);
         const byStatus =
-          statusFilter === "All" || (isApprovalStatus(statusFilter) && item.status === statusFilter);
+          statusFilter === "Todos" || (isApprovalStatus(statusFilter) && item.status === statusFilter);
         const query = search.toLowerCase().trim();
         const bySearch =
           !query ||
@@ -154,7 +169,7 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
       });
 
       if (!result.ok) {
-        toast.error("Connection error", { description: result.message });
+        toast.error("Error de conexión", { description: result.message });
         setRunningId(null);
         return;
       }
@@ -166,7 +181,7 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
             : entry,
         ),
       );
-      toast.success("Checkpoint approved", { description: result.message });
+      toast.success("Punto de control aprobado", { description: result.message });
       setRunningId(null);
     });
   };
@@ -177,7 +192,7 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Requests
+              Solicitudes
               <ClipboardCheck className="h-4 w-4 text-brand-gold" />
             </CardTitle>
           </CardHeader>
@@ -188,7 +203,7 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm text-brand-off-white/75">Pending</CardTitle>
+            <CardTitle className="text-sm text-brand-off-white/75">Pendientes</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-amber-100">{metrics.pending}</p>
@@ -197,7 +212,7 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm text-brand-off-white/75">In Review</CardTitle>
+            <CardTitle className="text-sm text-brand-off-white/75">En Revisión</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-blue-100">{metrics.inReview}</p>
@@ -206,7 +221,7 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm text-brand-off-white/75">Blocked</CardTitle>
+            <CardTitle className="text-sm text-brand-off-white/75">Bloqueadas</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-orange-200">{metrics.blocked}</p>
@@ -215,7 +230,7 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm text-brand-off-white/75">Approved</CardTitle>
+            <CardTitle className="text-sm text-brand-off-white/75">Aprobadas</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-emerald-100">{metrics.approved}</p>
@@ -225,7 +240,7 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Overdue
+              Vencidas
               <Timer className="h-4 w-4 text-rose-300" />
             </CardTitle>
           </CardHeader>
@@ -240,16 +255,16 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <CheckCheck className="h-4 w-4 text-brand-gold" />
-              Stage Coverage
+              Cobertura por Etapa
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {stageCoverage.map((entry) => (
               <div key={entry.stage} className="rounded-xl border border-white/10 bg-white/5 p-3">
                 <div className="flex items-center justify-between">
-                  <Badge tone={stageTone(entry.stage)}>{entry.stage}</Badge>
+                  <Badge tone={stageTone(entry.stage)}>{stageLabel(entry.stage)}</Badge>
                   <p className="text-xs text-brand-off-white/70">
-                    {entry.approved}/{entry.total} approved
+                    {entry.approved}/{entry.total} aprobadas
                   </p>
                 </div>
                 <div className="mt-2 h-2 rounded-full bg-white/10">
@@ -267,41 +282,41 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
 
         <Card>
           <CardHeader className="space-y-4">
-            <CardTitle className="text-white">Approval Matrix</CardTitle>
+            <CardTitle className="text-white">Matriz de Aprobaciones</CardTitle>
             <div className="grid gap-3 md:grid-cols-2">
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search project, client, owner, or checkpoint"
+                placeholder="Buscar proyecto, cliente, owner o checkpoint"
                 className="md:col-span-2"
               />
 
               <Select value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)}>
                 {projects.map((option) => (
                   <option key={option} value={option} className="bg-brand-charcoal text-white">
-                    Project: {option}
+                    Proyecto: {option}
                   </option>
                 ))}
               </Select>
 
               <Select value={stageFilter} onChange={(event) => setStageFilter(event.target.value)}>
-                <option value="All" className="bg-brand-charcoal text-white">
-                  Stage: All
+                <option value="Todos" className="bg-brand-charcoal text-white">
+                  Etapa: Todas
                 </option>
                 {STAGES.map((option) => (
                   <option key={option} value={option} className="bg-brand-charcoal text-white">
-                    Stage: {option}
+                    Etapa: {stageLabel(option)}
                   </option>
                 ))}
               </Select>
 
               <Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                <option value="All" className="bg-brand-charcoal text-white">
-                  Status: All
+                <option value="Todos" className="bg-brand-charcoal text-white">
+                  Estado: Todos
                 </option>
                 {STATUSES.map((option) => (
                   <option key={option} value={option} className="bg-brand-charcoal text-white">
-                    Status: {option}
+                    Estado: {statusLabel(option)}
                   </option>
                 ))}
               </Select>
@@ -313,12 +328,12 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
               <table className="w-full text-sm">
                 <thead className="bg-white/5">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Project</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Checkpoint</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Stage</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Dates</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Proyecto</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Punto de Control</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Etapa</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Estado</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Fechas</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-brand-off-white/80">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
@@ -344,28 +359,28 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <Badge tone={stageTone(item.stage)}>{item.stage}</Badge>
+                          <Badge tone={stageTone(item.stage)}>{stageLabel(item.stage)}</Badge>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <Badge tone={statusTone(item.status)}>{item.status}</Badge>
+                            <Badge tone={statusTone(item.status)}>{statusLabel(item.status)}</Badge>
                             {overdue && (
                               <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-200">
                                 <CircleAlert className="h-3.5 w-3.5" />
-                                Overdue
+                                Vencido
                               </span>
                             )}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-xs text-brand-off-white/80">
-                          <p>Requested: {formatDate(item.requestedAt)}</p>
-                          <p>Due: {formatDate(item.dueDate)}</p>
-                          {item.approvedAt && <p>Approved: {formatDate(item.approvedAt)}</p>}
+                          <p>Solicitado: {formatDate(item.requestedAt)}</p>
+                          <p>Vence: {formatDate(item.dueDate)}</p>
+                          {item.approvedAt && <p>Aprobado: {formatDate(item.approvedAt)}</p>}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="inline-flex items-center gap-2">
                             <Button variant="outline" size="sm" onClick={() => setSelectedItem(item)}>
-                              View
+                              Ver
                             </Button>
                             {canApprove ? (
                               <Button
@@ -376,11 +391,11 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
                                 }}
                                 disabled={isRunning}
                               >
-                                {isRunning ? "Processing..." : "Approve"}
+                                {isRunning ? "Procesando..." : "Aprobar"}
                               </Button>
                             ) : (
                               <Button variant="outline" size="sm" disabled>
-                                {item.status === "Approved" ? "Approved" : "Not actionable"}
+                                {item.status === "Approved" ? "Aprobada" : "No accionable"}
                               </Button>
                             )}
                           </div>
@@ -394,7 +409,7 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
 
             {filtered.length === 0 && (
               <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-brand-off-white/70">
-                No approval checkpoints match your current filters.
+                No hay checkpoints de aprobación para los filtros seleccionados.
               </div>
             )}
           </CardContent>
@@ -405,7 +420,7 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
         <Card className="border-rose-300/25">
           <CardContent className="flex items-center gap-2 p-4 text-sm text-rose-100">
             <ShieldAlert className="h-4 w-4 text-rose-200" />
-            {metrics.overdue} approval checkpoint(s) are overdue. Escalate in the operations committee.
+            Hay {metrics.overdue} checkpoint(s) de aprobación vencido(s). Escala en el comité operativo.
           </CardContent>
         </Card>
       )}
@@ -415,9 +430,9 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
           {selectedItem && (
             <>
               <DialogHeader>
-                <DialogTitle>Checkpoint Detail</DialogTitle>
+                <DialogTitle>Detalle del Punto de Control</DialogTitle>
                 <DialogDescription>
-                  This view explains what this checkpoint means and what must happen next.
+                  Esta vista explica qué significa este punto de control y qué debe pasar después.
                 </DialogDescription>
               </DialogHeader>
 
@@ -428,32 +443,32 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
                     {selectedItem.projectName} · {selectedItem.clientName}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <Badge tone={stageTone(selectedItem.stage)}>{selectedItem.stage}</Badge>
-                    <Badge tone={statusTone(selectedItem.status)}>{selectedItem.status}</Badge>
+                    <Badge tone={stageTone(selectedItem.stage)}>{stageLabel(selectedItem.stage)}</Badge>
+                    <Badge tone={statusTone(selectedItem.status)}>{statusLabel(selectedItem.status)}</Badge>
                   </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Owner</p>
+                    <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Responsable</p>
                     <p className="mt-1 text-sm text-brand-off-white/90">{selectedItem.owner}</p>
-                    <p className="mt-2 text-xs uppercase tracking-wide text-brand-off-white/50">Dates</p>
-                    <p className="mt-1 text-sm text-brand-off-white/90">Requested: {formatDate(selectedItem.requestedAt)}</p>
-                    <p className="text-sm text-brand-off-white/90">Due: {formatDate(selectedItem.dueDate)}</p>
+                    <p className="mt-2 text-xs uppercase tracking-wide text-brand-off-white/50">Fechas</p>
+                    <p className="mt-1 text-sm text-brand-off-white/90">Solicitado: {formatDate(selectedItem.requestedAt)}</p>
+                    <p className="text-sm text-brand-off-white/90">Vence: {formatDate(selectedItem.dueDate)}</p>
                     {selectedItem.approvedAt && (
-                      <p className="text-sm text-brand-off-white/90">Approved: {formatDate(selectedItem.approvedAt)}</p>
+                      <p className="text-sm text-brand-off-white/90">Aprobado: {formatDate(selectedItem.approvedAt)}</p>
                     )}
                   </div>
 
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Stage Meaning</p>
+                    <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Significado de la Etapa</p>
                     <p className="mt-1 text-sm text-brand-off-white/90">{stageDescription(selectedItem.stage)}</p>
                   </div>
                 </div>
 
                 {selectedItem.notes && (
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Notes</p>
+                    <p className="text-xs uppercase tracking-wide text-brand-off-white/50">Notas</p>
                     <p className="mt-1 text-sm text-brand-off-white/90">{selectedItem.notes}</p>
                   </div>
                 )}
