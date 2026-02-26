@@ -55,8 +55,12 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      backgroundImage: {
+        "gold-gradient": "linear-gradient(to right, #D4AF37, #C5A028)",
+      },
     },
   },
   plugins: [tailwindcssAnimate],
 };
+
 export default config;

@@ -4,54 +4,75 @@
 
 @layer base {
   :root {
-    /* Fondos basados en off-white y charcoal */
-    --background: 0 0% 98%; /* #FAFAFA o similar al off-white */
-    --foreground: 0 0% 7%; /* #121212 charcoal */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 7%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
+    --background: 0 0% 4%;
+    --foreground: 0 0% 90%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 90%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 90%;
 
-    /* Acentos basados en dorado */
-    --primary: 46 65% 53%; /* #D4AF37 brand-gold hsl aproximado */
-    --primary-foreground: 0 0% 98%;
-    --secondary: 46 65% 95%; /* Dorado muy claro para fondos secundarios */
-    --secondary-foreground: 0 0% 7%;
-    --muted: 0 0% 90%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 46 65% 90%;
-    --accent-foreground: 0 0% 7%;
-    --destructive: 0 84.2% 60.2%;
+    --primary: 46 65% 53%;
+    --primary-foreground: 0 0% 6%;
+    --secondary: 0 0% 11%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 66%;
+    --accent: 46 65% 53%;
+    --accent-foreground: 0 0% 6%;
+    --destructive: 0 72% 46%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Bordes y anillos combinando el carbón y dorado */
-    --border: 0 0% 88%;
-    --input: 0 0% 88%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
     --ring: 46 65% 53%;
-    --radius: 1rem;
+    --radius: 0.85rem;
   }
 
   * {
     border-color: hsl(var(--border));
   }
+
+  html {
+    background: #0a0a0a;
+  }
+
   body {
-    @apply bg-background text-foreground tracking-tight;
+    @apply bg-background text-foreground;
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
+    letter-spacing: -0.01em;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0a0a0a;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2b2b2b;
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #d4af37;
   }
 }
 
 @layer utilities {
   .glassmorphism {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl;
+    @apply border border-white/10 bg-white/5 backdrop-blur-xl shadow-xl;
   }
 
   .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/50 shadow-sm transition-all hover:shadow-md;
+    @apply border border-white/10 bg-white/5 shadow-sm transition-all hover:border-brand-gold/30 hover:shadow-lg;
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-br from-neutral-900 via-neutral-700 to-neutral-500;
+    @apply bg-gold-gradient bg-clip-text text-transparent;
   }
 }
