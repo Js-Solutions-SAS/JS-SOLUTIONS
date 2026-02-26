@@ -112,3 +112,36 @@ Para garantizar la **seguridad** de los datos y las credenciales (evitando expon
   5. Registro de trazabilidad en tabla de logs.
 
 > Especificación técnica completa: `n8n_milestone_reminders_spec.md`.
+
+---
+
+## 5. Módulo Capacidad (Carga por Persona/Rol)
+
+**Contexto:** Vista táctica para evitar sobreasignación de equipo y proteger compromisos de entrega.
+
+### Funcionalidad Orquestada por n8n:
+
+- **Consolidación de Capacidad Semanal:** Unifica disponibilidad vs asignación por persona/rol.
+- **Monitoreo Preventivo:** Clasifica utilización por banda (`HEALTHY`, `WARNING`, `OVER`) y dispara alertas.
+
+### Flujo de Operación:
+
+- **Lectura de Capacidad (BFF):**
+  - El frontend del admin consulta `GET /api/admin/capacidad`.
+  - La API de Next.js llama al webhook `N8N_CAPACITY_WEBHOOK_URL`.
+  - n8n responde registros por persona con `capacityHours`, `assignedHours`, `projectCount`, `role` y `weekLabel`.
+
+- **Workflow `WF_Capacity_Monitor`:**
+  1. Trigger programado diario (07:30, Mon-Fri).
+  2. Lectura de capacidad semanal desde Google Sheets/DB.
+  3. Cálculo de utilización por recurso.
+  4. Clasificación:
+     - `OVER` > 100%
+     - `WARNING` 85%-100%
+     - `HEALTHY` < 85%
+  5. Notificaciones:
+     - `OVER`: alerta inmediata a PM/Operaciones.
+     - `WARNING`: aviso preventivo al owner.
+  6. Registro de snapshot en tabla histórica.
+
+> Especificación técnica completa: `n8n_capacity_management_spec.md`.
