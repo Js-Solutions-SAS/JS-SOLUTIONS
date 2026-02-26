@@ -1,43 +1,133 @@
-# Astro Starter Kit: Minimal
+# JS Solutions Workspace
 
-```sh
-npm create astro@latest -- --template minimal
-```
+Repositorio con tres aplicaciones del ecosistema JS Solutions:
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+- `landing`: sitio comercial y cotizador (Astro + React)
+- `portal`: portal de cliente para seguimiento de proyectos (Next.js)
+- `admin`: panel interno para SOPs, cotizaciones y contratos (Next.js)
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
+## Estructura del repositorio
 
 ```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+.
+├── landing/
+├── portal/
+├── admin/
+├── Estructura_Google_Sheets.md
+├── n8n_sheets_project_status.json
+└── n8n_sheets_onboarding.json
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## Requisitos
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+- Node.js 18+
+- npm 9+
 
-Any static assets, like images, can be placed in the `public/` directory.
+## Ejecución local
 
-## 🧞 Commands
+Cada aplicación se ejecuta por separado desde su carpeta.
 
-All commands are run from the root of the project, from a terminal:
+### 1) Landing (`landing`)
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+Sitio público con página principal y cotizador.
 
-## 👀 Want to learn more?
+- Stack: Astro 5 + React + Tailwind
+- Rutas principales:
+  - `/` (home)
+  - `/cotizador` (formulario que envía a n8n)
+- Comandos:
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+```bash
+cd landing
+npm install
+npm run dev
+```
+
+Servidor local por defecto: `http://localhost:4321`
+
+Variables recomendadas (`landing/.env`):
+
+```env
+PUBLIC_N8N_WEBHOOK_URL=https://tu-n8n/webhook/cotizador_js_solutions
+```
+
+Si no se define, usa el fallback que aparece en `landing/src/pages/cotizador.astro`.
+
+### 2) Portal (`portal`)
+
+Portal de clientes para consultar estado de proyecto mediante magic link/token.
+
+- Stack: Next.js 14 + React + Tailwind
+- Rutas principales:
+  - `/` redirige a `/dashboard`
+  - `/dashboard?token=...` carga estado de proyecto
+  - `POST /api/project-status` consulta n8n
+  - `GET /api/admin/sops` obtiene SOPs desde n8n
+- Comandos:
+
+```bash
+cd portal
+npm install
+npm run dev
+```
+
+Servidor local por defecto: `http://localhost:3000`
+
+Variables recomendadas (`portal/.env.local`):
+
+```env
+N8N_WEBHOOK_URL=https://tu-n8n/webhook/project-status
+N8N_SECRET_TOKEN=tu_token_bearer_opcional
+N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
+```
+
+### 3) Admin (`admin`)
+
+Panel interno para operación: SOPs, gestión de cotizaciones y generación de contratos.
+
+- Stack: Next.js 14 + React + Tailwind
+- Rutas principales:
+  - `/` (dashboard interno)
+  - `/sops` (consulta SOPs)
+  - `/cotizaciones` (lista leads y genera contratos)
+  - `GET /api/admin/sops`
+  - `GET /api/admin/cotizaciones`
+  - `POST /api/admin/cotizaciones`
+- Comandos:
+
+```bash
+cd admin
+npm install
+npm run dev
+```
+
+Servidor local por defecto: `http://localhost:3000`
+
+Variables recomendadas (`admin/.env.local`):
+
+```env
+N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
+N8N_GET_QUOTES_URL=https://tu-n8n/webhook/get-quotes
+N8N_GENERATE_CONTRACT_URL=https://tu-n8n/webhook/generate-contract
+N8N_SECRET_TOKEN=tu_token_bearer_opcional
+```
+
+Notas:
+
+- Si `N8N_GET_QUOTES_URL` no está configurada, el módulo de cotizaciones devuelve datos mock para no romper la UI.
+- Si `N8N_GENERATE_CONTRACT_URL` no está configurada, la generación responde en modo simulado.
+
+## Build de producción
+
+Ejecuta por aplicación:
+
+```bash
+npm run build
+npm run start
+```
+
+## Archivos de apoyo n8n / Google Sheets
+
+- `Estructura_Google_Sheets.md`: esquema de hojas y campos.
+- `n8n_sheets_project_status.json`: flujo base para estado de proyectos.
+- `n8n_sheets_onboarding.json`: flujo base para onboarding.
