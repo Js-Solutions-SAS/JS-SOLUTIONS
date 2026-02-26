@@ -4,18 +4,15 @@
 
 @layer base {
   :root {
-    /* Fondos basados en off-white y charcoal */
-    --background: 0 0% 98%; /* #FAFAFA o similar al off-white */
-    --foreground: 0 0% 7%; /* #121212 charcoal */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 7%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 7%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 7%;
-
-    /* Acentos basados en dorado */
-    --primary: 46 65% 53%; /* #D4AF37 brand-gold hsl aproximado */
+    --primary: 46 65% 53%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 46 65% 95%; /* Dorado muy claro para fondos secundarios */
+    --secondary: 46 65% 95%;
     --secondary-foreground: 0 0% 7%;
     --muted: 0 0% 90%;
     --muted-foreground: 0 0% 45%;
@@ -23,8 +20,6 @@
     --accent-foreground: 0 0% 7%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-
-    /* Bordes y anillos combinando el carbón y dorado */
     --border: 0 0% 88%;
     --input: 0 0% 88%;
     --ring: 46 65% 53%;
@@ -34,6 +29,7 @@
   * {
     border-color: hsl(var(--border));
   }
+
   body {
     @apply bg-background text-foreground tracking-tight;
     font-feature-settings:
@@ -53,5 +49,38 @@
 
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-br from-neutral-900 via-neutral-700 to-neutral-500;
+  }
+
+  .skeleton-block {
+    @apply relative overflow-hidden bg-neutral-200/80;
+  }
+
+  .skeleton-shimmer {
+    background-image: linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0) 20%,
+      rgba(255, 255, 255, 0.5) 45%,
+      rgba(255, 255, 255, 0) 70%
+    );
+    background-size: 220% 100%;
+    animation: shimmer 1.7s ease-in-out infinite;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    background-position-x: -220%;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
