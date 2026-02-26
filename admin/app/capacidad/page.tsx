@@ -41,10 +41,10 @@ export default function CapacidadPage() {
       <div>
         <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
           <UsersRound className="h-8 w-8 text-brand-gold" />
-          Gestión de Capacidad
+          Capacity Management
         </h1>
         <p className="mt-1 text-sm text-brand-off-white/70">
-          Controla carga por persona/rol para prevenir sobreasignación y proteger fechas de entrega.
+          Track load by person and role to prevent over-allocation and protect delivery commitments.
         </p>
       </div>
 

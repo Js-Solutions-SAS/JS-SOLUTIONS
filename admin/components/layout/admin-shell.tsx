@@ -29,13 +29,23 @@ interface AdminShellProps {
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Entregas", href: "/entregas", icon: CalendarClock },
-  { name: "Capacidad", href: "/capacidad", icon: UsersRound },
-  { name: "Aprobaciones", href: "/aprobaciones", icon: ClipboardCheck },
+  { name: "Deliveries", href: "/entregas", icon: CalendarClock },
+  { name: "Capacity", href: "/capacidad", icon: UsersRound },
+  { name: "Approvals", href: "/aprobaciones", icon: ClipboardCheck },
   { name: "RAID", href: "/raid", icon: ShieldAlert },
-  { name: "Cotizaciones", href: "/cotizaciones", icon: FileText },
+  { name: "Quotes", href: "/cotizaciones", icon: FileText },
   { name: "SOPs", href: "/sops", icon: BookOpen },
 ];
+
+const breadcrumbLabelMap: Record<string, string> = {
+  admin: "Admin",
+  entregas: "Deliveries",
+  capacidad: "Capacity",
+  aprobaciones: "Approvals",
+  cotizaciones: "Quotes",
+  sops: "SOPs",
+  raid: "RAID",
+};
 
 function getBreadCrumbs(pathname: string) {
   if (pathname === "/") return [{ label: "Dashboard", href: "/" }];
@@ -45,7 +55,8 @@ function getBreadCrumbs(pathname: string) {
     .filter(Boolean)
     .map((segment, index, array) => {
       const href = `/${array.slice(0, index + 1).join("/")}`;
-      const label = segment.charAt(0).toUpperCase() + segment.slice(1);
+      const label =
+        breadcrumbLabelMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
 
       return { label, href };
     });
@@ -92,7 +103,7 @@ export function AdminShell({ children }: AdminShellProps) {
               variant="ghost"
               size="sm"
               onClick={() => setCollapsed((prev) => !prev)}
-              aria-label="Colapsar sidebar"
+              aria-label="Toggle sidebar"
             >
               {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </Button>
@@ -131,7 +142,7 @@ export function AdminShell({ children }: AdminShellProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setMobileOpen(true)}
-                  aria-label="Abrir navegación"
+                  aria-label="Open navigation"
                 >
                   <Menu className="h-4 w-4" />
                 </Button>
@@ -175,7 +186,7 @@ export function AdminShell({ children }: AdminShellProps) {
           }}
           role="button"
           tabIndex={0}
-          aria-label="Cerrar menú móvil"
+          aria-label="Close mobile menu"
         >
           <div
             className="h-full w-72 border-r border-white/10 bg-brand-charcoal p-4"
@@ -186,7 +197,7 @@ export function AdminShell({ children }: AdminShellProps) {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Image src="/logo.svg" alt="JS Solutions" width={24} height={24} className="h-6 w-auto" />
-                <p className="text-sm font-bold text-white">Navegacion</p>
+                <p className="text-sm font-bold text-white">Navigation</p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setMobileOpen(false)}>
                 <X className="h-4 w-4" />

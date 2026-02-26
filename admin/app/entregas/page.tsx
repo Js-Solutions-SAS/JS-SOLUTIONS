@@ -49,10 +49,10 @@ export default function EntregasPage() {
       <div>
         <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
           <CalendarClock className="h-8 w-8 text-brand-gold" />
-          Entregas y Hitos
+          Deliveries & Milestones
         </h1>
         <p className="mt-1 text-sm text-brand-off-white/70">
-          Calendario operativo de entregables, fechas compromiso y alertas de riesgo.
+          Operational calendar for deliverables, commitments, and risk alerts.
         </p>
       </div>
 
