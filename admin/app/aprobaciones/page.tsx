@@ -47,10 +47,10 @@ export default function AprobacionesPage() {
       <div>
         <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
           <ClipboardCheck className="h-8 w-8 text-brand-gold" />
-          Approvals
+          Aprobaciones
         </h1>
         <p className="mt-1 text-sm text-brand-off-white/70">
-          Manage checkpoints for brief, scope, QA, UAT, contract, and scope changes.
+          Gestiona checkpoints de brief, alcance, QA, UAT, contrato y cambios de alcance.
         </p>
       </div>
 
