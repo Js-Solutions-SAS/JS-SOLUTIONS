@@ -12,22 +12,19 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Tailwind Stability (Important)
 
-This project had intermittent dev cache corruption (`.next` / webpack cache) that could make styles look uncompiled.
+This project had intermittent cache corruption that could make styles look uncompiled.
 
-- `npm run dev` now clears cache automatically before starting Next.js.
-- If you need faster startup (without cache cleanup), use:
+- `npm run dev` uses a dedicated development build directory: `.next-dev`
+- `npm run build` uses a dedicated production build directory: `.next-build`
+- This prevents collisions between dev server artifacts and production builds.
 
-```bash
-npm run dev:fast
-```
-
-- Manual recovery command:
+If you need a hard reset:
 
 ```bash
 npm run clean:cache
 ```
 
-Then restart:
+Then start dev again:
 
 ```bash
 npm run dev

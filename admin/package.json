@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run clean:cache && next dev",
-    "dev:fast": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "NEXT_DIST_DIR=.next-dev next dev",
+    "dev:clean": "npm run clean:cache && npm run dev",
+    "build": "NEXT_DIST_DIR=.next-build next build",
+    "start": "NEXT_DIST_DIR=.next-build next start",
     "lint": "next lint",
-    "clean:cache": "rm -rf .next node_modules/.cache"
+    "clean:cache": "rm -rf .next .next-dev .next-build node_modules/.cache"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
