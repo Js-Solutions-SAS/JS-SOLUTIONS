@@ -175,3 +175,37 @@ Para garantizar la **seguridad** de los datos y las credenciales (evitando expon
   6. Registro de snapshot histórico para auditoría.
 
 > Especificación técnica completa: `n8n_raid_management_spec.md`.
+
+---
+
+## 7. Módulo Aprobaciones (Brief, Alcance, QA, UAT, Contrato, Cambio de Alcance)
+
+**Contexto:** Gobierno operativo de checkpoints formales para asegurar trazabilidad de decisiones y evitar entregas sin validación.
+
+### Funcionalidad Orquestada por n8n:
+
+- **Matriz de Aprobaciones por Proyecto:** Centraliza estado de aprobaciones por etapa y responsable.
+- **Escalación de Aprobaciones Vencidas:** Detecta vencimientos y notifica a PM/Operaciones.
+- **Mutaciones de Aprobación:** Procesa acciones de aprobar desde Admin y registra auditoría.
+
+### Flujo de Operación:
+
+- **Lectura de Aprobaciones (BFF):**
+  - El frontend del admin consulta `GET /api/admin/aprobaciones`.
+  - La API de Next.js llama al webhook `N8N_APPROVALS_WEBHOOK_URL`.
+  - n8n responde checkpoints con `stage`, `status`, `owner`, `requestedAt`, `dueDate` y `approvedAt`.
+
+- **Aprobación de Checkpoint (Server Action):**
+  1. El usuario aprueba un checkpoint en `/aprobaciones`.
+  2. `approveCheckpointAction` envía mutación a `N8N_APPROVALS_ACTION_WEBHOOK_URL`.
+  3. n8n actualiza estado a `Approved`, registra `approvedAt` y crea evento de auditoría.
+  4. Next.js revalida la vista y refleja el cambio.
+
+- **Workflow `WF_Approvals_Governance`:**
+  1. Trigger programado diario (08:15, Mon-Fri).
+  2. Lectura de tabla de aprobaciones.
+  3. Normalización de etapas y estados.
+  4. Detección de aprobaciones vencidas y pendientes críticas.
+  5. Notificaciones y escalaciones automáticas.
+
+> Especificación técnica completa: `n8n_approvals_workflow_spec.md`.
