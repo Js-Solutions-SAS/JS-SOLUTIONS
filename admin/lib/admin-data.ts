@@ -5,6 +5,9 @@ import type {
   DashboardMetrics,
   DeliveryMetrics,
   Milestone,
+  RaidItem,
+  RaidMetrics,
+  RaidProjectSummary,
   Quote,
   SOP,
   TeamCapacityEntry,
@@ -14,6 +17,11 @@ import {
   utilizationBand,
   utilizationPercent,
 } from "@/lib/capacity-utils";
+import {
+  isCriticalOpen,
+  isOpenStatus,
+  normalizeRaidItem,
+} from "@/lib/raid-utils";
 import { normalizeQuote, statusTone } from "@/lib/quote-utils";
 import {
   daysUntil,
@@ -167,6 +175,96 @@ const MOCK_TEAM_CAPACITY: TeamCapacityEntry[] = [
     projectCount: 3,
     focusArea: "Testing",
     ownerEmail: "diego@jssolutions.co",
+  },
+];
+
+const MOCK_RAID_ITEMS: RaidItem[] = [
+  {
+    id: "raid-1",
+    projectId: "P-001",
+    projectName: "Portal de Licitaciones",
+    clientName: "Alcaldia Metropolitana",
+    industry: "Sector Publico",
+    owner: "Maria Torres",
+    type: "Risk",
+    status: "Open",
+    priority: "Critical",
+    title: "Cambios regulatorios sin confirmacion final",
+    detail: "Riesgo de reproceso funcional si no se valida decreto final.",
+    dueDate: new Date(Date.now() + 2 * 86400000).toISOString(),
+    mitigation: "Mesa legal semanal y congelacion de alcance en modulo QA.",
+  },
+  {
+    id: "raid-2",
+    projectId: "P-001",
+    projectName: "Portal de Licitaciones",
+    clientName: "Alcaldia Metropolitana",
+    industry: "Sector Publico",
+    owner: "Camilo Vega",
+    type: "Dependency",
+    status: "Blocked",
+    priority: "High",
+    title: "Provision de certificados de infraestructura",
+    detail: "El tercero de seguridad no ha liberado certificados SSL de produccion.",
+    dueDate: new Date(Date.now() + 1 * 86400000).toISOString(),
+    dependencyOn: "Proveedor de infraestructura gubernamental",
+  },
+  {
+    id: "raid-3",
+    projectId: "P-002",
+    projectName: "Ecommerce Omnicanal",
+    clientName: "Retail Horizon",
+    industry: "Retail / E-commerce",
+    owner: "Luis Mejia",
+    type: "Issue",
+    status: "Open",
+    priority: "High",
+    title: "Mismatch de inventario entre OMS y checkout",
+    detail: "Se detectaron diferencias de stock en 8 SKUs de alto volumen.",
+    dueDate: new Date(Date.now() + 3 * 86400000).toISOString(),
+    mitigation: "Runbook de reconciliacion diaria + validacion automatica n8n.",
+  },
+  {
+    id: "raid-4",
+    projectId: "P-002",
+    projectName: "Ecommerce Omnicanal",
+    clientName: "Retail Horizon",
+    industry: "Retail / E-commerce",
+    owner: "Laura Medina",
+    type: "Assumption",
+    status: "Mitigated",
+    priority: "Medium",
+    title: "Equipo del cliente entrega catalogo limpio",
+    detail: "Se asumio catalogo sin duplicados. Data quality se corrigio parcialmente.",
+    mitigation: "Checklist de calidad previo a cada import masiva.",
+  },
+  {
+    id: "raid-5",
+    projectId: "P-003",
+    projectName: "Produccion automatizada de contenido",
+    clientName: "Nova Media House",
+    industry: "Produccion de Medios",
+    owner: "Sara Alvarez",
+    type: "Risk",
+    status: "Open",
+    priority: "Medium",
+    title: "Dependencia de aprobacion editorial nocturna",
+    detail: "Sin validacion editorial antes de 22:00 se retrasa el pipeline de publicacion.",
+    dueDate: new Date(Date.now() + 5 * 86400000).toISOString(),
+  },
+  {
+    id: "raid-6",
+    projectId: "P-003",
+    projectName: "Produccion automatizada de contenido",
+    clientName: "Nova Media House",
+    industry: "Produccion de Medios",
+    owner: "Diego Pardo",
+    type: "Issue",
+    status: "Closed",
+    priority: "Low",
+    title: "Latencia alta en render de miniaturas",
+    detail: "Problema cerrado tras ajuste de colas y caché.",
+    mitigation: "Monitor de performance activo en horario prime.",
   },
 ];
 
@@ -332,4 +430,81 @@ export function getCapacityMetrics(entries: TeamCapacityEntry[]): CapacityMetric
     healthy,
     avgUtilization,
   };
+}
+
+export async function getRaidItems(): Promise<RaidItem[]> {
+  const webhookUrl = process.env.N8N_RAID_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    return MOCK_RAID_ITEMS;
+  }
+
+  const response = await fetch(webhookUrl, {
+    method: "GET",
+    headers: {
+      ...DEFAULT_HEADERS,
+      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("No fue posible obtener el RAID log desde n8n.");
+  }
+
+  const raw = await response.json();
+  const items = Array.isArray(raw) ? raw : raw.raid || raw.data || [];
+
+  return items.map((item: Partial<RaidItem>, index: number) =>
+    normalizeRaidItem(item, index),
+  );
+}
+
+export function getRaidMetrics(items: RaidItem[]): RaidMetrics {
+  const openItems = items.filter((item) => isOpenStatus(item.status));
+
+  return {
+    total: items.length,
+    open: openItems.length,
+    criticalOpen: items.filter((item) => isCriticalOpen(item)).length,
+    risks: items.filter((item) => item.type === "Risk").length,
+    assumptions: items.filter((item) => item.type === "Assumption").length,
+    issues: items.filter((item) => item.type === "Issue").length,
+    dependencies: items.filter((item) => item.type === "Dependency").length,
+  };
+}
+
+export function getRaidProjectSummaries(items: RaidItem[]): RaidProjectSummary[] {
+  const grouped = new Map<string, RaidProjectSummary>();
+
+  for (const item of items) {
+    const current = grouped.get(item.projectId) || {
+      projectId: item.projectId,
+      projectName: item.projectName,
+      clientName: item.clientName,
+      industry: item.industry,
+      open: 0,
+      critical: 0,
+      risks: 0,
+      assumptions: 0,
+      issues: 0,
+      dependencies: 0,
+    };
+
+    if (isOpenStatus(item.status)) current.open += 1;
+    if (isCriticalOpen(item)) current.critical += 1;
+
+    if (item.type === "Risk") current.risks += 1;
+    if (item.type === "Assumption") current.assumptions += 1;
+    if (item.type === "Issue") current.issues += 1;
+    if (item.type === "Dependency") current.dependencies += 1;
+
+    grouped.set(item.projectId, current);
+  }
+
+  return Array.from(grouped.values()).sort((a, b) => {
+    if (b.critical !== a.critical) return b.critical - a.critical;
+    if (b.open !== a.open) return b.open - a.open;
+    return a.projectName.localeCompare(b.projectName);
+  });
 }

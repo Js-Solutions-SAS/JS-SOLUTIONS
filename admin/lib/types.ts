@@ -70,3 +70,48 @@ export interface CapacityMetrics {
   healthy: number;
   avgUtilization: number;
 }
+
+export type RaidType = "Risk" | "Assumption" | "Issue" | "Dependency";
+
+export type RaidStatus = "Open" | "Mitigated" | "Blocked" | "Closed";
+
+export interface RaidItem {
+  id: string;
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  industry: string;
+  owner: string;
+  type: RaidType;
+  status: RaidStatus;
+  priority: "Low" | "Medium" | "High" | "Critical";
+  title: string;
+  detail: string;
+  dueDate?: string;
+  mitigation?: string;
+  dependencyOn?: string;
+  externalUrl?: string;
+}
+
+export interface RaidProjectSummary {
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  industry: string;
+  open: number;
+  critical: number;
+  risks: number;
+  assumptions: number;
+  issues: number;
+  dependencies: number;
+}
+
+export interface RaidMetrics {
+  total: number;
+  open: number;
+  criticalOpen: number;
+  risks: number;
+  assumptions: number;
+  issues: number;
+  dependencies: number;
+}
