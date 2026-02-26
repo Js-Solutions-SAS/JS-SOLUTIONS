@@ -28,27 +28,27 @@ interface AdminShellProps {
 }
 
 const navItems = [
-  { name: "Panel", href: "/", icon: LayoutDashboard },
+  { name: "Inicio", href: "/", icon: LayoutDashboard },
   { name: "Entregas", href: "/entregas", icon: CalendarClock },
   { name: "Capacidad", href: "/capacidad", icon: UsersRound },
   { name: "Aprobaciones", href: "/aprobaciones", icon: ClipboardCheck },
-  { name: "RAID", href: "/raid", icon: ShieldAlert },
+  { name: "RAID Log", href: "/raid", icon: ShieldAlert },
   { name: "Cotizaciones", href: "/cotizaciones", icon: FileText },
   { name: "SOPs", href: "/sops", icon: BookOpen },
 ];
 
 const breadcrumbLabelMap: Record<string, string> = {
-  admin: "Administración",
+  admin: "Inicio",
   entregas: "Entregas",
   capacidad: "Capacidad",
   aprobaciones: "Aprobaciones",
   cotizaciones: "Cotizaciones",
   sops: "SOPs",
-  raid: "RAID",
+  raid: "RAID Log",
 };
 
 function getBreadCrumbs(pathname: string) {
-  if (pathname === "/") return [{ label: "Panel", href: "/" }];
+  if (pathname === "/") return [{ label: "Inicio", href: "/" }];
 
   return pathname
     .split("/")
