@@ -1,13 +1,13 @@
 import { Suspense } from "react";
 import { FileText } from "lucide-react";
 
-import { QuotesTable } from "@/components/cotizaciones/quotes-table";
+import { QuotesTableLoader } from "@/components/cotizaciones/quotes-table-loader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getQuotes } from "@/lib/admin-data";
 
 async function QuotesTableSection() {
   const quotes = await getQuotes();
-  return <QuotesTable initialQuotes={quotes} />;
+  return <QuotesTableLoader initialQuotes={quotes} />;
 }
 
 function QuotesTableFallback() {
