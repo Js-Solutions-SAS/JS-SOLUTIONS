@@ -10,6 +10,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   FileText,
+  GitCompareArrows,
   LayoutDashboard,
   Menu,
   PanelLeftClose,
@@ -32,6 +33,7 @@ const navItems = [
   { name: "Entregas", href: "/entregas", icon: CalendarClock },
   { name: "Capacidad", href: "/capacidad", icon: UsersRound },
   { name: "Aprobaciones", href: "/aprobaciones", icon: ClipboardCheck },
+  { name: "Control de Cambios", href: "/cambios", icon: GitCompareArrows },
   { name: "RAID Log", href: "/raid", icon: ShieldAlert },
   { name: "Cotizaciones", href: "/cotizaciones", icon: FileText },
   { name: "SOPs", href: "/sops", icon: BookOpen },
@@ -45,6 +47,7 @@ const breadcrumbLabelMap: Record<string, string> = {
   cotizaciones: "Cotizaciones",
   sops: "SOPs",
   raid: "RAID Log",
+  cambios: "Control de Cambios",
 };
 
 function getBreadCrumbs(pathname: string) {
