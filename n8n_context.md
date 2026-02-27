@@ -247,3 +247,36 @@ Para garantizar la **seguridad** de los datos y las credenciales (evitando expon
   5. Notificaciones y escalación a PM/Operaciones para cambios de alto impacto.
 
 > Especificación técnica completa: `n8n_change_requests_spec.md`.
+
+---
+
+## 9. Módulo SLA de Tickets (Respuesta y Resolución por Tipo de Cliente)
+
+**Contexto:** Monitoreo operativo de cumplimiento SLA para tickets de soporte/incidentes con foco en experiencia y priorización por tipo de cliente.
+
+### Funcionalidad Orquestada por n8n:
+
+- **Consolidación de Tickets SLA:** Unifica tickets activos y cerrados recientes por proyecto/cliente.
+- **Cálculo de Cumplimiento:** Evalúa tiempos reales de primera respuesta y resolución frente a objetivos SLA.
+- **Escalación Automática:** Notifica incumplimientos de SLA a PM/Operaciones según prioridad y tipo de cliente.
+
+### Flujo de Operación:
+
+- **Lectura de SLA (BFF):**
+  - El frontend del admin consulta `GET /api/admin/sla`.
+  - La API de Next.js llama al webhook `N8N_TICKETS_SLA_WEBHOOK_URL`.
+  - n8n responde tickets con `createdAt`, `firstResponseAt`, `resolvedAt`, `targetResponseHours`, `targetResolutionHours` y metadatos de cliente/proyecto.
+
+- **Workflow `WF_Tickets_SLA_Control`:**
+  1. Trigger programado cada hora laboral (Mon-Fri) + consolidación diaria.
+  2. Lectura de tickets desde Google Sheets/DB/helpdesk.
+  3. Cálculo de estados SLA:
+     - `responseDeltaHours`
+     - `resolutionDeltaHours`
+     - `IN_SLA` vs `BREACHED`
+  4. Priorización de escalación:
+     - Mayor severidad para `Critical/High`.
+     - Mayor peso para cuentas estratégicas o sector público.
+  5. Notificaciones a owner/PM con enlace directo a `/sla`.
+
+> Especificación técnica completa: `n8n_tickets_sla_spec.md`.

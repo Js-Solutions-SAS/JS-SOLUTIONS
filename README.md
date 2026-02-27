@@ -92,6 +92,7 @@ Panel interno para operación: dashboard, entregas, capacidad, aprobaciones, con
   - `/capacidad` (carga por persona/rol)
   - `/aprobaciones` (checkpoints por etapa)
   - `/cambios` (control de change requests costo/fecha)
+  - `/sla` (cumplimiento SLA de tickets por tipo de cliente)
   - `/raid` (riesgos, supuestos, issues, dependencias)
   - `/sops` (consulta SOPs)
   - `/cotizaciones` (lista leads y genera contratos)
@@ -99,6 +100,7 @@ Panel interno para operación: dashboard, entregas, capacidad, aprobaciones, con
   - `GET /api/admin/capacidad`
   - `GET /api/admin/aprobaciones`
   - `GET /api/admin/cambios`
+  - `GET /api/admin/sla`
   - `GET /api/admin/raid`
   - `GET /api/admin/sops`
   - `GET /api/admin/cotizaciones`
@@ -125,6 +127,7 @@ N8N_APPROVALS_WEBHOOK_URL=https://tu-n8n/webhook/admin-aprobaciones
 N8N_APPROVALS_ACTION_WEBHOOK_URL=https://tu-n8n/webhook/admin-aprobaciones-action
 N8N_CHANGE_REQUESTS_WEBHOOK_URL=https://tu-n8n/webhook/admin-cambios
 N8N_CHANGE_REQUESTS_ACTION_WEBHOOK_URL=https://tu-n8n/webhook/admin-cambios-action
+N8N_TICKETS_SLA_WEBHOOK_URL=https://tu-n8n/webhook/admin-sla
 N8N_RAID_WEBHOOK_URL=https://tu-n8n/webhook/admin-raid
 N8N_SECRET_TOKEN=tu_token_bearer_opcional
 ```
