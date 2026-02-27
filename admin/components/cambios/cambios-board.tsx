@@ -77,7 +77,7 @@ function typeTone(type: ChangeRequestType): "pending" | "progress" | "success" |
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
-    currency: "USD",
+    currency: "COP",
     maximumFractionDigits: 0,
   }).format(value);
 }

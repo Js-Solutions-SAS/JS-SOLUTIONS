@@ -52,10 +52,8 @@ function normalizeClientType(value: unknown): FinanceClientType {
 }
 
 function normalizeCurrency(value: unknown): OperationalFinanceEntry["currency"] {
-  const normalized = normalizeString(value).toUpperCase();
-  if (normalized === "EUR") return "EUR";
-  if (normalized === "COP") return "COP";
-  return "USD";
+  void value;
+  return "COP";
 }
 
 function normalizeBillingStatus(value: unknown): FinanceBillingStatus {

@@ -77,7 +77,7 @@ function billingStatusTone(status: FinanceBillingStatus): "pending" | "progress"
   return "success";
 }
 
-function formatCurrency(value: number, currency: OperationalFinanceEntry["currency"] = "USD"): string {
+function formatCurrency(value: number, currency: OperationalFinanceEntry["currency"] = "COP"): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
     currency,

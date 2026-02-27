@@ -13,7 +13,7 @@ export async function GET() {
           nombre: "Camilo Rodríguez",
           empresa: "TechGroup Latam",
           servicio: "Consultoría y Arquitectura",
-          monto: "$4,500 USD",
+          monto: "$4.500.000 COP",
           estado: "Pendiente",
         },
         {
@@ -21,7 +21,7 @@ export async function GET() {
           nombre: "Laura Medina",
           empresa: "Constructora Horizon",
           servicio: "Automatización de Ventas (n8n)",
-          monto: "$2,800 USD",
+          monto: "$2.800.000 COP",
           estado: "Cotización Revisada",
         },
       ]);

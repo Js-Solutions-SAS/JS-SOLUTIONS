@@ -31,7 +31,7 @@ n8n may return either an array directly, `{ finances: [...] }`, or `{ data: [...
     "clientType": "Public Sector",
     "industry": "Sector Publico",
     "owner": "Maria Torres",
-    "currency": "USD",
+    "currency": "COP",
     "budgetAmount": 82000,
     "executedAmount": 69400,
     "pendingBillingAmount": 17800,

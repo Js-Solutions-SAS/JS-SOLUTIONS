@@ -50,7 +50,7 @@ La tabla de Next.js (`GET`) actualmente usa Mock Data de respaldo si no hay URL.
       "nombre": "Nombre del cliente",
       "empresa": "Su empresa",
       "servicio": "Servicio elegido",
-      "monto": "$100 USD",
+      "monto": "$100.000 COP",
       "estado": "Pendiente"
     }
   ]

@@ -282,7 +282,7 @@ export interface OperationalFinanceEntry {
   clientType: FinanceClientType;
   industry: string;
   owner: string;
-  currency: "USD" | "EUR" | "COP";
+  currency: "COP";
   budgetAmount: number;
   executedAmount: number;
   pendingBillingAmount: number;
