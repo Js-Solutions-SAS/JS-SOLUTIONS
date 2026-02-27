@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
+  BriefcaseBusiness,
   BookOpen,
   CalendarClock,
   ChevronRight,
@@ -37,6 +38,7 @@ const navItems = [
   { name: "Aprobaciones", href: "/aprobaciones", icon: ClipboardCheck },
   { name: "Control de Cambios", href: "/cambios", icon: GitCompareArrows },
   { name: "SLA de Tickets", href: "/sla", icon: Headset },
+  { name: "Portafolio Ejecutivo", href: "/portafolio", icon: BriefcaseBusiness },
   { name: "Finanzas Operativas", href: "/finanzas", icon: PiggyBank },
   { name: "RAID Log", href: "/raid", icon: ShieldAlert },
   { name: "Cotizaciones", href: "/cotizaciones", icon: FileText },
@@ -53,6 +55,7 @@ const breadcrumbLabelMap: Record<string, string> = {
   raid: "RAID Log",
   cambios: "Control de Cambios",
   sla: "SLA de Tickets",
+  portafolio: "Portafolio Ejecutivo",
   finanzas: "Finanzas Operativas",
 };
 
