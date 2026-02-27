@@ -261,3 +261,51 @@ export interface TicketSLAClientSummary {
   breachedResolution: number;
   withinSLA: number;
 }
+
+export type FinanceClientType =
+  | "Public Sector"
+  | "Retail / E-commerce"
+  | "Luxury"
+  | "Media Production"
+  | "Technology";
+
+export type FinanceBillingStatus =
+  | "Pending Billing"
+  | "Partially Invoiced"
+  | "Fully Invoiced";
+
+export interface OperationalFinanceEntry {
+  id: string;
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  clientType: FinanceClientType;
+  industry: string;
+  owner: string;
+  currency: "USD" | "EUR" | "COP";
+  budgetAmount: number;
+  executedAmount: number;
+  pendingBillingAmount: number;
+  invoicedAmount: number;
+  billingStatus: FinanceBillingStatus;
+  updatedAt: string;
+  externalUrl?: string;
+}
+
+export interface OperationalFinanceMetrics {
+  projects: number;
+  totalBudget: number;
+  totalExecuted: number;
+  totalPendingBilling: number;
+  totalInvoiced: number;
+  avgExecutionPct: number;
+  overBudget: number;
+}
+
+export interface OperationalFinanceClientSummary {
+  clientType: FinanceClientType;
+  projects: number;
+  totalBudget: number;
+  totalExecuted: number;
+  totalPendingBilling: number;
+}

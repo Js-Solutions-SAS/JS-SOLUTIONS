@@ -9,6 +9,9 @@ import type {
   ChangeRequestMetrics,
   DashboardMetrics,
   DeliveryMetrics,
+  OperationalFinanceClientSummary,
+  OperationalFinanceEntry,
+  OperationalFinanceMetrics,
   Milestone,
   RaidItem,
   RaidMetrics,
@@ -40,6 +43,11 @@ import {
   isOpenStatus,
   normalizeRaidItem,
 } from "@/lib/raid-utils";
+import {
+  executionPct,
+  isOverBudget,
+  normalizeOperationalFinanceEntry,
+} from "@/lib/finance-utils";
 import { normalizeQuote, statusTone } from "@/lib/quote-utils";
 import {
   normalizeTicketSLAEntry,
@@ -565,6 +573,89 @@ const MOCK_TICKET_SLA: TicketSLAEntry[] = [
   },
 ];
 
+const MOCK_OPERATIONAL_FINANCE: OperationalFinanceEntry[] = [
+  {
+    id: "fin-1",
+    projectId: "P-001",
+    projectName: "Portal de Licitaciones",
+    clientName: "Alcaldía Metropolitana",
+    clientType: "Public Sector",
+    industry: "Sector Público",
+    owner: "María Torres",
+    currency: "USD",
+    budgetAmount: 82000,
+    executedAmount: 69400,
+    pendingBillingAmount: 17800,
+    invoicedAmount: 64200,
+    billingStatus: "Partially Invoiced",
+    updatedAt: new Date(Date.now() - 10 * 36e5).toISOString(),
+  },
+  {
+    id: "fin-2",
+    projectId: "P-002",
+    projectName: "Ecommerce Omnicanal",
+    clientName: "Retail Horizon",
+    clientType: "Retail / E-commerce",
+    industry: "Retail / E-commerce",
+    owner: "Laura Medina",
+    currency: "USD",
+    budgetAmount: 56000,
+    executedAmount: 43800,
+    pendingBillingAmount: 9300,
+    invoicedAmount: 40100,
+    billingStatus: "Partially Invoiced",
+    updatedAt: new Date(Date.now() - 6 * 36e5).toISOString(),
+  },
+  {
+    id: "fin-3",
+    projectId: "P-003",
+    projectName: "Producción automatizada de contenido",
+    clientName: "Nova Media House",
+    clientType: "Media Production",
+    industry: "Producción de Medios",
+    owner: "Sara Álvarez",
+    currency: "USD",
+    budgetAmount: 34000,
+    executedAmount: 36250,
+    pendingBillingAmount: 7100,
+    invoicedAmount: 29150,
+    billingStatus: "Pending Billing",
+    updatedAt: new Date(Date.now() - 14 * 36e5).toISOString(),
+  },
+  {
+    id: "fin-4",
+    projectId: "P-004",
+    projectName: "Clienteling Concierge",
+    clientName: "Maison d'Or",
+    clientType: "Luxury",
+    industry: "Luxury Retail",
+    owner: "Diego Pardo",
+    currency: "USD",
+    budgetAmount: 47000,
+    executedAmount: 31100,
+    pendingBillingAmount: 12400,
+    invoicedAmount: 29900,
+    billingStatus: "Partially Invoiced",
+    updatedAt: new Date(Date.now() - 5 * 36e5).toISOString(),
+  },
+  {
+    id: "fin-5",
+    projectId: "P-005",
+    projectName: "Automation Hub",
+    clientName: "TechGroup Latam",
+    clientType: "Technology",
+    industry: "Technology",
+    owner: "Luis Mejía",
+    currency: "USD",
+    budgetAmount: 29500,
+    executedAmount: 17400,
+    pendingBillingAmount: 6600,
+    invoicedAmount: 14300,
+    billingStatus: "Pending Billing",
+    updatedAt: new Date(Date.now() - 3 * 36e5).toISOString(),
+  },
+];
+
 export async function getQuotes(): Promise<Quote[]> {
   const webhookUrl = process.env.N8N_GET_QUOTES_URL;
 
@@ -1011,4 +1102,90 @@ export function getTicketSLAClientSummaries(
     if (breachesB !== breachesA) return breachesB - breachesA;
     return b.total - a.total;
   });
+}
+
+export async function getOperationalFinanceEntries(): Promise<OperationalFinanceEntry[]> {
+  const webhookUrl = process.env.N8N_OPERATIONAL_FINANCE_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    return MOCK_OPERATIONAL_FINANCE;
+  }
+
+  const response = await fetch(webhookUrl, {
+    method: "GET",
+    headers: {
+      ...DEFAULT_HEADERS,
+      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("No fue posible obtener finanzas operativas desde n8n.");
+  }
+
+  const raw = await response.json();
+  const items = Array.isArray(raw) ? raw : raw.finances || raw.data || [];
+
+  return items.map((item: Partial<OperationalFinanceEntry>, index: number) =>
+    normalizeOperationalFinanceEntry(item, index),
+  );
+}
+
+export function getOperationalFinanceMetrics(
+  items: OperationalFinanceEntry[],
+): OperationalFinanceMetrics {
+  const projects = items.length;
+  const totalBudget = items.reduce((accumulator, item) => accumulator + item.budgetAmount, 0);
+  const totalExecuted = items.reduce((accumulator, item) => accumulator + item.executedAmount, 0);
+  const totalPendingBilling = items.reduce(
+    (accumulator, item) => accumulator + item.pendingBillingAmount,
+    0,
+  );
+  const totalInvoiced = items.reduce((accumulator, item) => accumulator + item.invoicedAmount, 0);
+  const avgExecutionPct = projects
+    ? Math.round(items.reduce((accumulator, item) => accumulator + executionPct(item), 0) / projects)
+    : 0;
+
+  return {
+    projects,
+    totalBudget: Math.round(totalBudget * 100) / 100,
+    totalExecuted: Math.round(totalExecuted * 100) / 100,
+    totalPendingBilling: Math.round(totalPendingBilling * 100) / 100,
+    totalInvoiced: Math.round(totalInvoiced * 100) / 100,
+    avgExecutionPct,
+    overBudget: items.filter((item) => isOverBudget(item)).length,
+  };
+}
+
+export function getOperationalFinanceClientSummaries(
+  items: OperationalFinanceEntry[],
+): OperationalFinanceClientSummary[] {
+  const grouped = new Map<OperationalFinanceClientSummary["clientType"], OperationalFinanceClientSummary>();
+
+  for (const item of items) {
+    const current = grouped.get(item.clientType) || {
+      clientType: item.clientType,
+      projects: 0,
+      totalBudget: 0,
+      totalExecuted: 0,
+      totalPendingBilling: 0,
+    };
+
+    current.projects += 1;
+    current.totalBudget += item.budgetAmount;
+    current.totalExecuted += item.executedAmount;
+    current.totalPendingBilling += item.pendingBillingAmount;
+
+    grouped.set(item.clientType, current);
+  }
+
+  return Array.from(grouped.values())
+    .map((summary) => ({
+      ...summary,
+      totalBudget: Math.round(summary.totalBudget * 100) / 100,
+      totalExecuted: Math.round(summary.totalExecuted * 100) / 100,
+      totalPendingBilling: Math.round(summary.totalPendingBilling * 100) / 100,
+    }))
+    .sort((a, b) => b.totalPendingBilling - a.totalPendingBilling);
 }
