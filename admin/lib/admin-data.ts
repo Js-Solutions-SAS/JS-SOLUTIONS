@@ -15,6 +15,9 @@ import type {
   RaidProjectSummary,
   Quote,
   SOP,
+  TicketSLAClientSummary,
+  TicketSLAEntry,
+  TicketSLAMetrics,
   TeamCapacityEntry,
 } from "@/lib/types";
 import {
@@ -38,6 +41,13 @@ import {
   normalizeRaidItem,
 } from "@/lib/raid-utils";
 import { normalizeQuote, statusTone } from "@/lib/quote-utils";
+import {
+  normalizeTicketSLAEntry,
+  resolutionBreached,
+  resolutionHours,
+  responseBreached,
+  responseHours,
+} from "@/lib/ticket-sla-utils";
 import {
   daysUntil,
   isMilestoneBlocked,
@@ -443,6 +453,118 @@ const MOCK_CHANGE_REQUESTS: ChangeRequest[] = [
   },
 ];
 
+const MOCK_TICKET_SLA: TicketSLAEntry[] = [
+  {
+    id: "sla-1",
+    ticketId: "TK-1032",
+    projectId: "P-001",
+    projectName: "Portal de Licitaciones",
+    clientName: "Alcaldía Metropolitana",
+    clientType: "Public Sector",
+    industry: "Sector Público",
+    owner: "María Torres",
+    priority: "High",
+    channel: "Email",
+    status: "In Progress",
+    summary: "Ajuste de permisos en módulo de reportes ciudadanos.",
+    createdAt: new Date(Date.now() - 18 * 36e5).toISOString(),
+    firstResponseAt: new Date(Date.now() - 10 * 36e5).toISOString(),
+    targetResponseHours: 4,
+    targetResolutionHours: 24,
+  },
+  {
+    id: "sla-2",
+    ticketId: "TK-1048",
+    projectId: "P-002",
+    projectName: "Ecommerce Omnicanal",
+    clientName: "Retail Horizon",
+    clientType: "Retail / E-commerce",
+    industry: "Retail / E-commerce",
+    owner: "Laura Medina",
+    priority: "Critical",
+    channel: "WhatsApp",
+    status: "Resolved",
+    summary: "Error intermitente en checkout con cupones segmentados.",
+    createdAt: new Date(Date.now() - 40 * 36e5).toISOString(),
+    firstResponseAt: new Date(Date.now() - 38 * 36e5).toISOString(),
+    resolvedAt: new Date(Date.now() - 9 * 36e5).toISOString(),
+    targetResponseHours: 1,
+    targetResolutionHours: 12,
+  },
+  {
+    id: "sla-3",
+    ticketId: "TK-1061",
+    projectId: "P-003",
+    projectName: "Producción automatizada de contenido",
+    clientName: "Nova Media House",
+    clientType: "Media Production",
+    industry: "Producción de Medios",
+    owner: "Sara Álvarez",
+    priority: "Medium",
+    channel: "Portal",
+    status: "Pending Customer",
+    summary: "Solicitud de ajuste en flujo de aprobación editorial nocturna.",
+    createdAt: new Date(Date.now() - 30 * 36e5).toISOString(),
+    firstResponseAt: new Date(Date.now() - 24 * 36e5).toISOString(),
+    targetResponseHours: 8,
+    targetResolutionHours: 36,
+  },
+  {
+    id: "sla-4",
+    ticketId: "TK-1068",
+    projectId: "P-004",
+    projectName: "Clienteling Concierge",
+    clientName: "Maison d'Or",
+    clientType: "Luxury",
+    industry: "Luxury Retail",
+    owner: "Diego Pardo",
+    priority: "Low",
+    channel: "Email",
+    status: "Closed",
+    summary: "Cambio de texto en plantilla de notificación VIP.",
+    createdAt: new Date(Date.now() - 55 * 36e5).toISOString(),
+    firstResponseAt: new Date(Date.now() - 50 * 36e5).toISOString(),
+    resolvedAt: new Date(Date.now() - 16 * 36e5).toISOString(),
+    targetResponseHours: 12,
+    targetResolutionHours: 48,
+  },
+  {
+    id: "sla-5",
+    ticketId: "TK-1075",
+    projectId: "P-005",
+    projectName: "Automation Hub",
+    clientName: "TechGroup Latam",
+    clientType: "Technology",
+    industry: "Technology",
+    owner: "Luis Mejía",
+    priority: "High",
+    channel: "Slack",
+    status: "Open",
+    summary: "Webhook de n8n no dispara evento de reintento en ERP.",
+    createdAt: new Date(Date.now() - 6 * 36e5).toISOString(),
+    targetResponseHours: 2,
+    targetResolutionHours: 16,
+  },
+  {
+    id: "sla-6",
+    ticketId: "TK-1082",
+    projectId: "P-006",
+    projectName: "Payments Core",
+    clientName: "Banco Federal",
+    clientType: "Public Sector",
+    industry: "Finanzas",
+    owner: "Camilo Vega",
+    priority: "Critical",
+    channel: "Phone",
+    status: "In Progress",
+    summary: "Conciliación fallida en lote de pagos masivos.",
+    createdAt: new Date(Date.now() - 20 * 36e5).toISOString(),
+    firstResponseAt: new Date(Date.now() - 19 * 36e5).toISOString(),
+    targetResponseHours: 1,
+    targetResolutionHours: 8,
+  },
+];
+
 export async function getQuotes(): Promise<Quote[]> {
   const webhookUrl = process.env.N8N_GET_QUOTES_URL;
 
@@ -796,4 +918,97 @@ export function getChangeRequestMetrics(items: ChangeRequest[]): ChangeRequestMe
     totalCostImpact: Math.round(totalCostImpact * 100) / 100,
     totalDelayDays,
   };
+}
+
+export async function getTicketSLAEntries(): Promise<TicketSLAEntry[]> {
+  const webhookUrl = process.env.N8N_TICKETS_SLA_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    return MOCK_TICKET_SLA;
+  }
+
+  const response = await fetch(webhookUrl, {
+    method: "GET",
+    headers: {
+      ...DEFAULT_HEADERS,
+      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("No fue posible obtener los tickets SLA desde n8n.");
+  }
+
+  const raw = await response.json();
+  const items = Array.isArray(raw) ? raw : raw.tickets || raw.data || [];
+
+  return items.map((item: Partial<TicketSLAEntry>, index: number) =>
+    normalizeTicketSLAEntry(item, index),
+  );
+}
+
+export function getTicketSLAMetrics(items: TicketSLAEntry[]): TicketSLAMetrics {
+  const responseTimes = items
+    .map((item) => responseHours(item))
+    .filter((value): value is number => value !== null);
+  const resolutionTimes = items
+    .map((item) => resolutionHours(item))
+    .filter((value): value is number => value !== null);
+
+  const withinSLA = items.filter(
+    (item) => !responseBreached(item) && !resolutionBreached(item),
+  ).length;
+
+  return {
+    total: items.length,
+    open: items.filter((item) => item.status === "Open" || item.status === "In Progress").length,
+    breachedResponse: items.filter((item) => responseBreached(item)).length,
+    breachedResolution: items.filter((item) => resolutionBreached(item)).length,
+    withinSLA,
+    avgResponseHours: responseTimes.length
+      ? Math.round(
+          (responseTimes.reduce((accumulator, value) => accumulator + value, 0) /
+            responseTimes.length) *
+            10,
+        ) / 10
+      : 0,
+    avgResolutionHours: resolutionTimes.length
+      ? Math.round(
+          (resolutionTimes.reduce((accumulator, value) => accumulator + value, 0) /
+            resolutionTimes.length) *
+            10,
+        ) / 10
+      : 0,
+  };
+}
+
+export function getTicketSLAClientSummaries(
+  items: TicketSLAEntry[],
+): TicketSLAClientSummary[] {
+  const grouped = new Map<TicketSLAClientSummary["clientType"], TicketSLAClientSummary>();
+
+  for (const item of items) {
+    const current = grouped.get(item.clientType) || {
+      clientType: item.clientType,
+      total: 0,
+      breachedResponse: 0,
+      breachedResolution: 0,
+      withinSLA: 0,
+    };
+
+    current.total += 1;
+    if (responseBreached(item)) current.breachedResponse += 1;
+    if (resolutionBreached(item)) current.breachedResolution += 1;
+    if (!responseBreached(item) && !resolutionBreached(item)) current.withinSLA += 1;
+
+    grouped.set(item.clientType, current);
+  }
+
+  return Array.from(grouped.values()).sort((a, b) => {
+    const breachesA = a.breachedResponse + a.breachedResolution;
+    const breachesB = b.breachedResponse + b.breachedResolution;
+    if (breachesB !== breachesA) return breachesB - breachesA;
+    return b.total - a.total;
+  });
 }

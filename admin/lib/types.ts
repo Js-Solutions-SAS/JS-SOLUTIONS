@@ -206,3 +206,58 @@ export interface ChangeRequestMetrics {
   totalCostImpact: number;
   totalDelayDays: number;
 }
+
+export type TicketClientType =
+  | "Public Sector"
+  | "Retail / E-commerce"
+  | "Luxury"
+  | "Media Production"
+  | "Technology";
+
+export type TicketSLAStatus =
+  | "Open"
+  | "In Progress"
+  | "Pending Customer"
+  | "Resolved"
+  | "Closed";
+
+export type TicketPriority = "Low" | "Medium" | "High" | "Critical";
+
+export interface TicketSLAEntry {
+  id: string;
+  ticketId: string;
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  clientType: TicketClientType;
+  industry: string;
+  owner: string;
+  priority: TicketPriority;
+  channel: string;
+  status: TicketSLAStatus;
+  summary: string;
+  createdAt: string;
+  firstResponseAt?: string;
+  resolvedAt?: string;
+  targetResponseHours: number;
+  targetResolutionHours: number;
+  externalUrl?: string;
+}
+
+export interface TicketSLAMetrics {
+  total: number;
+  open: number;
+  breachedResponse: number;
+  breachedResolution: number;
+  withinSLA: number;
+  avgResponseHours: number;
+  avgResolutionHours: number;
+}
+
+export interface TicketSLAClientSummary {
+  clientType: TicketClientType;
+  total: number;
+  breachedResponse: number;
+  breachedResolution: number;
+  withinSLA: number;
+}
