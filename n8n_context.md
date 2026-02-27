@@ -280,3 +280,36 @@ Para garantizar la **seguridad** de los datos y las credenciales (evitando expon
   5. Notificaciones a owner/PM con enlace directo a `/sla`.
 
 > Especificación técnica completa: `n8n_tickets_sla_spec.md`.
+
+---
+
+## 10. Módulo Finanzas Operativas (Presupuesto vs Ejecutado vs Pendiente de Facturar)
+
+**Contexto:** Control financiero operativo por proyecto para asegurar salud de margen, visibilidad de ejecución y disciplina de facturación.
+
+### Funcionalidad Orquestada por n8n:
+
+- **Consolidación Financiera por Proyecto:** Unifica presupuesto, ejecutado, facturado y pendiente de facturar.
+- **Alertas de Desviación:** Identifica proyectos sobrepresupuestados o con alta ejecución sin facturación proporcional.
+- **Visión por Tipo de Cliente:** Segmenta KPIs para priorizar cuentas con mayor impacto en flujo de caja.
+
+### Flujo de Operación:
+
+- **Lectura de Finanzas (BFF):**
+  - El frontend del admin consulta `GET /api/admin/finanzas`.
+  - La API de Next.js llama al webhook `N8N_OPERATIONAL_FINANCE_WEBHOOK_URL`.
+  - n8n responde registros por proyecto con `budgetAmount`, `executedAmount`, `pendingBillingAmount`, `invoicedAmount` y `billingStatus`.
+
+- **Workflow `WF_Operational_Finance_Control`:**
+  1. Trigger programado diario (07:45, Mon-Fri).
+  2. Lectura de datos financieros desde Google Sheets/DB/ERP.
+  3. Cálculo de indicadores:
+     - `% ejecución = executedAmount / budgetAmount`
+     - `saldo = budgetAmount - executedAmount`
+     - `% pendiente facturar = pendingBillingAmount / budgetAmount`
+  4. Detección de alertas:
+     - `OVER_BUDGET` cuando `executedAmount > budgetAmount`.
+     - `BILLING_GAP` cuando alta ejecución no corresponde con facturación.
+  5. Notificación a PM/Operaciones/Finanzas con enlace directo a `/finanzas`.
+
+> Especificación técnica completa: `n8n_operational_finance_spec.md`.

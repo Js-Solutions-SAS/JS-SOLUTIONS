@@ -8,6 +8,7 @@ This is the JS Solutions Admin microfrontend built with [Next.js](https://nextjs
 - `/aprobaciones` Flujo de checkpoints (Brief, Scope, QA, UAT, Contract, Scope Change)
 - `/cambios` Control de change requests con impacto costo/fecha
 - `/sla` Cumplimiento SLA de tickets por tipo de cliente
+- `/finanzas` Finanzas operativas (presupuesto, ejecutado, facturación)
 - `/raid` RAID log por proyecto
 - `/cotizaciones` Cotizaciones y contratos
 - `/sops` SOPs operativos
@@ -27,6 +28,7 @@ N8N_APPROVALS_ACTION_WEBHOOK_URL=https://<your-n8n>/webhook/admin-approvals-acti
 N8N_CHANGE_REQUESTS_WEBHOOK_URL=https://<your-n8n>/webhook/admin-change-requests
 N8N_CHANGE_REQUESTS_ACTION_WEBHOOK_URL=https://<your-n8n>/webhook/admin-change-requests-action
 N8N_TICKETS_SLA_WEBHOOK_URL=https://<your-n8n>/webhook/admin-tickets-sla
+N8N_OPERATIONAL_FINANCE_WEBHOOK_URL=https://<your-n8n>/webhook/admin-operational-finance
 N8N_RAID_WEBHOOK_URL=https://<your-n8n>/webhook/admin-raid-log
 N8N_SECRET_TOKEN=<optional_bearer_token>
 ```
