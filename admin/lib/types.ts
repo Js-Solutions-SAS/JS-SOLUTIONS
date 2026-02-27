@@ -163,3 +163,46 @@ export interface ApprovalStageCoverage {
   approved: number;
   pending: number;
 }
+
+export type ChangeRequestType =
+  | "Scope"
+  | "Technical"
+  | "Design"
+  | "Compliance";
+
+export type ChangeRequestStatus =
+  | "Pending Review"
+  | "Approved"
+  | "Rejected"
+  | "In Progress"
+  | "Implemented";
+
+export interface ChangeRequest {
+  id: string;
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  industry: string;
+  owner: string;
+  type: ChangeRequestType;
+  status: ChangeRequestStatus;
+  title: string;
+  description: string;
+  requestedAt: string;
+  baselineCost: number;
+  proposedCost: number;
+  baselineDueDate: string;
+  proposedDueDate: string;
+  justification?: string;
+  externalUrl?: string;
+}
+
+export interface ChangeRequestMetrics {
+  total: number;
+  pendingReview: number;
+  approved: number;
+  rejected: number;
+  inDelivery: number;
+  totalCostImpact: number;
+  totalDelayDays: number;
+}

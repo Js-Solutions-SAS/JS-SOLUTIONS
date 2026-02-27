@@ -5,6 +5,8 @@ import type {
   ApprovalMetrics,
   ApprovalStageCoverage,
   CapacityMetrics,
+  ChangeRequest,
+  ChangeRequestMetrics,
   DashboardMetrics,
   DeliveryMetrics,
   Milestone,
@@ -20,6 +22,11 @@ import {
   isApprovalResolved,
   normalizeApprovalItem,
 } from "@/lib/approval-utils";
+import {
+  costImpact,
+  normalizeChangeRequest,
+  scheduleImpactDays,
+} from "@/lib/change-request-utils";
 import {
   normalizeCapacityEntry,
   utilizationBand,
@@ -362,6 +369,80 @@ const MOCK_APPROVAL_ITEMS: ApprovalItem[] = [
   },
 ];
 
+const MOCK_CHANGE_REQUESTS: ChangeRequest[] = [
+  {
+    id: "cr-1",
+    projectId: "P-001",
+    projectName: "Portal de Licitaciones",
+    clientName: "Alcaldía Metropolitana",
+    industry: "Sector Público",
+    owner: "María Torres",
+    type: "Compliance",
+    status: "Pending Review",
+    title: "Ajuste de módulo de trazabilidad legal",
+    description: "Se solicita auditoría extendida de eventos para cumplir nueva circular.",
+    requestedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+    baselineCost: 7200,
+    proposedCost: 8700,
+    baselineDueDate: new Date(Date.now() + 12 * 86400000).toISOString(),
+    proposedDueDate: new Date(Date.now() + 17 * 86400000).toISOString(),
+    justification: "Requisito regulatorio obligatorio para salida a producción.",
+  },
+  {
+    id: "cr-2",
+    projectId: "P-002",
+    projectName: "Ecommerce Omnicanal",
+    clientName: "Retail Horizon",
+    industry: "Retail / E-commerce",
+    owner: "Luis Mejía",
+    type: "Scope",
+    status: "Approved",
+    title: "Integrar nuevo flujo de cupones en checkout",
+    description: "Nueva regla de cupones segmentados por categoría de producto.",
+    requestedAt: new Date(Date.now() - 6 * 86400000).toISOString(),
+    baselineCost: 2800,
+    proposedCost: 3600,
+    baselineDueDate: new Date(Date.now() + 8 * 86400000).toISOString(),
+    proposedDueDate: new Date(Date.now() + 12 * 86400000).toISOString(),
+    justification: "Impacta conversión comercial en campaña de temporada.",
+  },
+  {
+    id: "cr-3",
+    projectId: "P-003",
+    projectName: "Producción automatizada de contenido",
+    clientName: "Nova Media House",
+    industry: "Producción de Medios",
+    owner: "Sara Álvarez",
+    type: "Technical",
+    status: "In Progress",
+    title: "Refactor de cola de render por picos nocturnos",
+    description: "Se requiere redistribuir workers para evitar cuellos de botella.",
+    requestedAt: new Date(Date.now() - 4 * 86400000).toISOString(),
+    baselineCost: 1500,
+    proposedCost: 2100,
+    baselineDueDate: new Date(Date.now() + 5 * 86400000).toISOString(),
+    proposedDueDate: new Date(Date.now() + 7 * 86400000).toISOString(),
+  },
+  {
+    id: "cr-4",
+    projectId: "P-003",
+    projectName: "Producción automatizada de contenido",
+    clientName: "Nova Media House",
+    industry: "Producción de Medios",
+    owner: "Diego Pardo",
+    type: "Design",
+    status: "Rejected",
+    title: "Rediseño completo de dashboard editorial",
+    description: "Cambio visual completo solicitado fuera del roadmap del trimestre.",
+    requestedAt: new Date(Date.now() - 9 * 86400000).toISOString(),
+    baselineCost: 1200,
+    proposedCost: 5200,
+    baselineDueDate: new Date(Date.now() + 10 * 86400000).toISOString(),
+    proposedDueDate: new Date(Date.now() + 23 * 86400000).toISOString(),
+    justification: "No aporta impacto operativo inmediato sobre KPI acordados.",
+  },
+];
+
 export async function getQuotes(): Promise<Quote[]> {
   const webhookUrl = process.env.N8N_GET_QUOTES_URL;
 
@@ -664,4 +745,55 @@ export function getApprovalStageCoverage(
       pending: entries.filter((item) => !isApprovalResolved(item.status)).length,
     };
   });
+}
+
+export async function getChangeRequests(): Promise<ChangeRequest[]> {
+  const webhookUrl = process.env.N8N_CHANGE_REQUESTS_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    return MOCK_CHANGE_REQUESTS;
+  }
+
+  const response = await fetch(webhookUrl, {
+    method: "GET",
+    headers: {
+      ...DEFAULT_HEADERS,
+      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("No fue posible obtener solicitudes de cambio desde n8n.");
+  }
+
+  const raw = await response.json();
+  const items = Array.isArray(raw) ? raw : raw.changeRequests || raw.data || [];
+
+  return items.map((item: Partial<ChangeRequest>, index: number) =>
+    normalizeChangeRequest(item, index),
+  );
+}
+
+export function getChangeRequestMetrics(items: ChangeRequest[]): ChangeRequestMetrics {
+  const totalCostImpact = items.reduce(
+    (accumulator, item) => accumulator + costImpact(item),
+    0,
+  );
+  const totalDelayDays = items.reduce(
+    (accumulator, item) => accumulator + Math.max(scheduleImpactDays(item), 0),
+    0,
+  );
+
+  return {
+    total: items.length,
+    pendingReview: items.filter((item) => item.status === "Pending Review").length,
+    approved: items.filter((item) => item.status === "Approved").length,
+    rejected: items.filter((item) => item.status === "Rejected").length,
+    inDelivery: items.filter(
+      (item) => item.status === "In Progress" || item.status === "Implemented",
+    ).length,
+    totalCostImpact: Math.round(totalCostImpact * 100) / 100,
+    totalDelayDays,
+  };
 }
