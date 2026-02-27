@@ -313,3 +313,32 @@ Para garantizar la **seguridad** de los datos y las credenciales (evitando expon
   5. Notificación a PM/Operaciones/Finanzas con enlace directo a `/finanzas`.
 
 > Especificación técnica completa: `n8n_operational_finance_spec.md`.
+
+---
+
+## 11. Módulo Portafolio Ejecutivo (Salud por Industria)
+
+**Contexto:** Vista de dirección para evaluar salud operativa por industria (público, retail, lujo y media) con indicadores de riesgo, cumplimiento y facturación.
+
+### Funcionalidad Orquestada por n8n:
+
+- **Consolidación Ejecutiva por Industria:** Agrega proyectos activos y señales de riesgo por vertical.
+- **Scoring de Salud:** Calcula un score de salud por industria combinando delivery, SLA y gobernanza.
+- **Priorización Estratégica:** Identifica verticales con mayor presión (riesgos críticos o gap de facturación).
+
+### Flujo de Operación:
+
+- **Lectura de Portafolio (BFF):**
+  - El frontend del admin consulta `GET /api/admin/portafolio`.
+  - La API de Next.js llama al webhook `N8N_EXECUTIVE_PORTFOLIO_WEBHOOK_URL`.
+  - n8n responde registros agregados por industria con proyectos activos, cumplimiento SLA, ejecución y pendiente de facturar.
+
+- **Workflow `WF_Executive_Portfolio_Health`:**
+  1. Trigger programado diario (08:20, Mon-Fri).
+  2. Lectura de fuentes operativas (delivery, SLA, aprobaciones, RAID, finanzas).
+  3. Normalización por industria objetivo:
+     - `Public Sector`, `Retail / E-commerce`, `Luxury`, `Media Production`.
+  4. Cálculo de score de salud y banda (`Healthy`, `Warning`, `Critical`).
+  5. Publicación de snapshot para comité ejecutivo y notificación de verticales críticas.
+
+> Especificación técnica completa: `n8n_executive_portfolio_spec.md`.

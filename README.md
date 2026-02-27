@@ -83,7 +83,7 @@ N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
 
 ### 3) Admin (`admin`)
 
-Panel interno para operación: dashboard, entregas, capacidad, aprobaciones, control de cambios, SLA de tickets, finanzas operativas, RAID log, SOPs y cotizaciones/contratos.
+Panel interno para operación: dashboard, entregas, capacidad, aprobaciones, control de cambios, SLA de tickets, portafolio ejecutivo, finanzas operativas, RAID log, SOPs y cotizaciones/contratos.
 
 - Stack: Next.js 14 + React + Tailwind
 - Rutas principales:
@@ -93,6 +93,7 @@ Panel interno para operación: dashboard, entregas, capacidad, aprobaciones, con
   - `/aprobaciones` (checkpoints por etapa)
   - `/cambios` (control de change requests costo/fecha)
   - `/sla` (cumplimiento SLA de tickets por tipo de cliente)
+  - `/portafolio` (salud ejecutiva por industria)
   - `/finanzas` (presupuesto vs ejecutado vs pendiente de facturar)
   - `/raid` (riesgos, supuestos, issues, dependencias)
   - `/sops` (consulta SOPs)
@@ -102,6 +103,7 @@ Panel interno para operación: dashboard, entregas, capacidad, aprobaciones, con
   - `GET /api/admin/aprobaciones`
   - `GET /api/admin/cambios`
   - `GET /api/admin/sla`
+  - `GET /api/admin/portafolio`
   - `GET /api/admin/finanzas`
   - `GET /api/admin/raid`
   - `GET /api/admin/sops`
@@ -130,6 +132,7 @@ N8N_APPROVALS_ACTION_WEBHOOK_URL=https://tu-n8n/webhook/admin-aprobaciones-actio
 N8N_CHANGE_REQUESTS_WEBHOOK_URL=https://tu-n8n/webhook/admin-cambios
 N8N_CHANGE_REQUESTS_ACTION_WEBHOOK_URL=https://tu-n8n/webhook/admin-cambios-action
 N8N_TICKETS_SLA_WEBHOOK_URL=https://tu-n8n/webhook/admin-sla
+N8N_EXECUTIVE_PORTFOLIO_WEBHOOK_URL=https://tu-n8n/webhook/admin-portafolio
 N8N_OPERATIONAL_FINANCE_WEBHOOK_URL=https://tu-n8n/webhook/admin-finanzas
 N8N_RAID_WEBHOOK_URL=https://tu-n8n/webhook/admin-raid
 N8N_SECRET_TOKEN=tu_token_bearer_opcional
