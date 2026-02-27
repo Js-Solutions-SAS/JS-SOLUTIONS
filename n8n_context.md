@@ -209,3 +209,41 @@ Para garantizar la **seguridad** de los datos y las credenciales (evitando expon
   5. Notificaciones y escalaciones automáticas.
 
 > Especificación técnica completa: `n8n_approvals_workflow_spec.md`.
+
+---
+
+## 8. Módulo Control de Cambios (Impacto en Costo/Fecha)
+
+**Contexto:** Gestión formal de `change requests` para evaluar impacto sobre margen, fecha compromiso y gobernanza de alcance.
+
+### Funcionalidad Orquestada por n8n:
+
+- **Consolidación de Solicitudes de Cambio:** Unifica solicitudes por proyecto con baseline de costo/fecha y propuesta.
+- **Decisiones de Aprobación/Rechazo:** Procesa mutaciones desde Admin y registra trazabilidad de decisión.
+- **Escalación Preventiva:** Detecta solicitudes de alto impacto (costo o retraso) para revisión prioritaria.
+
+### Flujo de Operación:
+
+- **Lectura de Solicitudes (BFF):**
+  - El frontend del admin consulta `GET /api/admin/cambios`.
+  - La API de Next.js llama al webhook `N8N_CHANGE_REQUESTS_WEBHOOK_URL`.
+  - n8n responde solicitudes con `type`, `status`, `baselineCost`, `proposedCost`, `baselineDueDate` y `proposedDueDate`.
+
+- **Decisión de Solicitud (Server Action):**
+  1. El usuario aprueba/rechaza desde `/cambios`.
+  2. `reviewChangeRequestAction` envía mutación a `N8N_CHANGE_REQUESTS_ACTION_WEBHOOK_URL`.
+  3. n8n actualiza estado (`Approved` o `Rejected`) y registra evento de auditoría.
+  4. Next.js revalida `/cambios` y refresca la vista.
+
+- **Workflow `WF_Change_Requests_Control`:**
+  1. Trigger programado diario (08:30, Mon-Fri) + trigger webhook de mutaciones.
+  2. Lectura de solicitudes activas desde Google Sheets/DB.
+  3. Cálculo de impactos:
+     - `costDelta = proposedCost - baselineCost`
+     - `scheduleDeltaDays = proposedDueDate - baselineDueDate`
+  4. Priorización de revisión cuando:
+     - `costDelta` supera umbral definido por proyecto, o
+     - `scheduleDeltaDays > 0`
+  5. Notificaciones y escalación a PM/Operaciones para cambios de alto impacto.
+
+> Especificación técnica completa: `n8n_change_requests_spec.md`.

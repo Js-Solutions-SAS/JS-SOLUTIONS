@@ -1,5 +1,34 @@
 This is the JS Solutions Admin microfrontend built with [Next.js](https://nextjs.org) + Tailwind CSS.
 
+## Key Modules
+
+- `/` Dashboard Operativo
+- `/entregas` Calendario y asignación de tareas
+- `/capacidad` Gestión de carga por persona/rol
+- `/aprobaciones` Flujo de checkpoints (Brief, Scope, QA, UAT, Contract, Scope Change)
+- `/cambios` Control de change requests con impacto costo/fecha
+- `/raid` RAID log por proyecto
+- `/cotizaciones` Cotizaciones y contratos
+- `/sops` SOPs operativos
+
+## n8n Environment Variables
+
+Create `admin/.env.local`:
+
+```env
+N8N_SOPS_WEBHOOK_URL=https://<your-n8n>/webhook/sops
+N8N_GET_QUOTES_URL=https://<your-n8n>/webhook/get-quotes
+N8N_GENERATE_CONTRACT_URL=https://<your-n8n>/webhook/generate-contract
+N8N_MILESTONES_WEBHOOK_URL=https://<your-n8n>/webhook/admin-entregas
+N8N_CAPACITY_WEBHOOK_URL=https://<your-n8n>/webhook/admin-capacity
+N8N_APPROVALS_WEBHOOK_URL=https://<your-n8n>/webhook/admin-approvals
+N8N_APPROVALS_ACTION_WEBHOOK_URL=https://<your-n8n>/webhook/admin-approvals-action
+N8N_CHANGE_REQUESTS_WEBHOOK_URL=https://<your-n8n>/webhook/admin-change-requests
+N8N_CHANGE_REQUESTS_ACTION_WEBHOOK_URL=https://<your-n8n>/webhook/admin-change-requests-action
+N8N_RAID_WEBHOOK_URL=https://<your-n8n>/webhook/admin-raid-log
+N8N_SECRET_TOKEN=<optional_bearer_token>
+```
+
 ## Getting Started
 
 First, run the development server:

@@ -83,13 +83,23 @@ N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
 
 ### 3) Admin (`admin`)
 
-Panel interno para operación: SOPs, gestión de cotizaciones y generación de contratos.
+Panel interno para operación: dashboard, entregas, capacidad, aprobaciones, control de cambios, RAID log, SOPs y cotizaciones/contratos.
 
 - Stack: Next.js 14 + React + Tailwind
 - Rutas principales:
   - `/` (dashboard interno)
+  - `/entregas` (calendario operativo y asignación)
+  - `/capacidad` (carga por persona/rol)
+  - `/aprobaciones` (checkpoints por etapa)
+  - `/cambios` (control de change requests costo/fecha)
+  - `/raid` (riesgos, supuestos, issues, dependencias)
   - `/sops` (consulta SOPs)
   - `/cotizaciones` (lista leads y genera contratos)
+  - `GET /api/admin/entregas`
+  - `GET /api/admin/capacidad`
+  - `GET /api/admin/aprobaciones`
+  - `GET /api/admin/cambios`
+  - `GET /api/admin/raid`
   - `GET /api/admin/sops`
   - `GET /api/admin/cotizaciones`
   - `POST /api/admin/cotizaciones`
@@ -109,6 +119,13 @@ Variables recomendadas (`admin/.env.local`):
 N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
 N8N_GET_QUOTES_URL=https://tu-n8n/webhook/get-quotes
 N8N_GENERATE_CONTRACT_URL=https://tu-n8n/webhook/generate-contract
+N8N_MILESTONES_WEBHOOK_URL=https://tu-n8n/webhook/admin-entregas
+N8N_CAPACITY_WEBHOOK_URL=https://tu-n8n/webhook/admin-capacidad
+N8N_APPROVALS_WEBHOOK_URL=https://tu-n8n/webhook/admin-aprobaciones
+N8N_APPROVALS_ACTION_WEBHOOK_URL=https://tu-n8n/webhook/admin-aprobaciones-action
+N8N_CHANGE_REQUESTS_WEBHOOK_URL=https://tu-n8n/webhook/admin-cambios
+N8N_CHANGE_REQUESTS_ACTION_WEBHOOK_URL=https://tu-n8n/webhook/admin-cambios-action
+N8N_RAID_WEBHOOK_URL=https://tu-n8n/webhook/admin-raid
 N8N_SECRET_TOKEN=tu_token_bearer_opcional
 ```
 
