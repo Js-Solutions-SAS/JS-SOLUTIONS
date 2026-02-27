@@ -9,6 +9,8 @@ import type {
   ChangeRequestMetrics,
   DashboardMetrics,
   DeliveryMetrics,
+  ExecutivePortfolioEntry,
+  ExecutivePortfolioMetrics,
   OperationalFinanceClientSummary,
   OperationalFinanceEntry,
   OperationalFinanceMetrics,
@@ -48,6 +50,11 @@ import {
   isOverBudget,
   normalizeOperationalFinanceEntry,
 } from "@/lib/finance-utils";
+import {
+  healthBand,
+  healthScore,
+  normalizeExecutivePortfolioEntry,
+} from "@/lib/executive-portfolio-utils";
 import { normalizeQuote, statusTone } from "@/lib/quote-utils";
 import {
   normalizeTicketSLAEntry,
@@ -656,6 +663,69 @@ const MOCK_OPERATIONAL_FINANCE: OperationalFinanceEntry[] = [
   },
 ];
 
+const MOCK_EXECUTIVE_PORTFOLIO: ExecutivePortfolioEntry[] = [
+  {
+    id: "portfolio-1",
+    industry: "Public Sector",
+    activeProjects: 8,
+    onTrackProjects: 5,
+    atRiskProjects: 2,
+    criticalProjects: 1,
+    avgSLACompliancePct: 84,
+    avgExecutionPct: 92,
+    pendingBillingAmount: 31200,
+    openApprovals: 6,
+    openRaidItems: 7,
+    owner: "María Torres",
+    updatedAt: new Date(Date.now() - 7 * 36e5).toISOString(),
+  },
+  {
+    id: "portfolio-2",
+    industry: "Retail / E-commerce",
+    activeProjects: 6,
+    onTrackProjects: 4,
+    atRiskProjects: 2,
+    criticalProjects: 0,
+    avgSLACompliancePct: 90,
+    avgExecutionPct: 88,
+    pendingBillingAmount: 24600,
+    openApprovals: 4,
+    openRaidItems: 4,
+    owner: "Laura Medina",
+    updatedAt: new Date(Date.now() - 5 * 36e5).toISOString(),
+  },
+  {
+    id: "portfolio-3",
+    industry: "Luxury",
+    activeProjects: 4,
+    onTrackProjects: 3,
+    atRiskProjects: 1,
+    criticalProjects: 0,
+    avgSLACompliancePct: 95,
+    avgExecutionPct: 81,
+    pendingBillingAmount: 18900,
+    openApprovals: 2,
+    openRaidItems: 2,
+    owner: "Diego Pardo",
+    updatedAt: new Date(Date.now() - 4 * 36e5).toISOString(),
+  },
+  {
+    id: "portfolio-4",
+    industry: "Media Production",
+    activeProjects: 5,
+    onTrackProjects: 2,
+    atRiskProjects: 2,
+    criticalProjects: 1,
+    avgSLACompliancePct: 78,
+    avgExecutionPct: 103,
+    pendingBillingAmount: 27100,
+    openApprovals: 5,
+    openRaidItems: 8,
+    owner: "Sara Álvarez",
+    updatedAt: new Date(Date.now() - 9 * 36e5).toISOString(),
+  },
+];
+
 export async function getQuotes(): Promise<Quote[]> {
   const webhookUrl = process.env.N8N_GET_QUOTES_URL;
 
@@ -1188,4 +1258,62 @@ export function getOperationalFinanceClientSummaries(
       totalPendingBilling: Math.round(summary.totalPendingBilling * 100) / 100,
     }))
     .sort((a, b) => b.totalPendingBilling - a.totalPendingBilling);
+}
+
+export async function getExecutivePortfolioEntries(): Promise<ExecutivePortfolioEntry[]> {
+  const webhookUrl = process.env.N8N_EXECUTIVE_PORTFOLIO_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    return MOCK_EXECUTIVE_PORTFOLIO;
+  }
+
+  const response = await fetch(webhookUrl, {
+    method: "GET",
+    headers: {
+      ...DEFAULT_HEADERS,
+      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("No fue posible obtener el portafolio ejecutivo desde n8n.");
+  }
+
+  const raw = await response.json();
+  const items = Array.isArray(raw) ? raw : raw.portfolio || raw.data || [];
+
+  return items.map((item: Partial<ExecutivePortfolioEntry>, index: number) =>
+    normalizeExecutivePortfolioEntry(item, index),
+  );
+}
+
+export function getExecutivePortfolioMetrics(
+  items: ExecutivePortfolioEntry[],
+): ExecutivePortfolioMetrics {
+  const industries = items.length;
+  const totalProjects = items.reduce(
+    (accumulator, item) => accumulator + item.activeProjects,
+    0,
+  );
+  const totalPendingBilling = items.reduce(
+    (accumulator, item) => accumulator + item.pendingBillingAmount,
+    0,
+  );
+  const avgPortfolioHealth = industries
+    ? Math.round(
+        items.reduce((accumulator, item) => accumulator + healthScore(item), 0) /
+          industries,
+      )
+    : 0;
+
+  return {
+    industries,
+    totalProjects,
+    healthyIndustries: items.filter((item) => healthBand(item) === "healthy").length,
+    warningIndustries: items.filter((item) => healthBand(item) === "warning").length,
+    criticalIndustries: items.filter((item) => healthBand(item) === "critical").length,
+    totalPendingBilling: Math.round(totalPendingBilling * 100) / 100,
+    avgPortfolioHealth,
+  };
 }

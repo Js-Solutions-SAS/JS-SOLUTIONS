@@ -309,3 +309,36 @@ export interface OperationalFinanceClientSummary {
   totalExecuted: number;
   totalPendingBilling: number;
 }
+
+export type ExecutiveIndustry =
+  | "Public Sector"
+  | "Retail / E-commerce"
+  | "Luxury"
+  | "Media Production";
+
+export interface ExecutivePortfolioEntry {
+  id: string;
+  industry: ExecutiveIndustry;
+  activeProjects: number;
+  onTrackProjects: number;
+  atRiskProjects: number;
+  criticalProjects: number;
+  avgSLACompliancePct: number;
+  avgExecutionPct: number;
+  pendingBillingAmount: number;
+  openApprovals: number;
+  openRaidItems: number;
+  owner: string;
+  updatedAt: string;
+  externalUrl?: string;
+}
+
+export interface ExecutivePortfolioMetrics {
+  industries: number;
+  totalProjects: number;
+  healthyIndustries: number;
+  warningIndustries: number;
+  criticalIndustries: number;
+  totalPendingBilling: number;
+  avgPortfolioHealth: number;
+}
