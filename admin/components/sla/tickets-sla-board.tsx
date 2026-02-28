@@ -180,71 +180,74 @@ export function TicketsSLABoard({ entries, metrics, summaries }: TicketsSLABoard
   return (
     <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Tickets SLA
-              <Headset className="h-4 w-4 text-brand-gold" />
+        <Card className="flex h-full min-h-[148px] flex-col justify-between">
+          <CardHeader className="min-h-[64px]">
+            <CardTitle className="flex items-start justify-between gap-2 text-sm text-brand-off-white/75">
+              <span className="leading-5">Tickets SLA</span>
+              <Headset className="mt-0.5 h-4 w-4 shrink-0 text-brand-gold" />
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <p className="text-3xl font-bold text-white">{metrics.total}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-brand-off-white/75">Tickets Abiertos</CardTitle>
+        <Card className="flex h-full min-h-[148px] flex-col justify-between">
+          <CardHeader className="min-h-[64px]">
+            <CardTitle className="flex items-start justify-between gap-2 text-sm text-brand-off-white/75">
+              <span className="leading-5">Tickets Abiertos</span>
+              <span aria-hidden className="h-4 w-4 shrink-0" />
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <p className="text-3xl font-bold text-amber-100">{metrics.open}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Incumplimiento Respuesta
-              <AlertTriangle className="h-4 w-4 text-rose-300" />
+        <Card className="flex h-full min-h-[148px] flex-col justify-between">
+          <CardHeader className="min-h-[64px]">
+            <CardTitle className="flex items-start justify-between gap-2 text-sm text-brand-off-white/75">
+              <span className="leading-5">Incumplimiento Respuesta</span>
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <p className="text-3xl font-bold text-rose-200">{metrics.breachedResponse}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Incumplimiento Resolución
-              <TimerReset className="h-4 w-4 text-orange-300" />
+        <Card className="flex h-full min-h-[148px] flex-col justify-between">
+          <CardHeader className="min-h-[64px]">
+            <CardTitle className="flex items-start justify-between gap-2 text-sm text-brand-off-white/75">
+              <span className="leading-5">Incumplimiento Resolución</span>
+              <TimerReset className="mt-0.5 h-4 w-4 shrink-0 text-orange-300" />
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <p className="text-3xl font-bold text-orange-200">{metrics.breachedResolution}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Dentro de SLA
-              <ShieldCheck className="h-4 w-4 text-emerald-300" />
+        <Card className="flex h-full min-h-[148px] flex-col justify-between">
+          <CardHeader className="min-h-[64px]">
+            <CardTitle className="flex items-start justify-between gap-2 text-sm text-brand-off-white/75">
+              <span className="leading-5">Dentro de SLA</span>
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <p className="text-3xl font-bold text-emerald-100">{metrics.withinSLA}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-sm text-brand-off-white/75">
-              Promedio de Resolución
-              <Clock3 className="h-4 w-4 text-brand-gold" />
+        <Card className="flex h-full min-h-[148px] flex-col justify-between">
+          <CardHeader className="min-h-[64px]">
+            <CardTitle className="flex items-start justify-between gap-2 text-sm text-brand-off-white/75">
+              <span className="leading-5">Promedio de Resolución</span>
+              <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-brand-gold" />
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <p className="text-3xl font-bold text-white">{formatHours(metrics.avgResolutionHours)}</p>
           </CardContent>
         </Card>
