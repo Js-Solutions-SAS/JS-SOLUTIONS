@@ -35,6 +35,32 @@ N8N_RAID_WEBHOOK_URL=https://<your-n8n>/webhook/admin-raid-log
 N8N_SECRET_TOKEN=<optional_bearer_token>
 ```
 
+## Local Auth Environment Variables (Required)
+
+The admin now includes local authentication (no external auth API required).
+
+Add these variables in `admin/.env.local`:
+
+```env
+AUTH_ADMIN_USERNAME=admin
+AUTH_ADMIN_PASSWORD_HASH=<argon2id_hash>
+AUTH_SESSION_SECRET=<32+_char_random_secret>
+# Optional (if omitted, AUTH_SESSION_SECRET is reused)
+AUTH_CSRF_SECRET=<32+_char_random_secret>
+```
+
+Generate the Argon2id hash (run inside `admin/`):
+
+```bash
+node -e "const argon2=require('argon2');argon2.hash('replace-with-strong-password',{type:argon2.argon2id,memoryCost:65536,timeCost:3,parallelism:1}).then(console.log)"
+```
+
+Generate a strong secret:
+
+```bash
+openssl rand -base64 48
+```
+
 ## Getting Started
 
 First, run the development server:
