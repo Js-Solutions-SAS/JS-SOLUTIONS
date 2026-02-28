@@ -25,6 +25,7 @@ import {
 
 import { AppToaster } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
+import { LogoutButton } from "@/components/layout/logout-button";
 import { cn } from "@/lib/utils";
 
 interface AdminShellProps {
@@ -80,6 +81,18 @@ export function AdminShell({ children }: AdminShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const breadcrumbs = useMemo(() => getBreadCrumbs(pathname), [pathname]);
+
+  if (pathname === "/login") {
+    return (
+      <div className="min-h-screen bg-brand-black text-brand-off-white">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute left-1/2 top-0 h-[380px] w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-gold/10 blur-[120px]" />
+        </div>
+        <main className="relative mx-auto w-full max-w-7xl p-4 pb-10 pt-6 sm:p-8">{children}</main>
+        <AppToaster />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-brand-black text-brand-off-white">
@@ -144,6 +157,10 @@ export function AdminShell({ children }: AdminShellProps) {
               );
             })}
           </nav>
+
+          <div className="border-t border-white/10 p-3">
+            <LogoutButton collapsed={collapsed} />
+          </div>
         </aside>
 
         <main className="flex-1">
@@ -238,6 +255,10 @@ export function AdminShell({ children }: AdminShellProps) {
                   </Link>
                 );
               })}
+            </div>
+
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <LogoutButton mobile />
             </div>
           </div>
         </div>
