@@ -26,11 +26,17 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
         className="relative w-full max-w-xl rounded-3xl border border-black/10 bg-white/85 p-8 shadow-2xl shadow-black/10 backdrop-blur-xl"
       >
         <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-red-300/50 bg-red-50 text-red-600">
-          {isTokenError ? <ShieldX className="h-7 w-7" /> : <AlertTriangle className="h-7 w-7" />}
+          {isTokenError ? (
+            <ShieldX className="h-7 w-7" />
+          ) : (
+            <AlertTriangle className="h-7 w-7" />
+          )}
         </div>
 
         <h1 className="text-3xl font-semibold tracking-tight text-brand-charcoal">
-          {isTokenError ? "No pudimos validar tu acceso" : "Hubo un inconveniente temporal"}
+          {isTokenError
+            ? "No pudimos validar tu acceso"
+            : "Hubo un inconveniente temporal"}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-neutral-600">
           {isTokenError
