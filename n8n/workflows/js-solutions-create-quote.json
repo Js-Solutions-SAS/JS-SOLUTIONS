@@ -1,0 +1,321 @@
+{
+  "name": "JS Solutions - Create Quote Intake",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "js-solutions/create-quote",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "30095c47-bf5c-491f-84ad-ad4efe573129",
+      "name": "Webhook (Trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        220,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst now = new Date();\nconst leadId = body.leadId || body.quoteId || `lead-${Date.now()}`;\nconst token = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\nconst portalBaseUrl = 'https://portal.jssolutions.com.co';\nconst services = Array.isArray(body.servicios)\n  ? body.servicios\n  : Array.isArray(body.services)\n    ? body.services\n    : [];\nconst amount = body.monto || body.amount || '$0';\nconst details = body.detalles || body.details || '';\nconst briefUrl = `${portalBaseUrl}/brief/${token}`;\n\nreturn [{\n  json: {\n    leadId,\n    nombre: body.nombre || body.name || 'Sin nombre',\n    empresa: body.empresa || body.company || 'Empresa no especificada',\n    email: body.email || body.Prospect_Email || '',\n    servicio: body.servicio || body.service || 'Sin servicio',\n    monto: amount,\n    industria: body.industria || body.industry || 'General',\n    detalles: details,\n    sector: body.sector || '',\n    complejidad: body.complejidad || body.complexity || '',\n    servicios: services,\n    serviciosTexto: services.join(', '),\n    rangoMin: body.rangoInversion?.min ?? body.rangoMin ?? 0,\n    rangoMax: body.rangoInversion?.max ?? body.rangoMax ?? 0,\n    estado: body.estado || 'Diagnóstico Capturado',\n    createdAt: now.toISOString(),\n    Brief_Token: token,\n    Brief_URL: briefUrl,\n    briefUrl\n  }\n}];"
+      },
+      "id": "0d9f1cda-5f1b-4974-a31c-77e7a93ad8ec",
+      "name": "Normalize Intake And Generate Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "URL_A_TU_GOOGLE_SHEET",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Hoja 1",
+          "mode": "name"
+        },
+        "columns": {
+          "value": {
+            "leadId": "={{ $json.leadId }}",
+            "nombre": "={{ $json.nombre }}",
+            "empresa": "={{ $json.empresa }}",
+            "email": "={{ $json.email }}",
+            "servicio": "={{ $json.servicio }}",
+            "monto": "={{ $json.monto }}",
+            "industria": "={{ $json.industria }}",
+            "detalles": "={{ $json.detalles }}",
+            "sector": "={{ $json.sector }}",
+            "complejidad": "={{ $json.complejidad }}",
+            "servicios": "={{ $json.serviciosTexto }}",
+            "rangoMin": "={{ $json.rangoMin }}",
+            "rangoMax": "={{ $json.rangoMax }}",
+            "Estado": "={{ $json.estado }}",
+            "Created_At": "={{ $json.createdAt }}",
+            "Brief_Token": "={{ $json.Brief_Token }}",
+            "Brief_URL": "={{ $json.Brief_URL }}"
+          },
+          "schema": [
+            {
+              "id": "leadId",
+              "displayName": "leadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "empresa",
+              "displayName": "empresa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "servicio",
+              "displayName": "servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "monto",
+              "displayName": "monto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "industria",
+              "displayName": "industria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "detalles",
+              "displayName": "detalles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "sector",
+              "displayName": "sector",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "complejidad",
+              "displayName": "complejidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "servicios",
+              "displayName": "servicios",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "rangoMin",
+              "displayName": "rangoMin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "rangoMax",
+              "displayName": "rangoMax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Created_At",
+              "displayName": "Created_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Brief_Token",
+              "displayName": "Brief_Token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Brief_URL",
+              "displayName": "Brief_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "matchingColumns": [
+          "leadId"
+        ],
+        "options": {}
+      },
+      "id": "84839b66-3f94-4e45-aa39-9ae857315bf4",
+      "name": "Upsert Quote In Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        860,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "593e1b2d-c939-480a-9f73-4a37368c1f6d",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "49402f18-a3c0-40ca-b4da-c1b9f7d3a2b7",
+              "name": "leadId",
+              "value": "={{ $('Normalize Intake And Generate Brief').item.json.leadId }}",
+              "type": "string"
+            },
+            {
+              "id": "1300e241-38e0-4d85-9d36-6da1c8b67f50",
+              "name": "briefUrl",
+              "value": "={{ $('Normalize Intake And Generate Brief').item.json.briefUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "f07d53b7-98b4-4db5-a9b5-2cb22f0c4b66",
+              "name": "message",
+              "value": "Diagnóstico registrado y brief preparado.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b6d11c37-e145-488d-a2f1-a8b48fc4061e",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1180,
+        280
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook (Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Intake And Generate Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Intake And Generate Brief": {
+      "main": [
+        [
+          {
+            "node": "Upsert Quote In Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Quote In Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "13f95d7d-1969-48ca-b7f8-1be57cb721c5",
+  "meta": {},
+  "tags": []
+}

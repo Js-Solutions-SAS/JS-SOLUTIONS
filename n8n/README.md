@@ -10,6 +10,7 @@ Estos workflows estan alineados con el contrato real del codigo actual:
 - `workflows/js-solutions-request-brief.json`
 - `workflows/js-solutions-submit-brief.json`
 - `workflows/js-solutions-generate-contract.json`
+- `workflows/js-solutions-create-quote.json`
 
 ## Importacion en la VPS
 
@@ -17,12 +18,11 @@ Estos workflows estan alineados con el contrato real del codigo actual:
 2. Crea un workflow nuevo.
 3. Usa `Import from file`.
 4. Importa cada JSON de `n8n/workflows/`.
-5. Configura credenciales de Google Sheets y SMTP/Email.
+5. Configura credenciales de Google Sheets y Gmail.
 6. Reemplaza los placeholders:
-   - `https://portal.jssolutions.co`
+   - `https://portal.jssolutions.com.co`
    - `URL_A_TU_GOOGLE_SHEET`
-   - `TU_COLUMNA_*`
-   - `smtp@jssolutions.co`
+   - columnas reales de tu hoja
 7. Activa cada workflow.
 8. Copia la Production URL del Webhook y pegala en los `.env.local`.
 
@@ -31,6 +31,7 @@ Estos workflows estan alineados con el contrato real del codigo actual:
 En `admin/.env.local`:
 
 ```env
+N8N_CREATE_QUOTE_URL=https://tu-n8n/webhook/js-solutions/create-quote
 N8N_REQUEST_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/request-brief
 N8N_GENERATE_CONTRACT_URL=https://tu-n8n/webhook/js-solutions/generate-contract
 ```
@@ -44,5 +45,6 @@ N8N_SUBMIT_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/submit-brief
 ## Notas de adaptacion
 
 - Los nodos de Google Sheets vienen como plantilla. Debes seleccionar la credencial y el documento real despues de importar.
+- El workflow `create-quote` genera `leadId`, `Brief_Token` y `Brief_URL` desde el primer registro para que el admin pueda ver el enlace del brief incluso antes de enviarlo por correo.
 - El workflow de contrato deja una URL de contrato de ejemplo para que el Admin reciba `success` y `contractUrl`. Si luego conectas Google Docs, DocuSign o un servicio PDF, solo reemplaza el nodo de preparacion del contrato.
 - Si quieres notificaciones a Slack/Teams, puedes agregar un `HTTP Request` despues del update del brief completado.

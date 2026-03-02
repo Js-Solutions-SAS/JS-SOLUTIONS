@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? $json;\nconst leadId = body.leadId ?? body.quoteId ?? '';\nconst email = body.email ?? '';\n\nif (!leadId && !email) {\n  throw new Error('leadId or email is required');\n}\n\nconst token = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    token,\n    briefUrl: `https://portal.jssolutions.co/brief/${token}`,\n    requestedAt: new Date().toISOString(),\n    nextStatus: 'Brief Enviado'\n  }\n}];"
+        "jsCode": "const body = $json.body ?? $json;\nconst leadId = body.leadId ?? body.quoteId ?? '';\nconst email = body.email ?? '';\n\nif (!leadId && !email) {\n  throw new Error('leadId or email is required');\n}\n\nconst token = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    token,\n    briefUrl: `https://portal.jssolutions.com.co/brief/${token}`,\n    requestedAt: new Date().toISOString(),\n    nextStatus: 'Brief Enviado'\n  }\n}];"
       },
       "id": "62b7d5bf-d5d6-4f43-ac48-48f60bc9fa5b",
       "name": "Normalize Input And Generate Token",
@@ -47,6 +47,7 @@
           "value": {
             "leadId": "={{ $json.leadId }}",
             "Brief_Token": "={{ $json.token }}",
+            "Brief_URL": "={{ $json.briefUrl }}",
             "Estado": "={{ $json.nextStatus }}",
             "Brief_Requested_At": "={{ $json.requestedAt }}",
             "Prospect_Email": "={{ $json.email }}"
@@ -64,6 +65,15 @@
             {
               "id": "Brief_Token",
               "displayName": "Brief_Token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Brief_URL",
+              "displayName": "Brief_URL",
               "required": false,
               "defaultMatch": false,
               "display": true,
