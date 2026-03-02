@@ -3,11 +3,19 @@ import { FileText } from "lucide-react";
 
 import { QuotesTableLoader } from "@/components/cotizaciones/quotes-table-loader";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getQuotes } from "@/lib/admin-data";
+import { getQuotesFeed } from "@/lib/admin-data";
 
 async function QuotesTableSection() {
-  const quotes = await getQuotes();
-  return <QuotesTableLoader initialQuotes={quotes} />;
+  const feed = await getQuotesFeed();
+
+  return (
+    <QuotesTableLoader
+      initialQuotes={feed.quotes}
+      source={feed.source}
+      sourceMessage={feed.message}
+      createEnabled={Boolean(process.env.N8N_CREATE_QUOTE_URL)}
+    />
+  );
 }
 
 function QuotesTableFallback() {
@@ -30,7 +38,7 @@ export default function CotizacionesPage() {
           Cotizaciones y Contratos
         </h1>
         <p className="mt-1 text-sm text-brand-off-white/70">
-          Administra leads por industria y ejecuta aprobacion de contratos en n8n con Server Actions.
+          Control real de cotizaciones: crea leads, verifica la fuente conectada y ejecuta briefs o contratos sobre datos sincronizados.
         </p>
       </div>
 

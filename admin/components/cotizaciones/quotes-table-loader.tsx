@@ -2,10 +2,13 @@
 
 import dynamic from "next/dynamic";
 
-import type { Quote } from "@/lib/types";
+import type { Quote, QuotesFeedSource } from "@/lib/types";
 
 interface QuotesTableLoaderProps {
   initialQuotes: Quote[];
+  source: QuotesFeedSource;
+  sourceMessage: string;
+  createEnabled: boolean;
 }
 
 const QuotesTable = dynamic(
@@ -20,6 +23,21 @@ const QuotesTable = dynamic(
 
 export function QuotesTableLoader({
   initialQuotes,
+  source,
+  sourceMessage,
+  createEnabled,
 }: QuotesTableLoaderProps) {
-  return <QuotesTable initialQuotes={initialQuotes} />;
+  const tableKey = `${source}:${initialQuotes
+    .map((quote) => `${quote.id}:${quote.estado}:${quote.briefUrl || ""}`)
+    .join("|")}`;
+
+  return (
+    <QuotesTable
+      key={tableKey}
+      initialQuotes={initialQuotes}
+      source={source}
+      sourceMessage={sourceMessage}
+      createEnabled={createEnabled}
+    />
+  );
 }
