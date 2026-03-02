@@ -1,6 +1,7 @@
 interface AuthConfig {
   adminUsername: string;
   adminPasswordHash: string;
+  adminPasswordHashAlt?: string;
   sessionSecret: string;
   csrfSecret: string;
 }
@@ -13,14 +14,16 @@ function readEnv(name: string): string | null {
 export function isAuthConfigured(): boolean {
   return Boolean(
     readEnv("AUTH_ADMIN_USERNAME") &&
-      readEnv("AUTH_ADMIN_PASSWORD_HASH") &&
-      readEnv("AUTH_SESSION_SECRET"),
+    readEnv("AUTH_ADMIN_PASSWORD_HASH") &&
+    readEnv("AUTH_SESSION_SECRET"),
   );
 }
 
 export function getAuthConfig(): AuthConfig {
   const adminUsername = readEnv("AUTH_ADMIN_USERNAME");
   const adminPasswordHash = readEnv("AUTH_ADMIN_PASSWORD_HASH");
+  const adminPasswordHashAlt =
+    readEnv("AUTH_ADMIN_PASSWORD_HASH_ALT") || undefined;
   const sessionSecret = readEnv("AUTH_SESSION_SECRET");
   const csrfSecret = readEnv("AUTH_CSRF_SECRET") || sessionSecret;
 
@@ -41,6 +44,7 @@ export function getAuthConfig(): AuthConfig {
   return {
     adminUsername,
     adminPasswordHash,
+    adminPasswordHashAlt,
     sessionSecret,
     csrfSecret,
   };

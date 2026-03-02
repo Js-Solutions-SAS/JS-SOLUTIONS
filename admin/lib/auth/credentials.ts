@@ -10,7 +10,10 @@ export function normalizeUsername(value: string): string {
   return value.trim().toLowerCase();
 }
 
-export function isCredentialInputValid(username: string, password: string): boolean {
+export function isCredentialInputValid(
+  username: string,
+  password: string,
+): boolean {
   const normalizedUsername = username.trim();
   return (
     normalizedUsername.length > 0 &&
@@ -24,7 +27,8 @@ export async function verifyAdminCredentials(
   username: string,
   password: string,
 ): Promise<boolean> {
-  const { adminUsername, adminPasswordHash } = getAuthConfig();
+  const { adminUsername, adminPasswordHash, adminPasswordHashAlt } =
+    getAuthConfig();
 
   const normalizedInputUsername = normalizeUsername(username);
   const normalizedAdminUsername = normalizeUsername(adminUsername);
@@ -38,6 +42,9 @@ export async function verifyAdminCredentials(
   let isPasswordMatch = false;
   try {
     isPasswordMatch = await argon2.verify(adminPasswordHash, password);
+    if (!isPasswordMatch && adminPasswordHashAlt) {
+      isPasswordMatch = await argon2.verify(adminPasswordHashAlt, password);
+    }
   } catch {
     return false;
   }
