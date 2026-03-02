@@ -8,6 +8,20 @@ function normalizeString(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+function readVariant(
+  raw: Partial<Quote> & Record<string, unknown>,
+  ...keys: string[]
+): string {
+  for (const key of keys) {
+    const value = normalizeString(raw[key]);
+    if (value) {
+      return value;
+    }
+  }
+
+  return "";
+}
+
 export function inferIndustry(text: string): string {
   const value = text.toLowerCase();
 
@@ -36,20 +50,55 @@ export function statusTone(status: string): "pending" | "progress" | "success" {
   return "pending";
 }
 
-export function normalizeQuote(raw: Partial<Quote>, index: number): Quote {
-  const servicio = normalizeString(raw.servicio || "Sin servicio");
-  const empresa = normalizeString(raw.empresa || "Empresa no especificada");
+export function normalizeQuote(
+  raw: Partial<Quote> & Record<string, unknown>,
+  index: number,
+): Quote {
+  const servicio =
+    readVariant(raw, "servicio", "service", "Servicio", "Service") ||
+    "Sin servicio";
+  const empresa =
+    readVariant(raw, "empresa", "company", "Empresa", "Company") ||
+    "Empresa no especificada";
+  const nombre =
+    readVariant(raw, "nombre", "name", "leadName", "Nombre", "Name") ||
+    "Sin nombre";
+  const id =
+    readVariant(raw, "id", "leadId", "quoteId", "ID", "Lead_ID", "lead_id") ||
+    `lead-${index + 1}`;
+  const monto =
+    readVariant(raw, "monto", "amount", "Monto", "Amount") || "$0";
+  const estado =
+    readVariant(raw, "estado", "status", "Estado", "Status") || "Pendiente";
+  const email =
+    readVariant(
+      raw,
+      "email",
+      "prospectEmail",
+      "Prospect_Email",
+      "Email",
+      "correo",
+    ) || undefined;
+  const industria =
+    readVariant(raw, "industria", "industry", "Industria", "Industry") ||
+    inferIndustry(`${empresa} ${servicio}`);
+  const briefUrl =
+    readVariant(raw, "briefUrl", "Brief_URL", "brief_url", "BriefUrl") ||
+    undefined;
+  const briefToken =
+    readVariant(raw, "briefToken", "Brief_Token", "brief_token", "BriefToken") ||
+    undefined;
 
   return {
-    id: normalizeString(raw.id || `lead-${index + 1}`),
-    nombre: normalizeString(raw.nombre || "Sin nombre"),
+    id,
+    nombre,
     empresa,
     servicio,
-    monto: normalizeString(raw.monto || "$0"),
-    estado: normalizeString(raw.estado || "Pendiente"),
-    email: normalizeString(raw.email || "") || undefined,
-    industria:
-      normalizeString(raw.industria || "") ||
-      inferIndustry(`${empresa} ${servicio}`),
+    monto,
+    estado,
+    email,
+    industria,
+    briefUrl,
+    briefToken,
   };
 }

@@ -125,6 +125,7 @@ Variables recomendadas (`admin/.env.local`):
 ```env
 N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
 N8N_GET_QUOTES_URL=https://tu-n8n/webhook/get-quotes
+N8N_CREATE_QUOTE_URL=https://tu-n8n/webhook/js-solutions/create-quote
 N8N_REQUEST_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/request-brief
 N8N_GENERATE_CONTRACT_URL=https://tu-n8n/webhook/js-solutions/generate-contract
 N8N_MILESTONES_WEBHOOK_URL=https://tu-n8n/webhook/admin-entregas
@@ -142,9 +143,10 @@ N8N_SECRET_TOKEN=tu_token_bearer_opcional
 
 Notas:
 
-- Si `N8N_GET_QUOTES_URL` no está configurada, el módulo de cotizaciones devuelve datos mock para no romper la UI.
-- Si `N8N_REQUEST_BRIEF_WEBHOOK_URL` no está configurada, la solicitud de brief responde en modo simulado.
-- Si `N8N_GENERATE_CONTRACT_URL` no está configurada, la generación responde en modo simulado.
+- La vista `/cotizaciones` ya no usa mock: sin `N8N_GET_QUOTES_URL` muestra estado desconectado y lista vacía para control real.
+- Si `N8N_CREATE_QUOTE_URL` no está configurada, no se pueden crear cotizaciones reales desde el admin.
+- Si `N8N_REQUEST_BRIEF_WEBHOOK_URL` no está configurada, el admin bloquea el envío y muestra el error de configuración.
+- Si `N8N_GENERATE_CONTRACT_URL` no está configurada, el admin bloquea la generación y muestra el error de configuración.
 
 ## Build de producción
 
@@ -160,5 +162,5 @@ npm run start
 - `Estructura_Google_Sheets.md`: esquema de hojas y campos.
 - `n8n_sheets_project_status.json`: flujo base para estado de proyectos.
 - `n8n_sheets_onboarding.json`: flujo base para onboarding.
-- `n8n/workflows/`: imports listos para request brief, submit brief y generate contract.
+- `n8n/workflows/`: imports listos para create quote, request brief, submit brief y generate contract.
 - `n8n/README.md`: guia de importacion y mapeo de `.env.local`.

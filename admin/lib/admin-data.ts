@@ -19,6 +19,7 @@ import type {
   RaidMetrics,
   RaidProjectSummary,
   Quote,
+  QuotesFeedSource,
   SOP,
   TicketSLAClientSummary,
   TicketSLAEntry,
@@ -746,7 +747,65 @@ export async function getQuotes(): Promise<Quote[]> {
   const raw = await response.json();
   const items = Array.isArray(raw) ? raw : raw.quotes || [];
 
-  return items.map((item: Partial<Quote>, index: number) => normalizeQuote(item, index));
+  return items.map(
+    (item: Partial<Quote> & Record<string, unknown>, index: number) =>
+      normalizeQuote(item, index),
+  );
+}
+
+export interface QuotesFeedResult {
+  quotes: Quote[];
+  source: QuotesFeedSource;
+  message: string;
+}
+
+export async function getQuotesFeed(): Promise<QuotesFeedResult> {
+  const webhookUrl = process.env.N8N_GET_QUOTES_URL;
+
+  if (!webhookUrl) {
+    return {
+      quotes: [],
+      source: "unconfigured",
+      message:
+        "Configura N8N_GET_QUOTES_URL para ver cotizaciones reales desde n8n. El panel ya no muestra datos mock en esta vista.",
+    };
+  }
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: "GET",
+      headers: DEFAULT_HEADERS,
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error(`n8n respondio con estado ${response.status}`);
+    }
+
+    const raw = await response.json();
+    const items = Array.isArray(raw) ? raw : raw.quotes || raw.data || [];
+
+    return {
+      quotes: items.map(
+        (item: Partial<Quote> & Record<string, unknown>, index: number) =>
+          normalizeQuote(item, index),
+      ),
+      source: "live",
+      message:
+        items.length > 0
+          ? "Cotizaciones sincronizadas en tiempo real desde n8n."
+          : "La conexión con n8n está activa, pero aún no hay cotizaciones registradas.",
+    };
+  } catch (error) {
+    console.error("getQuotesFeed", error);
+
+    return {
+      quotes: [],
+      source: "error",
+      message:
+        "No fue posible sincronizar cotizaciones desde n8n. Revisa el webhook N8N_GET_QUOTES_URL.",
+    };
+  }
 }
 
 export async function getSops(): Promise<SOP[]> {

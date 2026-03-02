@@ -7,7 +7,11 @@ export interface Quote {
   estado: string;
   email?: string;
   industria?: string;
+  briefUrl?: string;
+  briefToken?: string;
 }
+
+export type QuotesFeedSource = "live" | "unconfigured" | "error";
 
 export interface SOP {
   id?: string;
