@@ -32,16 +32,31 @@
     },
     {
       "parameters": {
-        "operation": "lookup",
-        "sheetUrl": "URL_A_TU_GOOGLE_SHEET",
-        "lookupColumn": "TU_COLUMNA_LEAD_ID",
-        "lookupValue": "={{ $json.leadId }}",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "URL_A_TU_GOOGLE_SHEET",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Hoja 1",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "leadId",
+              "lookupValue": "={{ $('Validate Contract Request').item.json.leadId }}"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "da4dcb35-b30d-4e4d-b6ea-1f67aca3f4ed",
       "name": "Lookup Lead Data",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 3,
+      "typeVersion": 4,
       "position": [
         740,
         320
@@ -49,7 +64,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const source = $json;\nconst leadId = source.leadId ?? $('Validate Contract Request').item.json.leadId;\nconst email = source.email ?? $('Validate Contract Request').item.json.email;\nconst contractId = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\nconst company = source.empresa ?? source.Empresa ?? 'Prospecto';\nconst service = source.servicio ?? source.Servicio ?? 'Servicio JS Solutions';\nconst amount = source.monto ?? source.Monto ?? 'Pendiente';\nconst contractUrl = `https://files.jssolutions.co/contracts/${contractId}.pdf`;\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    contractId,\n    company,\n    service,\n    amount,\n    contractUrl,\n    nextStatus: 'Contrato Enviado',\n    generatedAt: new Date().toISOString(),\n    contractHtml: `<h1>Contrato JS Solutions</h1><p>Cliente: ${company}</p><p>Servicio: ${service}</p><p>Valor: ${amount}</p><p>ID: ${contractId}</p>`\n  }\n}];"
+        "jsCode": "const source = $json;\nconst req = $('Validate Contract Request').item.json;\nconst leadId = source.leadId ?? req.leadId;\nconst email = source.email ?? req.email;\nconst contractId = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\nconst company = source.empresa ?? source.Empresa ?? 'Prospecto';\nconst service = source.servicio ?? source.Servicio ?? 'Servicio JS Solutions';\nconst amount = source.monto ?? source.Monto ?? 'Pendiente';\nconst contractUrl = `https://files.jssolutions.co/contracts/${contractId}.pdf`;\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    empresa: company,\n    servicio: service,\n    monto: amount,\n    contractId,\n    contractUrl,\n    Estado: 'Contrato Enviado',\n    Contract_URL: contractUrl,\n    Contract_Generated_At: new Date().toISOString(),\n    contractHtml: `<h1>Contrato JS Solutions</h1><p>Cliente: ${company}</p><p>Servicio: ${service}</p><p>Valor: ${amount}</p><p>ID: ${contractId}</p>`\n  }\n}];"
       },
       "id": "d482562b-f124-4a17-82be-d9ea60365853",
       "name": "Prepare Contract Payload",
@@ -62,17 +77,21 @@
     },
     {
       "parameters": {
-        "fromEmail": "smtp@jssolutions.co",
-        "toEmail": "={{ $json.email }}",
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.email }}",
         "subject": "Tu contrato con JS Solutions",
-        "emailFormat": "html",
-        "html": "=<p>Hola,</p><p>Adjuntamos el enlace de tu contrato.</p><p><a href=\"{{$json.contractUrl}}\">Ver contrato</a></p><p>Servicio: {{$json.service}}</p><p>Valor: {{$json.amount}}</p>",
-        "options": {}
+        "emailType": "html",
+        "message": "=<p>Hola,</p><p>Adjuntamos el enlace de tu contrato.</p><p><a href=\"{{$json.contractUrl}}\">Ver contrato</a></p><p>Servicio: {{$json.servicio}}</p><p>Valor: {{$json.monto}}</p>",
+        "options": {
+          "senderName": "JS Solutions",
+          "appendAttribution": false
+        }
       },
       "id": "a27858d2-4f7c-4e61-9286-735bfa874b32",
       "name": "Send Contract Email",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
       "position": [
         1290,
         320
@@ -81,20 +100,71 @@
     {
       "parameters": {
         "operation": "update",
-        "sheetUrl": "URL_A_TU_GOOGLE_SHEET",
-        "updateKey": "TU_COLUMNA_LEAD_ID",
-        "updateValue": "={{ $('Prepare Contract Payload').item.json.leadId }}",
-        "columns": {
-          "Estado": "={{ $('Prepare Contract Payload').item.json.nextStatus }}",
-          "Contract_URL": "={{ $('Prepare Contract Payload').item.json.contractUrl }}",
-          "Contract_Generated_At": "={{ $('Prepare Contract Payload').item.json.generatedAt }}"
+        "documentId": {
+          "__rl": true,
+          "value": "URL_A_TU_GOOGLE_SHEET",
+          "mode": "url"
         },
+        "sheetName": {
+          "__rl": true,
+          "value": "Hoja 1",
+          "mode": "name"
+        },
+        "columns": {
+          "value": {
+            "leadId": "={{ $json.leadId }}",
+            "Estado": "={{ $json.Estado }}",
+            "Contract_URL": "={{ $json.Contract_URL }}",
+            "Contract_Generated_At": "={{ $json.Contract_Generated_At }}"
+          },
+          "schema": [
+            {
+              "id": "leadId",
+              "displayName": "leadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Contract_URL",
+              "displayName": "Contract_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Contract_Generated_At",
+              "displayName": "Contract_Generated_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "matchingColumns": [
+          "leadId"
+        ],
         "options": {}
       },
       "id": "88676843-e7e8-4139-b484-8a6eedf1acbf",
       "name": "Update Lead Contract Status",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 3,
+      "typeVersion": 4,
       "position": [
         1560,
         320
