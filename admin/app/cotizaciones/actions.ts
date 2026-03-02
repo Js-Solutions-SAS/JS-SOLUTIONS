@@ -47,7 +47,55 @@ export async function generateContractAction(input: GenerateContractInput) {
     console.error("generateContractAction", error);
     return {
       ok: false,
-      message: "No fue posible generar el contrato. Revisa la conexion con n8n.",
+      message:
+        "No fue posible generar el contrato. Revisa la conexion con n8n.",
+    };
+  }
+}
+
+export async function requestTechnicalBriefAction(
+  input: GenerateContractInput,
+) {
+  if (!input.leadId && !input.email) {
+    return {
+      ok: false,
+      message: "Debes enviar leadId o email para solicitar el brief.",
+    };
+  }
+
+  const webhookUrl = process.env.N8N_REQUEST_BRIEF_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    revalidatePath("/cotizaciones");
+    return {
+      ok: true,
+      message: "Brief solicitado en modo simulado (sin webhook configurado).",
+    };
+  }
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error(`n8n respondio con estado ${response.status}`);
+    }
+
+    revalidatePath("/cotizaciones");
+
+    return {
+      ok: true,
+      message: "Brief técnico solicitado y enviado al prospecto correctamente.",
+    };
+  } catch (error) {
+    console.error("requestTechnicalBriefAction", error);
+    return {
+      ok: false,
+      message: "No fue posible solicitar el brief. Revisa la conexion con n8n.",
     };
   }
 }

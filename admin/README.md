@@ -43,7 +43,7 @@ Add these variables in `admin/.env.local`:
 
 ```env
 AUTH_ADMIN_USERNAME=admin
-AUTH_ADMIN_PASSWORD_HASH=<argon2id_hash>
+AUTH_ADMIN_PASSWORD_HASH=<argon2id_hash_escaped>
 AUTH_SESSION_SECRET=<32+_char_random_secret>
 # Optional (if omitted, AUTH_SESSION_SECRET is reused)
 AUTH_CSRF_SECRET=<32+_char_random_secret>
@@ -54,6 +54,8 @@ Generate the Argon2id hash (run inside `admin/`):
 ```bash
 node -e "const argon2=require('argon2');argon2.hash('replace-with-strong-password',{type:argon2.argon2id,memoryCost:65536,timeCost:3,parallelism:1}).then(console.log)"
 ```
+
+Important: if you paste an Argon2 hash into `.env.local`, escape each `$` as `\$` (or use `node scripts/generate-hash.js <tu_contraseña>`, which already prints the escaped value). Next.js expands `$` in `.env.local`, and a raw hash like `$argon2id$...` will break authentication.
 
 Generate a strong secret:
 

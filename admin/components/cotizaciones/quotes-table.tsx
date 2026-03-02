@@ -21,7 +21,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { generateContractAction } from "@/app/cotizaciones/actions";
+import {
+  generateContractAction,
+  requestTechnicalBriefAction,
+} from "@/app/cotizaciones/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,6 +46,7 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
   const [industry, setIndustry] = useState("Todas");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [runningId, setRunningId] = useState<string | null>(null);
+  const [runningBriefId, setRunningBriefId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const industries = useMemo(() => {
@@ -78,6 +82,34 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
     });
   };
 
+  const handleRequestBrief = (quote: Quote) => {
+    setRunningBriefId(quote.id);
+
+    startTransition(async () => {
+      const result = await requestTechnicalBriefAction({
+        leadId: quote.id,
+        email: quote.email,
+      });
+
+      if (result.ok) {
+        setQuotes((prev) =>
+          prev.map((row) =>
+            row.id === quote.id ? { ...row, estado: "Brief Enviado" } : row,
+          ),
+        );
+        toast.success("Brief Solicitado", {
+          description: result.message,
+        });
+      } else {
+        toast.error("Error de conexión", {
+          description: result.message,
+        });
+      }
+
+      setRunningBriefId(null);
+    });
+  };
+
   const columns = useMemo(
     () => [
       columnHelper.accessor("nombre", {
@@ -100,7 +132,9 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
       }),
       columnHelper.accessor("industria", {
         header: "Industria",
-        cell: ({ row }) => <Badge tone="neutral">{row.original.industria || "General"}</Badge>,
+        cell: ({ row }) => (
+          <Badge tone="neutral">{row.original.industria || "General"}</Badge>
+        ),
       }),
       columnHelper.accessor("servicio", {
         header: "Servicio",
@@ -112,11 +146,17 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
           const amountB = parseAmount(String(rowB.getValue(columnId)));
           return amountA - amountB;
         },
-        cell: ({ row }) => <span className="font-semibold text-white">{row.original.monto}</span>,
+        cell: ({ row }) => (
+          <span className="font-semibold text-white">{row.original.monto}</span>
+        ),
       }),
       columnHelper.accessor("estado", {
         header: "Estado",
-        cell: ({ row }) => <Badge tone={statusTone(row.original.estado)}>{row.original.estado}</Badge>,
+        cell: ({ row }) => (
+          <Badge tone={statusTone(row.original.estado)}>
+            {row.original.estado}
+          </Badge>
+        ),
       }),
       columnHelper.display({
         id: "actions",
@@ -125,13 +165,32 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
           const quote = row.original;
           const tone = statusTone(quote.estado);
           const isDone = tone === "success";
-          const isRunning = runningId === quote.id && isPending;
+          const isRunningContract = runningId === quote.id && isPending;
+          const isRunningBrief = runningBriefId === quote.id && isPending;
 
           return (
-            <div className="text-right">
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={() => handleRequestBrief(quote)}
+                disabled={
+                  isDone ||
+                  isRunningBrief ||
+                  isRunningContract ||
+                  quote.estado === "Brief Enviado"
+                }
+                variant="outline"
+                size="sm"
+                className="bg-brand-charcoal hover:bg-white/10"
+              >
+                {isRunningBrief
+                  ? "Enviando..."
+                  : quote.estado === "Brief Enviado"
+                    ? "Brief Pendiente"
+                    : "Solicitar Brief"}
+              </Button>
               <Button
                 onClick={() => handleGenerateContract(quote)}
-                disabled={isDone || isRunning}
+                disabled={isDone || isRunningContract || isRunningBrief}
                 variant={isDone ? "outline" : "default"}
                 size="sm"
               >
@@ -143,7 +202,7 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
                 ) : (
                   <>
                     <FileSignature className="h-4 w-4" />
-                    {isRunning ? "Procesando..." : "Aprobar y Generar"}
+                    {isRunningContract ? "Procesando..." : "Aprobar y Generar"}
                   </>
                 )}
               </Button>
@@ -152,7 +211,7 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
         },
       }),
     ],
-    [isPending, runningId],
+    [isPending, runningId, runningBriefId],
   );
 
   const table = useReactTable({
@@ -169,7 +228,8 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
     globalFilterFn: (row, _columnId, value) => {
       const query = String(value).toLowerCase().trim();
       if (!query) return true;
-      const blob = `${row.original.nombre} ${row.original.empresa} ${row.original.servicio}`.toLowerCase();
+      const blob =
+        `${row.original.nombre} ${row.original.empresa} ${row.original.servicio}`.toLowerCase();
       return blob.includes(query);
     },
     getCoreRowModel: getCoreRowModel(),
@@ -201,7 +261,11 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
               className="w-full sm:w-56"
             >
               {industries.map((option) => (
-                <option key={option} value={option} className="bg-brand-charcoal text-white">
+                <option
+                  key={option}
+                  value={option}
+                  className="bg-brand-charcoal text-white"
+                >
                   {option}
                 </option>
               ))}
@@ -256,8 +320,14 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
                 {table.getRowModel().rows.map((row) => (
                   <tr key={row.id} className="hover:bg-white/5">
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3 text-brand-off-white/85">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <td
+                        key={cell.id}
+                        className="px-4 py-3 text-brand-off-white/85"
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -269,7 +339,8 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
 
         <div className="flex flex-col gap-3 border-t border-white/10 pt-3 text-sm text-brand-off-white/75 sm:flex-row sm:items-center sm:justify-between">
           <p>
-            Mostrando {table.getRowModel().rows.length} de {table.getFilteredRowModel().rows.length} registros
+            Mostrando {table.getRowModel().rows.length} de{" "}
+            {table.getFilteredRowModel().rows.length} registros
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -281,7 +352,8 @@ export function QuotesTable({ initialQuotes }: QuotesTableProps) {
               Anterior
             </Button>
             <span className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/60">
-              Pagina {table.getState().pagination.pageIndex + 1} / {table.getPageCount() || 1}
+              Pagina {table.getState().pagination.pageIndex + 1} /{" "}
+              {table.getPageCount() || 1}
             </span>
             <Button
               variant="outline"
