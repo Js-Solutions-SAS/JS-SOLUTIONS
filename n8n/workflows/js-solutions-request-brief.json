@@ -33,21 +33,81 @@
     {
       "parameters": {
         "operation": "update",
-        "sheetUrl": "URL_A_TU_GOOGLE_SHEET",
-        "updateKey": "TU_COLUMNA_LEAD_ID",
-        "updateValue": "={{ $json.leadId || '' }}",
-        "columns": {
-          "Brief_Token": "={{ $json.token }}",
-          "Estado": "={{ $json.nextStatus }}",
-          "Brief_Requested_At": "={{ $json.requestedAt }}",
-          "Prospect_Email": "={{ $json.email }}"
+        "documentId": {
+          "__rl": true,
+          "value": "URL_A_TU_GOOGLE_SHEET",
+          "mode": "url"
         },
+        "sheetName": {
+          "__rl": true,
+          "value": "Hoja 1",
+          "mode": "name"
+        },
+        "columns": {
+          "value": {
+            "leadId": "={{ $json.leadId }}",
+            "Brief_Token": "={{ $json.token }}",
+            "Estado": "={{ $json.nextStatus }}",
+            "Brief_Requested_At": "={{ $json.requestedAt }}",
+            "Prospect_Email": "={{ $json.email }}"
+          },
+          "schema": [
+            {
+              "id": "leadId",
+              "displayName": "leadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Brief_Token",
+              "displayName": "Brief_Token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Brief_Requested_At",
+              "displayName": "Brief_Requested_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Prospect_Email",
+              "displayName": "Prospect_Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "matchingColumns": [
+          "leadId"
+        ],
         "options": {}
       },
       "id": "7f009ef0-e09f-4db6-8e5e-6e2a7b3910e1",
       "name": "Update Lead In Google Sheets",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 3,
+      "typeVersion": 4,
       "position": [
         760,
         300
@@ -55,17 +115,21 @@
     },
     {
       "parameters": {
-        "fromEmail": "smtp@jssolutions.co",
-        "toEmail": "={{ $json.email }}",
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.email }}",
         "subject": "Completa tu brief tecnico - JS Solutions",
-        "emailFormat": "html",
-        "html": "=<p>Hola,</p><p>Ya tenemos tu solicitud y necesitamos algunos detalles tecnicos para avanzar.</p><p><a href=\"{{$json.briefUrl}}\">Completar brief tecnico</a></p><p>Si el boton no funciona, copia este enlace:</p><p>{{$json.briefUrl}}</p>",
-        "options": {}
+        "emailType": "html",
+        "message": "=<p>Hola,</p><p>Ya tenemos tu solicitud y necesitamos algunos detalles tecnicos para avanzar.</p><p><a href=\"{{$json.briefUrl}}\">Completar brief tecnico</a></p><p>Si el boton no funciona, copia este enlace:</p><p>{{$json.briefUrl}}</p>",
+        "options": {
+          "senderName": "JS Solutions",
+          "appendAttribution": false
+        }
       },
       "id": "49f341f4-d99d-4942-ab44-9f4d84272079",
       "name": "Send Magic Link Email",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
       "position": [
         1040,
         300
