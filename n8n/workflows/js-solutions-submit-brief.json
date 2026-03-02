@@ -1,0 +1,168 @@
+{
+  "name": "JS Solutions - Submit Technical Brief",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "js-solutions/submit-brief",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "c18b5a16-7f8f-492a-98de-44d8c7dfef6c",
+      "name": "Webhook (Trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        220,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst token = body.token ?? '';\nconst answers = body.answers ?? body.technicalBrief ?? {};\n\nif (!token) {\n  throw new Error('token is required');\n}\n\nreturn [{\n  json: {\n    token,\n    answers,\n    answersJson: JSON.stringify(answers),\n    completedAt: new Date().toISOString(),\n    nextStatus: 'Brief Completado'\n  }\n}];"
+      },
+      "id": "e7fd9f90-1022-49f8-b16d-721dc2b47426",
+      "name": "Validate And Normalize Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        470,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "sheetUrl": "URL_A_TU_GOOGLE_SHEET",
+        "lookupColumn": "TU_COLUMNA_BRIEF_TOKEN",
+        "lookupValue": "={{ $json.token }}",
+        "options": {}
+      },
+      "id": "0bc6bc59-4ba9-4fbe-9063-31c9c7d4d7c4",
+      "name": "Lookup Lead By Token",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        760,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetUrl": "URL_A_TU_GOOGLE_SHEET",
+        "updateKey": "TU_COLUMNA_BRIEF_TOKEN",
+        "updateValue": "={{ $('Validate And Normalize Brief').item.json.token }}",
+        "columns": {
+          "Technical_Brief_JSON": "={{ $('Validate And Normalize Brief').item.json.answersJson }}",
+          "Estado": "={{ $('Validate And Normalize Brief').item.json.nextStatus }}",
+          "Brief_Completed_At": "={{ $('Validate And Normalize Brief').item.json.completedAt }}"
+        },
+        "options": {}
+      },
+      "id": "13f85db8-fd2e-4ded-ad31-c00b68218d0e",
+      "name": "Update Lead Brief Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        1040,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "14570f34-739d-4583-b42b-d1b0b11d0b07",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "1610ea8d-4811-4d8d-9c00-8166f7630573",
+              "name": "token",
+              "value": "={{ $('Validate And Normalize Brief').item.json.token }}",
+              "type": "string"
+            },
+            {
+              "id": "c75bc58f-6108-4faf-8fbf-f9a5efebc0fd",
+              "name": "message",
+              "value": "Brief tecnico recibido y registrado.",
+              "type": "string"
+            },
+            {
+              "id": "96e59dd9-f2c0-4c5f-9d77-0701797cc071",
+              "name": "notificationHint",
+              "value": "Agrega un HTTP Request aqui si quieres avisar a Slack o Teams.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1e02cff-8d4b-4ece-a55d-b1825ac7b6af",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1310,
+        320
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook (Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Validate And Normalize Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate And Normalize Brief": {
+      "main": [
+        [
+          {
+            "node": "Lookup Lead By Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Lead By Token": {
+      "main": [
+        [
+          {
+            "node": "Update Lead Brief Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Lead Brief Data": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4972a5ab-6fdb-4908-b307-5a81172f1ab6",
+  "meta": {},
+  "tags": []
+}

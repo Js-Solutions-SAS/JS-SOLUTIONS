@@ -21,7 +21,8 @@ Create `admin/.env.local`:
 ```env
 N8N_SOPS_WEBHOOK_URL=https://<your-n8n>/webhook/sops
 N8N_GET_QUOTES_URL=https://<your-n8n>/webhook/get-quotes
-N8N_GENERATE_CONTRACT_URL=https://<your-n8n>/webhook/generate-contract
+N8N_REQUEST_BRIEF_WEBHOOK_URL=https://<your-n8n>/webhook/js-solutions/request-brief
+N8N_GENERATE_CONTRACT_URL=https://<your-n8n>/webhook/js-solutions/generate-contract
 N8N_MILESTONES_WEBHOOK_URL=https://<your-n8n>/webhook/admin-entregas
 N8N_CAPACITY_WEBHOOK_URL=https://<your-n8n>/webhook/admin-capacity
 N8N_APPROVALS_WEBHOOK_URL=https://<your-n8n>/webhook/admin-approvals

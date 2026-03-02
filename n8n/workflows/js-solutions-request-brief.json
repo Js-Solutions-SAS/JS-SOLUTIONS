@@ -1,0 +1,170 @@
+{
+  "name": "JS Solutions - Request Technical Brief",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "js-solutions/request-brief",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "f4456ae9-1a44-44cf-b8e2-8d2f20f4b0a1",
+      "name": "Webhook (Trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst leadId = body.leadId ?? body.quoteId ?? '';\nconst email = body.email ?? '';\n\nif (!leadId && !email) {\n  throw new Error('leadId or email is required');\n}\n\nconst token = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    token,\n    briefUrl: `https://portal.jssolutions.co/brief/${token}`,\n    requestedAt: new Date().toISOString(),\n    nextStatus: 'Brief Enviado'\n  }\n}];"
+      },
+      "id": "62b7d5bf-d5d6-4f43-ac48-48f60bc9fa5b",
+      "name": "Normalize Input And Generate Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetUrl": "URL_A_TU_GOOGLE_SHEET",
+        "updateKey": "TU_COLUMNA_LEAD_ID",
+        "updateValue": "={{ $json.leadId || '' }}",
+        "columns": {
+          "Brief_Token": "={{ $json.token }}",
+          "Estado": "={{ $json.nextStatus }}",
+          "Brief_Requested_At": "={{ $json.requestedAt }}",
+          "Prospect_Email": "={{ $json.email }}"
+        },
+        "options": {}
+      },
+      "id": "7f009ef0-e09f-4db6-8e5e-6e2a7b3910e1",
+      "name": "Update Lead In Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "smtp@jssolutions.co",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Completa tu brief tecnico - JS Solutions",
+        "emailFormat": "html",
+        "html": "=<p>Hola,</p><p>Ya tenemos tu solicitud y necesitamos algunos detalles tecnicos para avanzar.</p><p><a href=\"{{$json.briefUrl}}\">Completar brief tecnico</a></p><p>Si el boton no funciona, copia este enlace:</p><p>{{$json.briefUrl}}</p>",
+        "options": {}
+      },
+      "id": "49f341f4-d99d-4942-ab44-9f4d84272079",
+      "name": "Send Magic Link Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "80de08d0-70ce-4f05-9cd3-f4e9c0514b17",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "3fcaf45d-f74b-4b47-bcb6-b6db9ba8c7c8",
+              "name": "token",
+              "value": "={{ $('Normalize Input And Generate Token').item.json.token }}",
+              "type": "string"
+            },
+            {
+              "id": "c1826e40-8da4-4b4d-b1e1-b3f80417e804",
+              "name": "briefUrl",
+              "value": "={{ $('Normalize Input And Generate Token').item.json.briefUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "1ba6e6bc-1b37-4a08-bf7f-bb412ddce78d",
+              "name": "message",
+              "value": "Brief tecnico solicitado y enviado.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "038d4f09-623e-40d5-8ad2-e8cd25981f62",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1310,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook (Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input And Generate Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input And Generate Token": {
+      "main": [
+        [
+          {
+            "node": "Update Lead In Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Lead In Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send Magic Link Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Magic Link Email": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "71c05c26-313e-4d87-9547-f1c711f9fe65",
+  "meta": {},
+  "tags": []
+}
