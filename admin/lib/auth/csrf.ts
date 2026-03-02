@@ -7,30 +7,6 @@ const CSRF_TTL_SECONDS = 10 * 60;
 
 type CSRFPurpose = "login";
 
-type CsrfReplayStore = Map<string, number>;
-
-declare global {
-  // eslint-disable-next-line no-var
-  var __JS_ADMIN_CSRF_REPLAY_STORE__: CsrfReplayStore | undefined;
-}
-
-function getReplayStore(): CsrfReplayStore {
-  if (!globalThis.__JS_ADMIN_CSRF_REPLAY_STORE__) {
-    globalThis.__JS_ADMIN_CSRF_REPLAY_STORE__ = new Map<string, number>();
-  }
-
-  return globalThis.__JS_ADMIN_CSRF_REPLAY_STORE__;
-}
-
-function cleanupReplayStore(store: CsrfReplayStore): void {
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  store.forEach((expiresAt, tokenId) => {
-    if (expiresAt <= nowSeconds) {
-      store.delete(tokenId);
-    }
-  });
-}
-
 function getCsrfSecret(): Uint8Array {
   const { csrfSecret } = getAuthConfig();
   return new TextEncoder().encode(csrfSecret);
@@ -64,19 +40,13 @@ export async function consumeCsrfToken(
       typeof payload.exp !== "number" ||
       payload.purpose !== purpose
     ) {
+      console.log("[CSRF] Invalid payload fields", payload);
       return false;
     }
 
-    const replayStore = getReplayStore();
-    cleanupReplayStore(replayStore);
-
-    if (replayStore.has(payload.nonce)) {
-      return false;
-    }
-
-    replayStore.set(payload.nonce, payload.exp);
     return true;
-  } catch {
+  } catch (error) {
+    console.log("[CSRF] Verification threw an error:", String(error));
     return false;
   }
 }
