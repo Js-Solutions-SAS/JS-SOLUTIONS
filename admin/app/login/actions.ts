@@ -15,17 +15,21 @@ import {
   normalizeUsername,
   verifyAdminCredentials,
 } from "@/lib/auth/credentials";
-import { clearLoginRateLimit, checkLoginRateLimit, registerFailedLogin } from "@/lib/auth/rate-limit";
-import { getClientIp, isSameOriginRequest, sanitizeRedirectPath } from "@/lib/auth/request";
+import {
+  clearLoginRateLimit,
+  checkLoginRateLimit,
+  registerFailedLogin,
+} from "@/lib/auth/rate-limit";
+import {
+  getClientIp,
+  isSameOriginRequest,
+  sanitizeRedirectPath,
+} from "@/lib/auth/request";
 import { issueSessionToken } from "@/lib/auth/session";
 
 export interface LoginActionState {
   error: string | null;
 }
-
-export const LOGIN_INITIAL_STATE: LoginActionState = {
-  error: null,
-};
 
 const GENERIC_LOGIN_ERROR =
   "No fue posible iniciar sesion. Verifica tus credenciales e intenta de nuevo.";
@@ -53,7 +57,9 @@ export async function loginAction(
   const csrfValid = await consumeCsrfToken(csrfToken, "login");
   if (!csrfValid) {
     await fixedDelay();
-    return { error: "La sesion del formulario expiro. Recarga e intenta de nuevo." };
+    return {
+      error: "La sesion del formulario expiro. Recarga e intenta de nuevo.",
+    };
   }
 
   const ipAddress = getClientIp(headerStore);
@@ -98,15 +104,21 @@ export async function loginAction(
       path: "/",
       expires: new Date(session.expiresAt * 1000),
     });
-  } catch (error) {
+  } catch (error: Error | unknown) {
     console.error("[AUTH_LOGIN] Authentication flow failed", error);
     await fixedDelay();
-    return { error: "No se pudo completar el inicio de sesion en este momento." };
+    return {
+      error: "No se pudo completar el inicio de sesion en este momento.",
+    };
   }
 
+  console.log("[DEBUG LOGIN] Setting cookies successful, will now redirect.");
+
   if (redirectPath === LOGIN_PATH) {
+    console.log("[DEBUG LOGIN] Redirecting to DEFAULT:", DEFAULT_AUTH_REDIRECT);
     redirect(DEFAULT_AUTH_REDIRECT);
   }
 
+  console.log("[DEBUG LOGIN] Redirecting to path:", redirectPath);
   redirect(redirectPath);
 }

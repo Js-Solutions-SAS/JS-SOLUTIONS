@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-import { LOGIN_INITIAL_STATE, loginAction } from "./actions";
+import { type LoginActionState, loginAction } from "./actions";
+
+const LOGIN_INITIAL_STATE: LoginActionState = {
+  error: null,
+};
 
 interface LoginFormProps {
   csrfToken: string;
@@ -34,8 +38,18 @@ export function LoginForm({ csrfToken, redirectPath }: LoginFormProps) {
       <Card className="w-full border-white/15 bg-brand-charcoal/90">
         <CardHeader className="space-y-3 pb-3">
           <div className="flex items-center justify-between">
-            <Link href="/" className="inline-flex items-center gap-2 text-brand-off-white/80 hover:text-white">
-              <Image src="/logo.svg" alt="JS Solutions" width={28} height={28} className="h-7 w-auto" priority />
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-brand-off-white/80 hover:text-white"
+            >
+              <Image
+                src="/logo.svg"
+                alt="JS Solutions"
+                width={28}
+                height={28}
+                className="h-7 w-auto"
+                priority
+              />
               <span className="text-sm font-medium">JS Solutions Admin</span>
             </Link>
             <ShieldCheck className="h-5 w-5 text-brand-gold" />
@@ -58,7 +72,10 @@ export function LoginForm({ csrfToken, redirectPath }: LoginFormProps) {
             <input type="hidden" name="next" value={redirectPath} />
 
             <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium text-brand-off-white/85">
+              <label
+                htmlFor="username"
+                className="text-sm font-medium text-brand-off-white/85"
+              >
                 Usuario
               </label>
               <Input
@@ -73,7 +90,10 @@ export function LoginForm({ csrfToken, redirectPath }: LoginFormProps) {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-brand-off-white/85">
+              <label
+                htmlFor="password"
+                className="text-sm font-medium text-brand-off-white/85"
+              >
                 Contraseña
               </label>
               <Input
@@ -82,9 +102,8 @@ export function LoginForm({ csrfToken, redirectPath }: LoginFormProps) {
                 type="password"
                 autoComplete="current-password"
                 required
-                minLength={10}
                 maxLength={256}
-                placeholder="••••••••••"
+                placeholder="••••••••"
               />
             </div>
 
