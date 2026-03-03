@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { FileText } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 import { QuotesTableLoader } from "@/components/cotizaciones/quotes-table-loader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getQuotesFeed } from "@/lib/admin-data";
@@ -38,7 +40,8 @@ export default function CotizacionesPage() {
           Cotizaciones y Contratos
         </h1>
         <p className="mt-1 text-sm text-brand-off-white/70">
-          Control real de cotizaciones: crea leads, verifica la fuente conectada y ejecuta briefs o contratos sobre datos sincronizados.
+          Control real de cotizaciones: crea leads, verifica la fuente conectada
+          y ejecuta briefs o contratos sobre datos sincronizados.
         </p>
       </div>
 
