@@ -1,0 +1,253 @@
+{
+  "name": "JS Solutions - Project Status",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "project-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "5b1dd224-4a2e-4914-b7e3-c58d49b279f4",
+      "name": "Webhook (Trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst clientToken = body.clientToken ?? body.token ?? '';\n\nif (!clientToken) {\n  throw new Error('clientToken is required');\n}\n\nreturn [{ json: { clientToken } }];"
+      },
+      "id": "2c2d1c8d-e919-4b99-b9cb-c6256e1cc4d7",
+      "name": "Validate Client Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "URL_A_TU_GOOGLE_SHEET",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Hoja 1",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Brief_Token",
+              "lookupValue": "={{ $('Validate Client Token').item.json.clientToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c5e55f58-e79c-4e14-8c9f-2d7ad8c7b582",
+      "name": "Lookup Lead By Client Token",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        720,
+        300
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "40b0ac6a-b032-45d7-9539-25f39d0fe9c7",
+              "leftValue": "={{ $json.leadId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2470bf37-d14d-4afc-a669-c71957d3c6c8",
+      "name": "IF Lead Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $json;\nconst status = row.estado || row.Estado || 'Diagnóstico Capturado';\nconst normalized = String(status).toLowerCase().trim();\n\nlet currentPhase = 'Desarrollo';\nlet progressPercentage = 0;\nif (['diagnóstico capturado', 'diagnostico capturado'].includes(normalized)) {\n  currentPhase = 'Descubrimiento';\n  progressPercentage = 10;\n} else if (normalized === 'brief enviado') {\n  currentPhase = 'Descubrimiento';\n  progressPercentage = 20;\n} else if (normalized === 'brief completado') {\n  currentPhase = 'Descubrimiento';\n  progressPercentage = 30;\n} else if (['cotización en revisión', 'cotizacion en revision'].includes(normalized)) {\n  currentPhase = 'Cotización';\n  progressPercentage = 35;\n} else if (normalized === 'firmado') {\n  currentPhase = 'Aprobado Comercial';\n  progressPercentage = 50;\n} else if (normalized === 'contrato enviado') {\n  currentPhase = 'Contratación';\n  progressPercentage = 65;\n}\n\nconst quoteUrl = row.Quote_PDF_URL || '';\nconst contractUrl = row.Contract_URL || '';\nconst quoteStatus = row.Quote_Status || (normalized === 'firmado' ? 'Aprobado' : quoteUrl ? 'En revisión' : 'Pendiente');\nconst documents = [];\nif (quoteUrl) {\n  documents.push({\n    id: row.Quote_Document_Id || `quote-${row.leadId}`,\n    name: 'Cotización Comercial',\n    type: 'pdf',\n    kind: 'quote',\n    status: quoteStatus,\n    url: quoteUrl,\n    updatedAt: row.Quote_Generated_At || ''\n  });\n}\nif (contractUrl) {\n  documents.push({\n    id: `contract-${row.leadId}`,\n    name: 'Contrato Comercial',\n    type: 'pdf',\n    kind: 'contract',\n    status: 'En revisión',\n    url: contractUrl,\n    updatedAt: row.Contract_Generated_At || ''\n  });\n}\n\nreturn [{\n  json: {\n    clientToken: row.Brief_Token || $('Validate Client Token').item.json.clientToken,\n    estado: status,\n    projectName: row.empresa || row.nombre || 'Proyecto JS Solutions',\n    serviceType: row.servicio || 'Implementación tecnológica',\n    currentPhase,\n    progressPercentage,\n    driveFolderUrl: row.Drive_Folder_URL || row.Drive_Folder_Link || '',\n    quote: quoteUrl\n      ? {\n          id: row.Quote_Document_Id || `quote-${row.leadId}`,\n          name: 'Cotización Comercial',\n          url: quoteUrl,\n          status: quoteStatus,\n          sentAt: row.Quote_Generated_At || undefined,\n          approvedAt: row.Quote_Approved_At || undefined\n        }\n      : undefined,\n    tasks: [],\n    milestones: [],\n    documents\n  }\n}];"
+      },
+      "id": "0c8803d5-d882-471a-a742-771e8ece38df",
+      "name": "Build Project Status Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "19debc18-26ee-4710-bb24-8ec5530ef516",
+              "name": "error",
+              "value": "Token caducado o proyecto no encontrado.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "26f99497-259f-4928-b4fb-5a697112ff17",
+      "name": "Not Found Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1240,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a2778013-33ec-41dd-b209-c31c9e6a2e7d",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1490,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "72ba115e-d767-4324-a8d0-f1ecdc2b6ae6",
+      "name": "Respond Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1490,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Validate Client Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Client Token": {
+      "main": [
+        [
+          {
+            "node": "Lookup Lead By Client Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Lead By Client Token": {
+      "main": [
+        [
+          {
+            "node": "IF Lead Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Lead Found": {
+      "main": [
+        [
+          {
+            "node": "Build Project Status Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not Found Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Project Status Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not Found Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "tags": []
+}

@@ -5,7 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "js-solutions/create-quote",
-        "responseMode": "lastNode",
+        "responseMode": "responseNode",
         "options": {}
       },
       "id": "30095c47-bf5c-491f-84ad-ad4efe573129",
@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? $json;\nconst now = new Date();\nconst leadId = body.leadId || body.quoteId || `lead-${Date.now()}`;\nconst token = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\nconst portalBaseUrl = 'https://portal.jssolutions.com.co';\nconst services = Array.isArray(body.servicios)\n  ? body.servicios\n  : Array.isArray(body.services)\n    ? body.services\n    : [];\nconst amount = body.monto || body.amount || '$0';\nconst details = body.detalles || body.details || '';\nconst briefUrl = `${portalBaseUrl}/brief/${token}`;\n\nreturn [{\n  json: {\n    leadId,\n    nombre: body.nombre || body.name || 'Sin nombre',\n    empresa: body.empresa || body.company || 'Empresa no especificada',\n    email: body.email || body.Prospect_Email || '',\n    servicio: body.servicio || body.service || 'Sin servicio',\n    monto: amount,\n    industria: body.industria || body.industry || 'General',\n    detalles: details,\n    sector: body.sector || '',\n    complejidad: body.complejidad || body.complexity || '',\n    servicios: services,\n    serviciosTexto: services.join(', '),\n    rangoMin: body.rangoInversion?.min ?? body.rangoMin ?? 0,\n    rangoMax: body.rangoInversion?.max ?? body.rangoMax ?? 0,\n    estado: body.estado || 'Diagnóstico Capturado',\n    createdAt: now.toISOString(),\n    Brief_Token: token,\n    Brief_URL: briefUrl,\n    briefUrl\n  }\n}];"
+        "jsCode": "const body = $json.body ?? $json;\nconst now = new Date();\nconst leadId = body.leadId || body.quoteId || `lead-${Date.now()}`;\nconst token = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\nconst portalBaseUrl = 'https://portal.jssolutions.com.co';\nconst services = Array.isArray(body.servicios)\n  ? body.servicios\n  : Array.isArray(body.services)\n    ? body.services\n    : [];\nconst amount = body.monto || body.amount || '$0';\nconst details = body.detalles || body.details || '';\nconst briefUrl = `${portalBaseUrl}/brief/${token}`;\nconst clientDashboardUrl = `${portalBaseUrl}/dashboard?token=${token}`;\n\nreturn [{\n  json: {\n    leadId,\n    nombre: body.nombre || body.name || 'Sin nombre',\n    empresa: body.empresa || body.company || 'Empresa no especificada',\n    email: body.email || body.Prospect_Email || '',\n    servicio: body.servicio || body.service || 'Sin servicio',\n    monto: amount,\n    industria: body.industria || body.industry || 'General',\n    detalles: details,\n    sector: body.sector || '',\n    complejidad: body.complejidad || body.complexity || '',\n    servicios: JSON.stringify(services),\n    serviciosTexto: services.join(', '),\n    rangoMin: body.rangoInversion?.min ?? body.rangoMin ?? 0,\n    rangoMax: body.rangoInversion?.max ?? body.rangoMax ?? 0,\n    estado: body.estado || 'Diagnóstico Capturado',\n    createdAt: now.toISOString(),\n    Brief_Token: token,\n    Brief_URL: briefUrl,\n    Client_Dashboard_URL: clientDashboardUrl,\n    briefUrl,\n    clientDashboardUrl\n  }\n}];"
       },
       "id": "0d9f1cda-5f1b-4974-a31c-77e7a93ad8ec",
       "name": "Normalize Intake And Generate Brief",
@@ -55,13 +55,15 @@
             "detalles": "={{ $json.detalles }}",
             "sector": "={{ $json.sector }}",
             "complejidad": "={{ $json.complejidad }}",
-            "servicios": "={{ $json.serviciosTexto }}",
+            "servicios": "={{ $json.servicios }}",
+            "serviciosTexto": "={{ $json.serviciosTexto }}",
             "rangoMin": "={{ $json.rangoMin }}",
             "rangoMax": "={{ $json.rangoMax }}",
-            "Estado": "={{ $json.estado }}",
-            "Created_At": "={{ $json.createdAt }}",
+            "estado": "={{ $json.estado }}",
+            "createdAt": "={{ $json.createdAt }}",
             "Brief_Token": "={{ $json.Brief_Token }}",
-            "Brief_URL": "={{ $json.Brief_URL }}"
+            "Brief_URL": "={{ $json.Brief_URL }}",
+            "Client_Dashboard_URL": "={{ $json.Client_Dashboard_URL }}"
           },
           "schema": [
             {
@@ -164,6 +166,15 @@
               "canBeUsedToMatch": false
             },
             {
+              "id": "serviciosTexto",
+              "displayName": "serviciosTexto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
               "id": "rangoMin",
               "displayName": "rangoMin",
               "required": false,
@@ -182,8 +193,8 @@
               "canBeUsedToMatch": false
             },
             {
-              "id": "Estado",
-              "displayName": "Estado",
+              "id": "estado",
+              "displayName": "estado",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -191,8 +202,8 @@
               "canBeUsedToMatch": false
             },
             {
-              "id": "Created_At",
-              "displayName": "Created_At",
+              "id": "createdAt",
+              "displayName": "createdAt",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -211,6 +222,15 @@
             {
               "id": "Brief_URL",
               "displayName": "Brief_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Client_Dashboard_URL",
+              "displayName": "Client_Dashboard_URL",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -250,9 +270,21 @@
               "type": "string"
             },
             {
+              "id": "0c979d5f-8a18-4a27-a483-b9db8fa7d2f1",
+              "name": "token",
+              "value": "={{ $('Normalize Intake And Generate Brief').item.json.Brief_Token }}",
+              "type": "string"
+            },
+            {
               "id": "1300e241-38e0-4d85-9d36-6da1c8b67f50",
               "name": "briefUrl",
               "value": "={{ $('Normalize Intake And Generate Brief').item.json.briefUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "7d68de8f-ff84-4268-b789-b48f61df8783",
+              "name": "clientDashboardUrl",
+              "value": "={{ $('Normalize Intake And Generate Brief').item.json.clientDashboardUrl }}",
               "type": "string"
             },
             {
@@ -271,6 +303,23 @@
       "typeVersion": 3.4,
       "position": [
         1180,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "dba73c0b-55c0-4afd-80d1-9c0cf9242d9e",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1430,
         280
       ]
     }
@@ -304,6 +353,17 @@
         [
           {
             "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
             "type": "main",
             "index": 0
           }

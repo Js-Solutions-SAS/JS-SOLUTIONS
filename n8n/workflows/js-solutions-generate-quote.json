@@ -1,0 +1,600 @@
+{
+  "name": "JS Solutions - Generate Quote",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cotizador_js_solutions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "82c98b9d-121f-4c11-a2c2-48f3c5b5aea9",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        320
+      ],
+      "webhookId": "6eb883f9-0a0b-4215-ab65-d0a665d7d5d2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst fallbackId = body.id ?? '';\nconst leadId = body.leadId ?? (fallbackId ? `lead-${fallbackId}` : '');\nconst clientToken = body.clientToken ?? body.token ?? body.Brief_Token ?? fallbackId ?? '';\nconst transcripcion = body.transcripcion ?? '';\nconst rawDatosCliente = body.datos_cliente ?? '';\nconst datosCliente = typeof rawDatosCliente === 'string'\n  ? rawDatosCliente\n  : [rawDatosCliente?.nombre, rawDatosCliente?.empresa, rawDatosCliente?.email]\n      .map((value) => String(value ?? '').trim())\n      .filter(Boolean)\n      .join(' | ');\nconst datosProveedor = body.datos_proveedor ?? 'JS Solutions';\nconst feedback = body.feedback ?? '';\nconst emailCandidates = [\n  typeof body.email === 'string' ? body.email.trim() : '',\n  typeof rawDatosCliente === 'object' && rawDatosCliente\n    ? String(rawDatosCliente.email ?? '').trim()\n    : '',\n  datosCliente.split('|').map((item) => item.trim()).find((item) => item.includes('@')) || '',\n];\nconst email = emailCandidates.find(Boolean) || '';\n\nif (!leadId || !clientToken || !transcripcion) {\n  throw new Error('leadId, clientToken and transcripcion are required');\n}\n\nreturn [{\n  json: {\n    leadId,\n    clientToken,\n    transcripcion,\n    datos_cliente: datosCliente,\n    datos_proveedor: datosProveedor,\n    feedback,\n    email,\n    dashboardUrl: `https://portal.jssolutions.com.co/dashboard?token=${clientToken}`,\n    quoteDocumentId: `quote-${leadId}`,\n    generatedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "1d1ad184-92de-4f74-ab0d-2013f71b887f",
+      "name": "Validate Quote Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "transcripcion",
+              "name": "transcripcion",
+              "value": "={{ $('Validate Quote Request').item.json.transcripcion }}",
+              "type": "string"
+            },
+            {
+              "id": "datos_cliente",
+              "name": "datos_cliente",
+              "value": "={{ $('Validate Quote Request').item.json.datos_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "datos_proveedor",
+              "name": "datos_proveedor",
+              "value": "={{ $('Validate Quote Request').item.json.datos_proveedor }}",
+              "type": "string"
+            },
+            {
+              "id": "feedback",
+              "name": "feedback",
+              "value": "={{ $('Validate Quote Request').item.json.feedback }}",
+              "type": "string"
+            },
+            {
+              "id": "fecha_elaboracion",
+              "name": "fecha_elaboracion",
+              "value": "={{ $now.setLocale('es').toFormat(\"dd 'de' LLLL 'de' yyyy\") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "53e4324d-33dc-4959-adec-12b60835a78b",
+      "name": "Preparar Datos Bot",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        700,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3-flash-preview",
+        "options": {}
+      },
+      "id": "6265787d-d63b-46c0-b893-94d518b47c94",
+      "name": "Gemini Pro",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Crea una cotización en formato markdown.\\n\\nTranscripción del diagnóstico:\\n{{ $json.transcripcion }}\\n\\nDatos del cliente:\\n{{ $json.datos_cliente }}\\n\\nDatos del proveedor:\\n{{ $json.datos_proveedor }}\\n\\nFEEDBACK DE CORRECCIÓN (Importante):\\n{{ $json.feedback ? $json.feedback : 'N/A' }}\\n\\nFecha de elaboración (usar exacta, no recalcular):\\n{{ $json.fecha_elaboracion }}",
+        "options": {
+          "systemMessage": "=Eres el Director de Tecnología y Ventas de JS SOLUTIONS. Genera una cotización técnica y comercial clara, ejecutiva, con diagnóstico, alcance, propuesta económica, cronograma, garantía y soporte."
+        }
+      },
+      "id": "b1e1d21d-8cbc-4d65-8dc4-7c90b562ac8e",
+      "name": "Agente Cotizador",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        980,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Convierte esta cotización Markdown a HTML profesional.\\n\\nFecha de elaboración: {{ $('Preparar Datos Bot').item.json.fecha_elaboracion }}\\nDatos del cliente: {{ $('Preparar Datos Bot').item.json.datos_cliente }}\\nDatos proveedor: {{ $('Preparar Datos Bot').item.json.datos_proveedor }}\\n\\nCotización Markdown:\\n{{ $json.output }}",
+        "options": {
+          "systemMessage": "=Responde únicamente con HTML completo listo para PDF, con estilo ejecutivo corporativo, colores negro/dorado y formato A4."
+        }
+      },
+      "id": "e24722be-9085-40bf-8f98-a27e7858cf37",
+      "name": "Agente HTML",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1240,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let html = $json.output ?? '';\nhtml = html.replace(/^```html\\s*/i, '');\nhtml = html.replace(/^```\\s*/i, '');\nhtml = html.replace(/```\\s*$/i, '');\nhtml = html.replace(/^\\s*html\\s*\\n/i, '');\nhtml = html.trim();\nreturn [{ output: html }];"
+      },
+      "id": "c34c5738-e64a-4559-9f6b-09ea2cecb8fd",
+      "name": "Limpiar HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "URL/HTML to PDF",
+        "convertType": "htmlToPDF",
+        "html": "={{ $json.output }}",
+        "advancedOptions": {}
+      },
+      "id": "96547f81-52ed-4029-a032-d626256dbf4a",
+      "name": "Generar PDF",
+      "type": "n8n-nodes-pdfco.PDFco Api",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "fa0a48a7-45a8-4431-af11-a51a2cb4ad83",
+      "name": "Descargar PDF Temporal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2020,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "name": "=Cotizacion_{{ $('Validate Quote Request').item.json.leadId }}_{{ $now.format('yyyy-MM-dd') }}.pdf",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "URL_O_ID_CARPETA_DRIVE",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "29762d85-5e25-4799-b19c-14a18cb35447",
+      "name": "Subir a Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2280,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "URL_A_TU_GOOGLE_SHEET",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Hoja 1",
+          "mode": "name"
+        },
+        "columns": {
+          "value": {
+            "leadId": "={{ $('Validate Quote Request').item.json.leadId }}",
+            "Brief_Token": "={{ $('Validate Quote Request').item.json.clientToken }}",
+            "Quote_Document_Id": "={{ $('Validate Quote Request').item.json.quoteDocumentId }}",
+            "Quote_PDF_URL": "={{ $('Subir a Google Drive').item.json.webViewLink }}",
+            "Quote_Status": "En revisión",
+            "Quote_Generated_At": "={{ $('Validate Quote Request').item.json.generatedAt }}",
+            "Quote_Last_Feedback": "={{ $('Validate Quote Request').item.json.feedback }}",
+            "Client_Dashboard_URL": "={{ $('Validate Quote Request').item.json.dashboardUrl }}",
+            "estado": "Cotización En Revisión"
+          },
+          "schema": [
+            {
+              "id": "leadId",
+              "displayName": "leadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Brief_Token",
+              "displayName": "Brief_Token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Quote_Document_Id",
+              "displayName": "Quote_Document_Id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Quote_PDF_URL",
+              "displayName": "Quote_PDF_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Quote_Status",
+              "displayName": "Quote_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Quote_Generated_At",
+              "displayName": "Quote_Generated_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Quote_Last_Feedback",
+              "displayName": "Quote_Last_Feedback",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Client_Dashboard_URL",
+              "displayName": "Client_Dashboard_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "matchingColumns": [
+          "leadId"
+        ],
+        "options": {}
+      },
+      "id": "ebf175a7-8bb4-4766-8073-bd2a78e581f9",
+      "name": "Update Quote In Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2540,
+        320
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Validate Quote Request').item.json.email }}",
+        "subject": "Tu cotización está lista | JS Solutions",
+        "emailType": "html",
+        "message": "=<p>Hola,</p><p>Tu cotización ya está lista.</p><p><a href=\"{{$('Subir a Google Drive').item.json.webViewLink}}\">Abrir cotización PDF</a></p><p>También puedes seguir el proceso desde tu portal:</p><p><a href=\"{{$('Validate Quote Request').item.json.dashboardUrl}}\">Abrir dashboard</a></p>",
+        "options": {
+          "senderName": "JS Solutions",
+          "appendAttribution": false
+        }
+      },
+      "id": "b8d6548f-ea2d-4d0e-a4af-d74864775d84",
+      "name": "Send Quote Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2800,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2fd7f6d8-5f6f-46cd-8522-b3a96d3aef62",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "b40489ea-59e6-48f6-9611-1bb0ab8ed2ab",
+              "name": "leadId",
+              "value": "={{ $('Validate Quote Request').item.json.leadId }}",
+              "type": "string"
+            },
+            {
+              "id": "8d3c7ec4-e1d7-40dd-ad62-09c3ff1b9961",
+              "name": "clientToken",
+              "value": "={{ $('Validate Quote Request').item.json.clientToken }}",
+              "type": "string"
+            },
+            {
+              "id": "cab8120f-2f86-4304-9a37-83af4892a4be",
+              "name": "quoteDocumentId",
+              "value": "={{ $('Validate Quote Request').item.json.quoteDocumentId }}",
+              "type": "string"
+            },
+            {
+              "id": "7c950088-1f73-4fc4-8b16-c1824e8d91b4",
+              "name": "quotePdfUrl",
+              "value": "={{ $('Subir a Google Drive').item.json.webViewLink }}",
+              "type": "string"
+            },
+            {
+              "id": "f0afc6bf-5953-45e8-bcea-4527f643f91d",
+              "name": "pdfUrl",
+              "value": "={{ $('Subir a Google Drive').item.json.webViewLink }}",
+              "type": "string"
+            },
+            {
+              "id": "30e01993-f479-48ce-a0ea-fcc0394c49a1",
+              "name": "driveUrl",
+              "value": "={{ $('Subir a Google Drive').item.json.webViewLink }}",
+              "type": "string"
+            },
+            {
+              "id": "6f7932b5-978e-41f3-a4d9-95e265db26f3",
+              "name": "dashboardUrl",
+              "value": "={{ $('Validate Quote Request').item.json.dashboardUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "b6f0d2ef-c57b-4aa0-a4e8-6ed3dbc78a54",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "28f0bf76-ac5b-4687-b68f-4b7958d5df38",
+              "name": "message",
+              "value": "Cotización generada, guardada y enviada.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2db4922d-5366-45dc-8d85-7307ec21eb76",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3060,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "1612a258-c1df-4ede-a978-ea44ee901e34",
+      "name": "Responder Preview",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        3320,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Quote Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Quote Request": {
+      "main": [
+        [
+          {
+            "node": "Preparar Datos Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Datos Bot": {
+      "main": [
+        [
+          {
+            "node": "Agente Cotizador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Pro": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente Cotizador",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Agente HTML",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente Cotizador": {
+      "main": [
+        [
+          {
+            "node": "Agente HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente HTML": {
+      "main": [
+        [
+          {
+            "node": "Limpiar HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar HTML": {
+      "main": [
+        [
+          {
+            "node": "Generar PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar PDF": {
+      "main": [
+        [
+          {
+            "node": "Descargar PDF Temporal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar PDF Temporal": {
+      "main": [
+        [
+          {
+            "node": "Subir a Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir a Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Update Quote In Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Quote In Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send Quote Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Quote Email": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Response": {
+      "main": [
+        [
+          {
+            "node": "Responder Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b04d226497cdc806d4b65c48d09c823047f6131a6e6568526b981dd7b9fac8e9"
+  }
+}

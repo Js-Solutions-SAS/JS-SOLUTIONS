@@ -5,7 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "js-solutions/request-brief",
-        "responseMode": "lastNode",
+        "responseMode": "responseNode",
         "options": {}
       },
       "id": "f4456ae9-1a44-44cf-b8e2-8d2f20f4b0a1",
@@ -19,14 +19,60 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? $json;\nconst leadId = body.leadId ?? body.quoteId ?? '';\nconst email = body.email ?? '';\n\nif (!leadId && !email) {\n  throw new Error('leadId or email is required');\n}\n\nconst token = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    token,\n    briefUrl: `https://portal.jssolutions.com.co/brief/${token}`,\n    requestedAt: new Date().toISOString(),\n    nextStatus: 'Brief Enviado'\n  }\n}];"
+        "jsCode": "const body = $json.body ?? $json;\nconst leadId = body.leadId ?? body.quoteId ?? '';\nconst email = body.email ?? '';\n\nif (!leadId && !email) {\n  throw new Error('leadId or email is required');\n}\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    requestedAt: new Date().toISOString()\n  }\n}];"
       },
       "id": "62b7d5bf-d5d6-4f43-ac48-48f60bc9fa5b",
-      "name": "Normalize Input And Generate Token",
+      "name": "Validate Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "URL_A_TU_GOOGLE_SHEET",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Hoja 1",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "leadId",
+              "lookupValue": "={{ $('Validate Request').item.json.leadId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3c5d25f4-1730-4c2c-a922-0ce5c1420ddc",
+      "name": "Lookup Existing Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        720,
+        300
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Validate Request').item.json;\nconst row = $json ?? {};\nconst portalBaseUrl = 'https://portal.jssolutions.com.co';\nconst existingToken = row.Brief_Token ?? row.briefToken ?? '';\nconst token = existingToken || (typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`);\nconst briefUrl = row.Brief_URL || row.briefUrl || `${portalBaseUrl}/brief/${token}`;\nconst clientDashboardUrl = row.Client_Dashboard_URL || row.clientDashboardUrl || `${portalBaseUrl}/dashboard?token=${token}`;\nconst email = request.email || row.email || row.Prospect_Email || '';\nconst leadId = request.leadId || row.leadId || row.id || '';\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    token,\n    briefUrl,\n    clientDashboardUrl,\n    requestedAt: request.requestedAt,\n    nextStatus: 'Brief Enviado'\n  }\n}];"
+      },
+      "id": "be973217-2858-4b30-bfcb-bc33b0dc3a3a",
+      "name": "Resolve Brief Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
         300
       ]
     },
@@ -48,7 +94,8 @@
             "leadId": "={{ $json.leadId }}",
             "Brief_Token": "={{ $json.token }}",
             "Brief_URL": "={{ $json.briefUrl }}",
-            "Estado": "={{ $json.nextStatus }}",
+            "Client_Dashboard_URL": "={{ $json.clientDashboardUrl }}",
+            "estado": "={{ $json.nextStatus }}",
             "Brief_Requested_At": "={{ $json.requestedAt }}",
             "email": "={{ $json.email }}"
           },
@@ -81,8 +128,17 @@
               "canBeUsedToMatch": false
             },
             {
-              "id": "Estado",
-              "displayName": "Estado",
+              "id": "Client_Dashboard_URL",
+              "displayName": "Client_Dashboard_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -119,7 +175,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        760,
+        1240,
         300
       ]
     },
@@ -130,7 +186,7 @@
         "sendTo": "={{ $json.email }}",
         "subject": "Completa tu brief tecnico - JS Solutions",
         "emailType": "html",
-        "message": "=<p>Hola,</p><p>Ya tenemos tu solicitud y necesitamos algunos detalles tecnicos para avanzar.</p><p><a href=\"{{$json.briefUrl}}\">Completar brief tecnico</a></p><p>Si el boton no funciona, copia este enlace:</p><p>{{$json.briefUrl}}</p>",
+        "message": "=<p>Hola,</p><p>Ya tenemos tu solicitud y necesitamos algunos detalles técnicos para avanzar.</p><p><a href=\"{{$json.briefUrl}}\">Completar brief técnico</a></p><p>También puedes seguir el proceso desde tu portal:</p><p><a href=\"{{$json.clientDashboardUrl}}\">Abrir dashboard</a></p><p>Si algún botón no funciona, copia este enlace:</p><p>{{$json.briefUrl}}</p>",
         "options": {
           "senderName": "JS Solutions",
           "appendAttribution": false
@@ -141,7 +197,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        1040,
+        1500,
         300
       ]
     },
@@ -158,13 +214,19 @@
             {
               "id": "3fcaf45d-f74b-4b47-bcb6-b6db9ba8c7c8",
               "name": "token",
-              "value": "={{ $('Normalize Input And Generate Token').item.json.token }}",
+              "value": "={{ $('Resolve Brief Token').item.json.token }}",
               "type": "string"
             },
             {
               "id": "c1826e40-8da4-4b4d-b1e1-b3f80417e804",
               "name": "briefUrl",
-              "value": "={{ $('Normalize Input And Generate Token').item.json.briefUrl }}",
+              "value": "={{ $('Resolve Brief Token').item.json.briefUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "d3e20d74-8800-4df9-b57e-c26b47ab9e75",
+              "name": "clientDashboardUrl",
+              "value": "={{ $('Resolve Brief Token').item.json.clientDashboardUrl }}",
               "type": "string"
             },
             {
@@ -182,7 +244,24 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1310,
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "e82cc4c1-7988-44e0-8f10-29b44be8d680",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2010,
         300
       ]
     }
@@ -193,14 +272,36 @@
       "main": [
         [
           {
-            "node": "Normalize Input And Generate Token",
+            "node": "Validate Request",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Normalize Input And Generate Token": {
+    "Validate Request": {
+      "main": [
+        [
+          {
+            "node": "Lookup Existing Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Existing Lead": {
+      "main": [
+        [
+          {
+            "node": "Resolve Brief Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Brief Token": {
       "main": [
         [
           {
@@ -227,6 +328,17 @@
         [
           {
             "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
             "type": "main",
             "index": 0
           }

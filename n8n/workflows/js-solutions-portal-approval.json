@@ -1,34 +1,33 @@
 {
-  "name": "JS Solutions - Submit Technical Brief",
+  "name": "JS Solutions - Portal Approval Router",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "js-solutions/submit-brief",
+        "path": "js-solutions/portal-approval",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "3d1800a4-196e-4b8a-85da-7532a91dd1db",
+      "id": "2b3fa76d-268b-46e4-afdd-d614280d4a77",
       "name": "Webhook (Trigger)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        -480,
-        -16
-      ],
-      "webhookId": "c347ff68-872c-4b58-8dbc-1c1fb073fc85"
+        220,
+        320
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? $json;\nconst token = body.token ?? '';\nconst answers = body.answers ?? body.technicalBrief ?? {};\n\nif (!token) {\n  throw new Error('token is required');\n}\n\nreturn [{\n  json: {\n    token,\n    answers,\n    answersJson: JSON.stringify(answers),\n    completedAt: new Date().toISOString(),\n    nextStatus: 'Brief Completado'\n  }\n}];"
+        "jsCode": "const body = $json.body ?? $json;\nconst clientToken = body.clientToken ?? '';\nconst resourceType = body.resourceType ?? 'deliverable';\nconst resourceId = body.resourceId ?? body.documentId ?? '';\nconst resourceName = body.resourceName ?? body.documentName ?? 'Entregable';\nconst approvedAt = body.approvedAt ?? new Date().toISOString();\n\nif (!clientToken || !resourceId) {\n  throw new Error('clientToken and resourceId are required');\n}\n\nreturn [{\n  json: {\n    clientToken,\n    resourceType,\n    resourceId,\n    resourceName,\n    approvedAt\n  }\n}];"
       },
-      "id": "a515d8f6-e708-48b6-85e4-fac2c6a0a1f6",
-      "name": "Validate And Normalize Brief",
+      "id": "9d48031f-12da-4d8f-a861-b844f7e3492d",
+      "name": "Validate Approval Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -224,
-        -16
+        460,
+        320
       ]
     },
     {
@@ -48,19 +47,19 @@
           "values": [
             {
               "lookupColumn": "Brief_Token",
-              "lookupValue": "={{ $('Validate And Normalize Brief').item.json.token }}"
+              "lookupValue": "={{ $('Validate Approval Request').item.json.clientToken }}"
             }
           ]
         },
         "options": {}
       },
-      "id": "e11a8b5b-6a5f-42be-bb55-2df70f80c111",
+      "id": "d1b111a0-5575-46ad-b46a-3ca5d7a49ef4",
       "name": "Lookup Lead By Token",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        32,
-        -16
+        720,
+        320
       ],
       "alwaysOutputData": true
     },
@@ -75,13 +74,12 @@
           },
           "conditions": [
             {
-              "id": "3c1e73a4-8a68-447a-9f1a-d3f3c4fd41ac",
-              "leftValue": "={{ $json.Brief_Token }}",
-              "rightValue": "",
+              "id": "db8da4da-2b90-4cd1-8a38-2a1ca5eed55f",
+              "leftValue": "={{ $('Validate Approval Request').item.json.resourceType }}",
+              "rightValue": "quote",
               "operator": {
                 "type": "string",
-                "operation": "notEmpty",
-                "singleValue": true
+                "operation": "equals"
               }
             }
           ],
@@ -89,13 +87,26 @@
         },
         "options": {}
       },
-      "id": "0ef6c6ae-9602-4258-bff2-45d2b0d5c222",
-      "name": "IF Token Found",
+      "id": "4d48bdd6-b72e-456b-9be3-2ef6c356fdba",
+      "name": "IF Quote Approval",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        288,
-        -16
+        980,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $json ?? {};\nconst request = $('Validate Approval Request').item.json;\nconst expectedId = row.Quote_Document_Id ?? '';\n\nif (!row.leadId) {\n  throw new Error('lead not found for clientToken');\n}\n\nif (expectedId && expectedId !== request.resourceId) {\n  throw new Error('resourceId does not match Quote_Document_Id');\n}\n\nreturn [{\n  json: {\n    leadId: row.leadId,\n    clientToken: request.clientToken,\n    resourceId: request.resourceId,\n    resourceName: request.resourceName,\n    approvedAt: request.approvedAt\n  }\n}];"
+      },
+      "id": "6a5571ab-444c-48d2-a312-e40af82cda09",
+      "name": "Validate Quote Match",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        200
       ]
     },
     {
@@ -112,16 +123,12 @@
           "mode": "name"
         },
         "columns": {
-          "mappingMode": "defineBelow",
           "value": {
-            "Brief_Token": "={{ $('Validate And Normalize Brief').item.json.token }}",
-            "Technical_Brief_JSON": "={{ $('Validate And Normalize Brief').item.json.answersJson }}",
-            "estado": "={{ $('Validate And Normalize Brief').item.json.nextStatus }}",
-            "Brief_Completed_At": "={{ $('Validate And Normalize Brief').item.json.completedAt }}"
+            "Brief_Token": "={{ $('Validate Approval Request').item.json.clientToken }}",
+            "Quote_Status": "Aprobado",
+            "Quote_Approved_At": "={{ $('Validate Approval Request').item.json.approvedAt }}",
+            "estado": "Firmado"
           },
-          "matchingColumns": [
-            "Brief_Token"
-          ],
           "schema": [
             {
               "id": "Brief_Token",
@@ -133,8 +140,17 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "Technical_Brief_JSON",
-              "displayName": "Technical_Brief_JSON",
+              "id": "Quote_Status",
+              "displayName": "Quote_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Quote_Approved_At",
+              "displayName": "Quote_Approved_At",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -149,65 +165,21 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": false
-            },
-            {
-              "id": "Brief_Completed_At",
-              "displayName": "Brief_Completed_At",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "367c302a-e81e-4d47-ae40-b0933470b365",
-      "name": "Update Lead Brief Data",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [
-        560,
-        -128
-      ],
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "14570f34-739d-4583-b42b-d1b0b11d0b07",
-              "name": "success",
-              "value": true,
-              "type": "boolean"
-            },
-            {
-              "id": "1610ea8d-4811-4d8d-9c00-8166f7630573",
-              "name": "token",
-              "value": "={{ $('Validate And Normalize Brief').item.json.token }}",
-              "type": "string"
-            },
-            {
-              "id": "c75bc58f-6108-4faf-8fbf-f9a5efebc0fd",
-              "name": "message",
-              "value": "Brief tecnico recibido y registrado.",
-              "type": "string"
             }
           ]
         },
+        "matchingColumns": [
+          "Brief_Token"
+        ],
         "options": {}
       },
-      "id": "a32203fd-b5db-44ce-97bd-9c6389ea6921",
-      "name": "Success Response",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "id": "bfdf2da9-a837-4459-b64f-f83ee25d08d0",
+      "name": "Update Quote Approval",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
       "position": [
-        816,
-        -128
+        1500,
+        200
       ]
     },
     {
@@ -215,34 +187,57 @@
         "assignments": {
           "assignments": [
             {
-              "id": "35f8ee78-2fdd-4d1d-bb89-4fdadad0ed77",
+              "id": "8f24dc4e-01ff-4edb-aa3c-7f4a78933e6f",
               "name": "success",
-              "value": false,
+              "value": true,
               "type": "boolean"
             },
             {
-              "id": "242ba4e1-35aa-4b8e-b4f6-53db9aa1f4f6",
-              "name": "token",
-              "value": "={{ $('Validate And Normalize Brief').item.json.token }}",
-              "type": "string"
-            },
-            {
-              "id": "92f8f589-2eb4-4a66-a4a4-becf3c76b8bf",
-              "name": "error",
-              "value": "No se encontro una fila con ese Brief_Token.",
+              "id": "1d1bed65-4b89-4968-93dc-367c76f877d5",
+              "name": "message",
+              "value": "Cotización aprobada y sincronizada.",
               "type": "string"
             }
           ]
         },
         "options": {}
       },
-      "id": "91b0f04e-47d2-4ef2-bf0a-75a8e054b333",
-      "name": "Not Found Response",
+      "id": "b7cc173b-129f-47b8-a1e2-e9ea9d8fb34e",
+      "name": "Quote Success Response",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        560,
-        112
+        1760,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1ad63b03-68ec-487a-a352-73b23a7f6e5d",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "b4517c9f-21a8-42d8-92ab-71fb216a3737",
+              "name": "message",
+              "value": "Aprobación de entregable registrada.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "370f04cc-1de3-4861-a3b5-817bcb465a44",
+      "name": "Deliverable Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1240,
+        440
       ]
     },
     {
@@ -253,31 +248,14 @@
           "responseCode": 200
         }
       },
+      "id": "5f6c09ff-68a1-4018-9204-fb5bc65d8b18",
+      "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        1040,
-        -128
-      ],
-      "id": "186916e7-54e0-42d8-9d5e-7f1e2cdecdfc",
-      "name": "Respond Success"
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}",
-        "options": {
-          "responseCode": 404
-        }
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.5,
-      "position": [
-        816,
-        112
-      ],
-      "id": "d7cb9587-1738-4126-a7fb-20531b0e5f99",
-      "name": "Respond Not Found"
+        2020,
+        320
+      ]
     }
   ],
   "connections": {
@@ -285,14 +263,14 @@
       "main": [
         [
           {
-            "node": "Validate And Normalize Brief",
+            "node": "Validate Approval Request",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validate And Normalize Brief": {
+    "Validate Approval Request": {
       "main": [
         [
           {
@@ -307,43 +285,54 @@
       "main": [
         [
           {
-            "node": "IF Token Found",
+            "node": "IF Quote Approval",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "IF Token Found": {
+    "IF Quote Approval": {
       "main": [
         [
           {
-            "node": "Update Lead Brief Data",
+            "node": "Validate Quote Match",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Not Found Response",
+            "node": "Deliverable Response",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Update Lead Brief Data": {
+    "Validate Quote Match": {
       "main": [
         [
           {
-            "node": "Success Response",
+            "node": "Update Quote Approval",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Success Response": {
+    "Update Quote Approval": {
+      "main": [
+        [
+          {
+            "node": "Quote Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quote Success Response": {
       "main": [
         [
           {
@@ -354,11 +343,11 @@
         ]
       ]
     },
-    "Not Found Response": {
+    "Deliverable Response": {
       "main": [
         [
           {
-            "node": "Respond Not Found",
+            "node": "Respond Success",
             "type": "main",
             "index": 0
           }
@@ -367,8 +356,10 @@
     }
   },
   "pinData": {},
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "b04d226497cdc806d4b65c48d09c823047f6131a6e6568526b981dd7b9fac8e9"
-  }
+  "meta": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "tags": []
 }

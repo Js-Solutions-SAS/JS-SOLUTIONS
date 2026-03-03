@@ -5,7 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "js-solutions/generate-contract",
-        "responseMode": "lastNode",
+        "responseMode": "responseNode",
         "options": {}
       },
       "id": "90d675f0-0d5a-422e-83c2-f81d678296eb",
@@ -64,7 +64,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const source = $json;\nconst req = $('Validate Contract Request').item.json;\nconst leadId = source.leadId ?? req.leadId;\nconst email = source.email ?? req.email;\nconst contractId = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\nconst company = source.empresa ?? source.Empresa ?? 'Prospecto';\nconst service = source.servicio ?? source.Servicio ?? 'Servicio JS Solutions';\nconst amount = source.monto ?? source.Monto ?? 'Pendiente';\nconst contractUrl = `https://files.jssolutions.co/contracts/${contractId}.pdf`;\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    empresa: company,\n    servicio: service,\n    monto: amount,\n    contractId,\n    contractUrl,\n    Estado: 'Contrato Enviado',\n    Contract_URL: contractUrl,\n    Contract_Generated_At: new Date().toISOString(),\n    contractHtml: `<h1>Contrato JS Solutions</h1><p>Cliente: ${company}</p><p>Servicio: ${service}</p><p>Valor: ${amount}</p><p>ID: ${contractId}</p>`\n  }\n}];"
+        "jsCode": "const source = $json;\nconst req = $('Validate Contract Request').item.json;\nconst leadId = source.leadId ?? req.leadId;\nconst email = source.email ?? req.email;\nconst contractId = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\nconst company = source.empresa ?? source.Empresa ?? 'Prospecto';\nconst service = source.servicio ?? source.Servicio ?? 'Servicio JS Solutions';\nconst amount = source.monto ?? source.Monto ?? 'Pendiente';\nconst contractUrl = `https://files.jssolutions.co/contracts/${contractId}.pdf`;\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    empresa: company,\n    servicio: service,\n    monto: amount,\n    contractId,\n    contractUrl,\n    estado: 'Contrato Enviado',\n    Contract_URL: contractUrl,\n    Contract_Generated_At: new Date().toISOString(),\n    contractHtml: `<h1>Contrato JS Solutions</h1><p>Cliente: ${company}</p><p>Servicio: ${service}</p><p>Valor: ${amount}</p><p>ID: ${contractId}</p>`\n  }\n}];"
       },
       "id": "d482562b-f124-4a17-82be-d9ea60365853",
       "name": "Prepare Contract Payload",
@@ -113,7 +113,7 @@
         "columns": {
           "value": {
             "leadId": "={{ $json.leadId }}",
-            "Estado": "={{ $json.Estado }}",
+            "estado": "={{ $json.estado }}",
             "Contract_URL": "={{ $json.Contract_URL }}",
             "Contract_Generated_At": "={{ $json.Contract_Generated_At }}"
           },
@@ -128,8 +128,8 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "Estado",
-              "displayName": "Estado",
+              "id": "estado",
+              "displayName": "estado",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -210,6 +210,23 @@
         1830,
         320
       ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "ed2a3df5-7fea-44ed-aa10-2576772bb994",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2080,
+        320
+      ]
     }
   ],
   "pinData": {},
@@ -274,6 +291,17 @@
         [
           {
             "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
             "type": "main",
             "index": 0
           }
