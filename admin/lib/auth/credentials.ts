@@ -1,7 +1,6 @@
-import argon2 from "argon2";
-
 import { constantTimeEqual } from "@/lib/auth/crypto";
 import { getAuthConfig } from "@/lib/auth/env";
+import { verifyPasswordHash } from "@/lib/auth/password-hash";
 
 const MAX_USERNAME_LENGTH = 120;
 const MAX_PASSWORD_LENGTH = 256;
@@ -41,9 +40,9 @@ export async function verifyAdminCredentials(
   // Always verify the configured hash to keep response time consistent and reduce username probing.
   let isPasswordMatch = false;
   try {
-    isPasswordMatch = await argon2.verify(adminPasswordHash, password);
+    isPasswordMatch = await verifyPasswordHash(adminPasswordHash, password);
     if (!isPasswordMatch && adminPasswordHashAlt) {
-      isPasswordMatch = await argon2.verify(adminPasswordHashAlt, password);
+      isPasswordMatch = await verifyPasswordHash(adminPasswordHashAlt, password);
     }
   } catch {
     return false;

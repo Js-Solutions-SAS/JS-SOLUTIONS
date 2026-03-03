@@ -45,19 +45,20 @@ Add these variables in `admin/.env.local`:
 
 ```env
 AUTH_ADMIN_USERNAME=admin
-AUTH_ADMIN_PASSWORD_HASH=<argon2id_hash_escaped>
+AUTH_ADMIN_PASSWORD_HASH=<scrypt_hash>
+AUTH_ADMIN_PASSWORD_HASH_ALT=<optional_second_scrypt_hash>
 AUTH_SESSION_SECRET=<32+_char_random_secret>
 # Optional (if omitted, AUTH_SESSION_SECRET is reused)
 AUTH_CSRF_SECRET=<32+_char_random_secret>
 ```
 
-Generate the Argon2id hash (run inside `admin/`):
+Generate the password hash (run inside `admin/`):
 
 ```bash
-node -e "const argon2=require('argon2');argon2.hash('replace-with-strong-password',{type:argon2.argon2id,memoryCost:65536,timeCost:3,parallelism:1}).then(console.log)"
+node scripts/generate-hash.js replace-with-strong-password
 ```
 
-Important: if you paste an Argon2 hash into `.env.local`, escape each `$` as `\$` (or use `node scripts/generate-hash.js <tu_contraseña>`, which already prints the escaped value). Next.js expands `$` in `.env.local`, and a raw hash like `$argon2id$...` will break authentication.
+The generated value uses a `scrypt:...` format backed by Node's built-in `crypto.scrypt`, so it works in Vercel serverless without native addons. It also contains no `$`, so you can paste it directly into `.env.local` and in Vercel without escaping.
 
 Generate a strong secret:
 
