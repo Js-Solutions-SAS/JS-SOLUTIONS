@@ -50,7 +50,7 @@
             "Brief_URL": "={{ $json.briefUrl }}",
             "Estado": "={{ $json.nextStatus }}",
             "Brief_Requested_At": "={{ $json.requestedAt }}",
-            "Prospect_Email": "={{ $json.email }}"
+            "email": "={{ $json.email }}"
           },
           "schema": [
             {
@@ -99,8 +99,8 @@
               "canBeUsedToMatch": false
             },
             {
-              "id": "Prospect_Email",
-              "displayName": "Prospect_Email",
+              "id": "email",
+              "displayName": "email",
               "required": false,
               "defaultMatch": false,
               "display": true,
