@@ -28,7 +28,17 @@ export function QuotesTableLoader({
   createEnabled,
 }: QuotesTableLoaderProps) {
   const tableKey = `${source}:${initialQuotes
-    .map((quote) => `${quote.id}:${quote.estado}:${quote.briefUrl || ""}`)
+    .map(
+      (quote) =>
+        [
+          quote.id,
+          quote.estado,
+          quote.briefUrl || "",
+          quote.quotePdfUrl || "",
+          quote.quoteStatus || "",
+          quote.contractUrl || "",
+        ].join(":"),
+    )
     .join("|")}`;
 
   return (

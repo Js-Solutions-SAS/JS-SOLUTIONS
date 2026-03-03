@@ -9,6 +9,18 @@ export interface Quote {
   industria?: string;
   briefUrl?: string;
   briefToken?: string;
+  technicalBrief?: Record<string, unknown> | null;
+  technicalBriefRaw?: string;
+  briefCompletedAt?: string;
+  clientDashboardUrl?: string;
+  quoteDocumentId?: string;
+  quotePdfUrl?: string;
+  quoteStatus?: string;
+  quoteGeneratedAt?: string;
+  quoteApprovedAt?: string;
+  quoteLastFeedback?: string;
+  contractUrl?: string;
+  contractGeneratedAt?: string;
 }
 
 export type QuotesFeedSource = "live" | "unconfigured" | "error";

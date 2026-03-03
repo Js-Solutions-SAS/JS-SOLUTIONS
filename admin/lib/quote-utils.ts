@@ -1,8 +1,8 @@
 import type { Quote } from "@/lib/types";
 
-const PENDING_KEYWORDS = ["pendiente", "revisi", "cotiz"];
-const IN_PROGRESS_KEYWORDS = ["proceso", "curso", "gesti", "aprob"];
-const SIGNED_KEYWORDS = ["firm", "enviado", "contrato", "complet"];
+const PENDING_KEYWORDS = ["pendiente", "revisi", "cotiz", "diagn"];
+const IN_PROGRESS_KEYWORDS = ["proceso", "curso", "gesti", "aprob", "brief", "enviado", "complet"];
+const SIGNED_KEYWORDS = ["firm", "contrato"];
 
 function normalizeString(value: unknown): string {
   return String(value ?? "").trim();
@@ -20,6 +20,52 @@ function readVariant(
   }
 
   return "";
+}
+
+function parseTechnicalBrief(
+  value: unknown,
+): Pick<Quote, "technicalBrief" | "technicalBriefRaw"> {
+  if (value == null) {
+    return {
+      technicalBrief: null,
+      technicalBriefRaw: undefined,
+    };
+  }
+
+  if (typeof value === "object") {
+    return {
+      technicalBrief: value as Record<string, unknown>,
+      technicalBriefRaw: undefined,
+    };
+  }
+
+  const raw = normalizeString(value);
+  if (!raw) {
+    return {
+      technicalBrief: null,
+      technicalBriefRaw: undefined,
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return {
+        technicalBrief: parsed as Record<string, unknown>,
+        technicalBriefRaw: raw,
+      };
+    }
+  } catch {
+    return {
+      technicalBrief: null,
+      technicalBriefRaw: raw,
+    };
+  }
+
+  return {
+    technicalBrief: null,
+    technicalBriefRaw: raw,
+  };
 }
 
 export function inferIndustry(text: string): string {
@@ -54,6 +100,9 @@ export function normalizeQuote(
   raw: Partial<Quote> & Record<string, unknown>,
   index: number,
 ): Quote {
+  const briefData = parseTechnicalBrief(
+    raw.Technical_Brief_JSON ?? raw.technicalBrief ?? raw.technical_brief_json,
+  );
   const servicio =
     readVariant(raw, "servicio", "service", "Servicio", "Service") ||
     "Sin servicio";
@@ -88,6 +137,62 @@ export function normalizeQuote(
   const briefToken =
     readVariant(raw, "briefToken", "Brief_Token", "brief_token", "BriefToken") ||
     undefined;
+  const briefCompletedAt =
+    readVariant(raw, "briefCompletedAt", "Brief_Completed_At", "brief_completed_at") ||
+    undefined;
+  const clientDashboardUrl =
+    readVariant(
+      raw,
+      "clientDashboardUrl",
+      "Client_Dashboard_URL",
+      "client_dashboard_url",
+      "dashboardUrl",
+      "Dashboard_URL",
+    ) || undefined;
+  const quoteDocumentId =
+    readVariant(
+      raw,
+      "quoteDocumentId",
+      "Quote_Document_Id",
+      "quote_document_id",
+    ) || undefined;
+  const quotePdfUrl =
+    readVariant(raw, "quotePdfUrl", "Quote_PDF_URL", "quote_pdf_url") ||
+    undefined;
+  const quoteStatus =
+    readVariant(raw, "quoteStatus", "Quote_Status", "quote_status") ||
+    undefined;
+  const quoteGeneratedAt =
+    readVariant(
+      raw,
+      "quoteGeneratedAt",
+      "Quote_Generated_At",
+      "quote_generated_at",
+    ) || undefined;
+  const quoteApprovedAt =
+    readVariant(
+      raw,
+      "quoteApprovedAt",
+      "Quote_Approved_At",
+      "quote_approved_at",
+    ) || undefined;
+  const quoteLastFeedback =
+    readVariant(
+      raw,
+      "quoteLastFeedback",
+      "Quote_Last_Feedback",
+      "quote_last_feedback",
+    ) || undefined;
+  const contractUrl =
+    readVariant(raw, "contractUrl", "Contract_URL", "contract_url") ||
+    undefined;
+  const contractGeneratedAt =
+    readVariant(
+      raw,
+      "contractGeneratedAt",
+      "Contract_Generated_At",
+      "contract_generated_at",
+    ) || undefined;
 
   return {
     id,
@@ -100,5 +205,17 @@ export function normalizeQuote(
     industria,
     briefUrl,
     briefToken,
+    technicalBrief: briefData.technicalBrief,
+    technicalBriefRaw: briefData.technicalBriefRaw,
+    briefCompletedAt,
+    clientDashboardUrl,
+    quoteDocumentId,
+    quotePdfUrl,
+    quoteStatus,
+    quoteGeneratedAt,
+    quoteApprovedAt,
+    quoteLastFeedback,
+    contractUrl,
+    contractGeneratedAt,
   };
 }
