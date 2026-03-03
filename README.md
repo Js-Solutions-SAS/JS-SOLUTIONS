@@ -162,5 +162,5 @@ npm run start
 - `Estructura_Google_Sheets.md`: esquema de hojas y campos.
 - `n8n_sheets_project_status.json`: flujo base para estado de proyectos.
 - `n8n_sheets_onboarding.json`: flujo base para onboarding.
-- `n8n/workflows/`: imports listos para create quote, request brief, submit brief y generate contract.
+- `n8n/workflows/`: imports listos para get quotes, create quote, request brief, submit brief y generate contract.
 - `n8n/README.md`: guia de importacion y mapeo de `.env.local`.

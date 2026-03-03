@@ -1,0 +1,90 @@
+{
+  "name": "JS Solutions - Get Quotes",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "js-solutions/get-quotes",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "95622731-1a58-4603-a08b-cb505641efec",
+      "name": "Webhook (Trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        220,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "URL_A_TU_GOOGLE_SHEET",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Hoja 1",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "7abdf2df-3a06-4d77-80c5-4b9913b0e2c4",
+      "name": "Read Quotes From Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        520,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\n\nconst quotes = rows.map(({ json }, index) => ({\n  id: json.leadId || json.id || json.Lead_ID || `lead-${index + 1}`,\n  leadId: json.leadId || json.id || json.Lead_ID || `lead-${index + 1}`,\n  nombre: json.nombre || json.name || json.Nombre || 'Sin nombre',\n  empresa: json.empresa || json.company || json.Empresa || 'Empresa no especificada',\n  email: json.email || json.Prospect_Email || json.Email || '',\n  servicio: json.servicio || json.service || json.Servicio || 'Sin servicio',\n  monto: json.monto || json.amount || json.Monto || '$0',\n  industria: json.industria || json.industry || json.Industria || 'General',\n  estado: json.Estado || json.estado || json.status || 'Pendiente',\n  briefUrl: json.Brief_URL || json.briefUrl || '',\n  briefToken: json.Brief_Token || json.briefToken || ''\n}));\n\nreturn [{ json: { quotes } }];"
+      },
+      "id": "887e3c3d-f18d-468d-84a9-8f557e2dc71d",
+      "name": "Normalize Quotes Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        280
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook (Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Read Quotes From Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Quotes From Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Normalize Quotes Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5a189665-b7d2-4d4a-b4f2-4c57e4678bc8",
+  "meta": {},
+  "tags": []
+}

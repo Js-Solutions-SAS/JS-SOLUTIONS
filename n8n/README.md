@@ -11,6 +11,7 @@ Estos workflows estan alineados con el contrato real del codigo actual:
 - `workflows/js-solutions-submit-brief.json`
 - `workflows/js-solutions-generate-contract.json`
 - `workflows/js-solutions-create-quote.json`
+- `workflows/js-solutions-get-quotes.json`
 
 ## Importacion en la VPS
 
@@ -31,6 +32,7 @@ Estos workflows estan alineados con el contrato real del codigo actual:
 En `admin/.env.local`:
 
 ```env
+N8N_GET_QUOTES_URL=https://tu-n8n/webhook/js-solutions/get-quotes
 N8N_CREATE_QUOTE_URL=https://tu-n8n/webhook/js-solutions/create-quote
 N8N_REQUEST_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/request-brief
 N8N_GENERATE_CONTRACT_URL=https://tu-n8n/webhook/js-solutions/generate-contract
@@ -45,6 +47,7 @@ N8N_SUBMIT_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/submit-brief
 ## Notas de adaptacion
 
 - Los nodos de Google Sheets vienen como plantilla. Debes seleccionar la credencial y el documento real despues de importar.
+- El workflow `get-quotes` lee la hoja completa y devuelve `{ quotes: [...] }` con los campos que ya consume la UI del admin.
 - El workflow `create-quote` genera `leadId`, `Brief_Token` y `Brief_URL` desde el primer registro para que el admin pueda ver el enlace del brief incluso antes de enviarlo por correo.
 - El workflow de contrato deja una URL de contrato de ejemplo para que el Admin reciba `success` y `contractUrl`. Si luego conectas Google Docs, DocuSign o un servicio PDF, solo reemplaza el nodo de preparacion del contrato.
 - Si quieres notificaciones a Slack/Teams, puedes agregar un `HTTP Request` despues del update del brief completado.
