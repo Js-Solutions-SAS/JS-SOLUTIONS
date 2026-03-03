@@ -833,7 +833,13 @@ export async function getSops(): Promise<SOP[]> {
 }
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
-  const [quotes, sops] = await Promise.all([getQuotes(), getSops()]);
+  const [quotesFeed, sopsResult] = await Promise.allSettled([
+    getQuotesFeed(),
+    getSops(),
+  ]);
+
+  const quotes = quotesFeed.status === "fulfilled" ? quotesFeed.value.quotes : [];
+  const sops = sopsResult.status === "fulfilled" ? sopsResult.value : MOCK_SOPS;
 
   return {
     proyectosActivos: quotes.filter((quote) => statusTone(quote.estado) === "progress").length,
