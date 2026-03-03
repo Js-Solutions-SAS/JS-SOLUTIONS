@@ -35,11 +35,29 @@ export async function POST(req: Request) {
       body: JSON.stringify(data),
     });
 
-    if (!response.ok) {
-      throw new Error(`n8n respondio con estado ${response.status}`);
-    }
+    const responseText = await response.text();
+    const result = responseText
+      ? (() => {
+          try {
+            return JSON.parse(responseText);
+          } catch {
+            return { raw: responseText };
+          }
+        })()
+      : {};
 
-    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const details =
+        typeof result?.error === "string"
+          ? result.error
+          : typeof result?.message === "string"
+            ? result.message
+            : typeof result?.raw === "string"
+              ? result.raw.slice(0, 280)
+              : `n8n respondio con estado ${response.status}`;
+
+      throw new Error(details);
+    }
 
     return NextResponse.json({
       success: true,
