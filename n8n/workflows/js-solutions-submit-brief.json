@@ -32,38 +32,6 @@
     },
     {
       "parameters": {
-        "operation": "read",
-        "documentId": {
-          "__rl": true,
-          "value": "URL_A_TU_GOOGLE_SHEET",
-          "mode": "url"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "Hoja 1",
-          "mode": "name"
-        },
-        "filtersUI": {
-          "values": [
-            {
-              "lookupColumn": "Brief_Token",
-              "lookupValue": "={{ $('Validate And Normalize Brief').item.json.token }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "0bc6bc59-4ba9-4fbe-9063-31c9c7d4d7c4",
-      "name": "Lookup Lead By Token",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [
-        760,
-        320
-      ]
-    },
-    {
-      "parameters": {
         "operation": "update",
         "documentId": {
           "__rl": true,
@@ -191,17 +159,6 @@
       ]
     },
     "Validate And Normalize Brief": {
-      "main": [
-        [
-          {
-            "node": "Lookup Lead By Token",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Lookup Lead By Token": {
       "main": [
         [
           {
