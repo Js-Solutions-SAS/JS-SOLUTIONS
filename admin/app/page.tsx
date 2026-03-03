@@ -3,6 +3,8 @@ import { Activity, ClipboardCheck, FileSignature, Network } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboardMetrics } from "@/lib/admin-data";
 
+export const dynamic = "force-dynamic";
+
 const metricConfig = [
   {
     key: "proyectosActivos" as const,
