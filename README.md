@@ -77,6 +77,7 @@ Variables recomendadas (`portal/.env.local`):
 
 ```env
 N8N_WEBHOOK_URL=https://tu-n8n/webhook/project-status
+N8N_APPROVAL_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/portal-approval
 N8N_SECRET_TOKEN=tu_token_bearer_opcional
 N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
 N8N_SUBMIT_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/submit-brief
@@ -124,9 +125,10 @@ Variables recomendadas (`admin/.env.local`):
 
 ```env
 N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
-N8N_GET_QUOTES_URL=https://tu-n8n/webhook/get-quotes
+N8N_GET_QUOTES_URL=https://tu-n8n/webhook/js-solutions/get-quotes
 N8N_CREATE_QUOTE_URL=https://tu-n8n/webhook/js-solutions/create-quote
 N8N_REQUEST_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/request-brief
+N8N_GENERATE_QUOTE_URL=https://tu-n8n/webhook/cotizador_js_solutions
 N8N_GENERATE_CONTRACT_URL=https://tu-n8n/webhook/js-solutions/generate-contract
 N8N_MILESTONES_WEBHOOK_URL=https://tu-n8n/webhook/admin-entregas
 N8N_CAPACITY_WEBHOOK_URL=https://tu-n8n/webhook/admin-capacidad
@@ -146,6 +148,7 @@ Notas:
 - La vista `/cotizaciones` ya no usa mock: sin `N8N_GET_QUOTES_URL` muestra estado desconectado y lista vacía para control real.
 - Si `N8N_CREATE_QUOTE_URL` no está configurada, no se pueden crear cotizaciones reales desde el admin.
 - Si `N8N_REQUEST_BRIEF_WEBHOOK_URL` no está configurada, el admin bloquea el envío y muestra el error de configuración.
+- Si `N8N_GENERATE_QUOTE_URL` no está configurada, el admin no podrá generar ni re-generar la cotización desde el brief técnico.
 - Si `N8N_GENERATE_CONTRACT_URL` no está configurada, el admin bloquea la generación y muestra el error de configuración.
 
 ## Build de producción
@@ -162,5 +165,5 @@ npm run start
 - `Estructura_Google_Sheets.md`: esquema de hojas y campos.
 - `n8n_sheets_project_status.json`: flujo base para estado de proyectos.
 - `n8n_sheets_onboarding.json`: flujo base para onboarding.
-- `n8n/workflows/`: imports listos para get quotes, create quote, request brief, submit brief y generate contract.
+- `n8n/workflows/`: imports listos para get quotes, create quote, request brief, submit brief, generate quote, project status, portal approval y generate contract.
 - `n8n/README.md`: guia de importacion y mapeo de `.env.local`.
