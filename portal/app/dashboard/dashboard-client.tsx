@@ -23,11 +23,15 @@ import {
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-import { approveDeliverableAction } from "@/app/dashboard/actions";
+import {
+  approveDeliverableAction,
+  approveQuoteAction,
+} from "@/app/dashboard/actions";
 import type {
   DocumentStatus,
   ProjectData,
   ProjectDocument,
+  ProjectQuote,
   Task,
   TaskStatus,
 } from "@/app/dashboard/types";
@@ -187,6 +191,7 @@ function ToastViewport({ toasts }: { toasts: Toast[] }) {
 
 export function DashboardClient({ token, initialData }: DashboardClientProps) {
   const [documents, setDocuments] = useState(initialData.documents);
+  const [quote, setQuote] = useState<ProjectQuote | null>(initialData.quote ?? null);
   const [activeMilestoneId, setActiveMilestoneId] = useState(
     () =>
       initialData.milestones.find((milestone) => milestone.status === "En Proceso")?.id ??
@@ -194,6 +199,7 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
       "",
   );
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
+  const [pendingQuoteId, setPendingQuoteId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isPending, startTransition] = useTransition();
 
@@ -203,6 +209,17 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
       currentState.map((doc) =>
         doc.id === approvedDocumentId ? { ...doc, status: "Aprobado" as const } : doc,
       ),
+  );
+  const [optimisticQuote, addOptimisticQuoteApproval] = useOptimistic(
+    quote,
+    (currentState: ProjectQuote | null, _approved: true) =>
+      currentState
+        ? {
+            ...currentState,
+            status: "Aprobado" as const,
+            approvedAt: currentState.approvedAt ?? new Date().toISOString(),
+          }
+        : currentState,
   );
 
   const pushToast = useCallback((payload: Omit<Toast, "id">) => {
@@ -281,6 +298,57 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
         description: result.message,
       });
       setPendingDocumentId(null);
+    });
+  };
+
+  const handleApproveQuote = (activeQuote: ProjectQuote) => {
+    if (activeQuote.status === "Aprobado") {
+      return;
+    }
+
+    startTransition(async () => {
+      setPendingQuoteId(activeQuote.id);
+      addOptimisticQuoteApproval(true);
+
+      const result = await approveQuoteAction({
+        clientToken: token,
+        resourceId: activeQuote.id,
+        resourceName: activeQuote.name,
+      });
+
+      if (!result.ok) {
+        pushToast({
+          tone: "error",
+          title: "No se pudo aceptar",
+          description: result.message,
+        });
+        setPendingQuoteId(null);
+        return;
+      }
+
+      setQuote((current) =>
+        current
+          ? {
+              ...current,
+              status: "Aprobado",
+              approvedAt: current.approvedAt ?? new Date().toISOString(),
+            }
+          : current,
+      );
+      setDocuments((current) =>
+        current.map((document) =>
+          document.kind === "quote" || document.id === activeQuote.id
+            ? { ...document, status: "Aprobado" as const }
+            : document,
+        ),
+      );
+
+      pushToast({
+        tone: "success",
+        title: "Cotización aceptada",
+        description: result.message,
+      });
+      setPendingQuoteId(null);
     });
   };
 
@@ -476,6 +544,83 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
           </article>
         </section>
 
+        {optimisticQuote ? (
+          <section className="rounded-3xl border border-black/10 bg-white p-6 shadow-lg shadow-black/5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                  Cotización Comercial
+                </p>
+                <h2 className="text-xl font-semibold text-brand-charcoal">
+                  {optimisticQuote.name}
+                </h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                      getDocumentStatusClass(optimisticQuote.status),
+                    )}
+                  >
+                    {optimisticQuote.status}
+                  </span>
+                  {optimisticQuote.sentAt ? (
+                    <span className="text-xs text-neutral-500">
+                      Enviada: {optimisticQuote.sentAt}
+                    </span>
+                  ) : null}
+                  {optimisticQuote.approvedAt ? (
+                    <span className="text-xs text-neutral-500">
+                      Aprobada: {optimisticQuote.approvedAt}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={optimisticQuote.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-brand-charcoal transition hover:scale-[1.01] hover:border-black/20 hover:shadow-md"
+                >
+                  Abrir cotización
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+                <button
+                  onClick={() => handleApproveQuote(optimisticQuote)}
+                  disabled={
+                    optimisticQuote.status === "Aprobado" ||
+                    pendingQuoteId === optimisticQuote.id
+                  }
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold text-white transition",
+                    optimisticQuote.status === "Aprobado"
+                      ? "cursor-default bg-emerald-600"
+                      : "bg-brand-charcoal hover:scale-[1.01] hover:bg-black disabled:cursor-not-allowed disabled:opacity-70",
+                  )}
+                >
+                  {pendingQuoteId === optimisticQuote.id ? (
+                    <>
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                      Enviando
+                    </>
+                  ) : optimisticQuote.status === "Aprobado" ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Aceptada
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="h-4 w-4" />
+                      Aceptar cotización
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <section className="rounded-3xl border border-black/10 bg-white p-6 shadow-lg shadow-black/5">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -494,6 +639,7 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
               const DocumentIcon = getDocumentIcon(document.type);
               const isApproving = pendingDocumentId === document.id;
               const isApproved = document.status === "Aprobado";
+              const isQuoteDocument = document.kind === "quote";
 
               return (
                 <article
@@ -537,33 +683,39 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
                       </span>
                     )}
 
-                    <button
-                      onClick={() => handleApproveDeliverable(document)}
-                      disabled={isApproved || isApproving}
-                      className={cn(
-                        "inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-white transition",
-                        isApproved
-                          ? "cursor-default bg-emerald-600"
-                          : "bg-brand-charcoal hover:scale-[1.01] hover:bg-black disabled:cursor-not-allowed disabled:opacity-70",
-                      )}
-                    >
-                      {isApproving ? (
-                        <>
-                          <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                          Enviando
-                        </>
-                      ) : isApproved ? (
-                        <>
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Aprobado
-                        </>
-                      ) : (
-                        <>
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                          Aprobar
-                        </>
-                      )}
-                    </button>
+                    {isQuoteDocument ? (
+                      <span className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-neutral-100 px-3 py-2 text-xs font-semibold text-neutral-500">
+                        Acepta desde el bloque superior
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleApproveDeliverable(document)}
+                        disabled={isApproved || isApproving}
+                        className={cn(
+                          "inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-white transition",
+                          isApproved
+                            ? "cursor-default bg-emerald-600"
+                            : "bg-brand-charcoal hover:scale-[1.01] hover:bg-black disabled:cursor-not-allowed disabled:opacity-70",
+                        )}
+                      >
+                        {isApproving ? (
+                          <>
+                            <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                            Enviando
+                          </>
+                        ) : isApproved ? (
+                          <>
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Aprobado
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            Aprobar
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </article>
               );

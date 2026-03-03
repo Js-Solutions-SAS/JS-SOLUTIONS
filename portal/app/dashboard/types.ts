@@ -18,6 +18,8 @@ export interface Milestone {
 
 export type DocumentStatus = "Pendiente" | "En revisión" | "Aprobado";
 
+export type QuoteStatus = DocumentStatus;
+
 export type DocumentType =
   | "pdf"
   | "doc"
@@ -35,14 +37,26 @@ export interface ProjectDocument {
   url: string;
   updatedAt?: string;
   sizeLabel?: string;
+  kind?: "quote" | "contract" | "deliverable";
+}
+
+export interface ProjectQuote {
+  id: string;
+  name: string;
+  url: string;
+  status: QuoteStatus;
+  sentAt?: string;
+  approvedAt?: string;
 }
 
 export interface ProjectData {
+  clientToken: string;
   projectName: string;
   serviceType: string;
   currentPhase: string;
   progressPercentage: number;
   driveFolderUrl: string;
+  quote?: ProjectQuote;
   tasks: Task[];
   milestones: Milestone[];
   documents: ProjectDocument[];

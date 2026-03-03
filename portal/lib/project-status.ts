@@ -5,6 +5,8 @@ import {
   type MilestoneStatus,
   type ProjectData,
   type ProjectDocument,
+  type ProjectQuote,
+  type QuoteStatus,
   type Task,
   type TaskStatus,
 } from "@/app/dashboard/types";
@@ -74,6 +76,69 @@ function toDocumentStatus(status: unknown): DocumentStatus {
   return "Pendiente";
 }
 
+function toQuoteStatus(status: unknown): QuoteStatus {
+  return toDocumentStatus(status);
+}
+
+function inferPhaseFromOperationalStatus(status: string): string {
+  const normalized = status.toLowerCase().trim();
+
+  if (
+    [
+      "diagnóstico capturado",
+      "diagnostico capturado",
+      "brief enviado",
+      "brief completado",
+    ].includes(normalized)
+  ) {
+    return "Descubrimiento";
+  }
+
+  if (normalized === "cotización en revisión" || normalized === "cotizacion en revision") {
+    return "Cotización";
+  }
+
+  if (normalized === "firmado") {
+    return "Aprobado Comercial";
+  }
+
+  if (normalized === "contrato enviado") {
+    return "Contratación";
+  }
+
+  return "Desarrollo";
+}
+
+function inferProgressFromOperationalStatus(status: string): number {
+  const normalized = status.toLowerCase().trim();
+
+  if (normalized === "diagnóstico capturado" || normalized === "diagnostico capturado") {
+    return 10;
+  }
+
+  if (normalized === "brief enviado") {
+    return 20;
+  }
+
+  if (normalized === "brief completado") {
+    return 30;
+  }
+
+  if (normalized === "cotización en revisión" || normalized === "cotizacion en revision") {
+    return 35;
+  }
+
+  if (normalized === "firmado") {
+    return 50;
+  }
+
+  if (normalized === "contrato enviado") {
+    return 65;
+  }
+
+  return 0;
+}
+
 function inferDocumentType(name: string, url: string, providedType?: unknown): DocumentType {
   const normalizedType = String(providedType ?? "").toLowerCase().trim();
   if (["pdf", "doc", "image", "figma", "sheet", "link", "other"].includes(normalizedType)) {
@@ -89,6 +154,22 @@ function inferDocumentType(name: string, url: string, providedType?: unknown): D
   if (source.startsWith("http")) return "link";
 
   return "other";
+}
+
+function inferDocumentKind(
+  name: string,
+  providedKind?: unknown,
+): ProjectDocument["kind"] {
+  const normalizedKind = String(providedKind ?? "").toLowerCase().trim();
+  if (["quote", "contract", "deliverable"].includes(normalizedKind)) {
+    return normalizedKind as ProjectDocument["kind"];
+  }
+
+  const normalizedName = name.toLowerCase();
+  if (normalizedName.includes("cotiz")) return "quote";
+  if (normalizedName.includes("contrato")) return "contract";
+
+  return "deliverable";
 }
 
 function clampProgress(value: unknown): number {
@@ -190,6 +271,7 @@ function parseDocuments(rawDocuments: unknown, driveFolderUrl: string): ProjectD
         type: "link",
         status: "En revisión",
         url: driveFolderUrl,
+        kind: "deliverable",
       },
     ];
   }
@@ -211,10 +293,46 @@ function parseDocuments(rawDocuments: unknown, driveFolderUrl: string): ProjectD
         url,
         updatedAt: String(record.updatedAt ?? record.updated_at ?? "").trim() || undefined,
         sizeLabel: String(record.sizeLabel ?? record.size ?? "").trim() || undefined,
+        kind: inferDocumentKind(name, record.kind),
       });
 
       return acc;
     }, []);
+}
+
+function parseQuote(rawQuote: unknown, documents: ProjectDocument[]): ProjectQuote | undefined {
+  if (rawQuote && typeof rawQuote === "object") {
+    const record = rawQuote as Record<string, unknown>;
+    const id = String(record.id ?? record.quoteId ?? "").trim();
+    const name = String(record.name ?? "Cotización Comercial").trim();
+    const url = String(record.url ?? record.href ?? "").trim();
+
+    if (!id || !url) {
+      return undefined;
+    }
+
+    return {
+      id,
+      name,
+      url,
+      status: toQuoteStatus(record.status),
+      sentAt: String(record.sentAt ?? record.generatedAt ?? "").trim() || undefined,
+      approvedAt:
+        String(record.approvedAt ?? record.quoteApprovedAt ?? "").trim() || undefined,
+    };
+  }
+
+  const quoteDocument = documents.find((document) => document.kind === "quote");
+  if (!quoteDocument) {
+    return undefined;
+  }
+
+  return {
+    id: quoteDocument.id,
+    name: quoteDocument.name,
+    url: quoteDocument.url,
+    status: toQuoteStatus(quoteDocument.status),
+  };
 }
 
 function normalizeProjectData(rawData: unknown): ProjectData {
@@ -227,7 +345,9 @@ function normalizeProjectData(rawData: unknown): ProjectData {
   }
 
   const data = rawData as Record<string, unknown>;
-  const projectName = String(data.projectName ?? data.project ?? "").trim();
+  const projectName = String(
+    data.projectName ?? data.project ?? data.empresa ?? data.clientName ?? "",
+  ).trim();
   if (!projectName) {
     throw new ProjectStatusError(
       "Token no válido o datos del proyecto incompletos.",
@@ -236,19 +356,50 @@ function normalizeProjectData(rawData: unknown): ProjectData {
     );
   }
 
-  const currentPhase = String(data.currentPhase ?? "Desarrollo").trim() || "Desarrollo";
-  const progressPercentage = clampProgress(data.progressPercentage ?? data.progress);
+  const operationalStatus = String(
+    data.estado ?? data.Estado ?? data.status ?? "",
+  ).trim();
+  const currentPhase =
+    String(data.currentPhase ?? "").trim() ||
+    inferPhaseFromOperationalStatus(operationalStatus);
+  const progressPercentage = clampProgress(
+    data.progressPercentage ??
+      data.progress ??
+      inferProgressFromOperationalStatus(operationalStatus),
+  );
   const driveFolderUrl = String(data.driveFolderUrl ?? data.driveUrl ?? "").trim();
+  const documents = parseDocuments(data.documents ?? data.deliverables, driveFolderUrl);
+  const quote = parseQuote(
+    data.quote ??
+      (data.Quote_PDF_URL
+        ? {
+            id: data.Quote_Document_Id ?? "quote",
+            name: "Cotización Comercial",
+            url: data.Quote_PDF_URL,
+            status: data.Quote_Status ?? data.status,
+            sentAt: data.Quote_Generated_At,
+            approvedAt: data.Quote_Approved_At,
+          }
+        : null),
+    documents,
+  );
+  const clientToken = String(
+    data.clientToken ?? data.Brief_Token ?? data.client_token ?? "",
+  ).trim();
 
   return {
+    clientToken,
     projectName,
-    serviceType: String(data.serviceType ?? data.service ?? "Implementación tecnológica").trim(),
+    serviceType: String(
+      data.serviceType ?? data.service ?? data.servicio ?? "Implementación tecnológica",
+    ).trim(),
     currentPhase,
     progressPercentage,
     driveFolderUrl,
+    quote,
     tasks: parseTasks(data.tasks),
     milestones: deriveMilestones(currentPhase, progressPercentage, data.milestones),
-    documents: parseDocuments(data.documents ?? data.deliverables, driveFolderUrl),
+    documents,
   };
 }
 

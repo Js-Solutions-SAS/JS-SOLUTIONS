@@ -96,6 +96,12 @@ export default function BriefWizard({ token }: { token: string }) {
           ingeniería analizará los detalles y preparará una cotización exacta
           para tu proyecto.
         </p>
+        <a
+          href={`/dashboard?token=${token}`}
+          className="inline-flex items-center justify-center rounded-2xl bg-white px-8 py-4 text-xs font-black uppercase tracking-[0.24em] text-black transition hover:scale-105 hover:shadow-2xl hover:shadow-white/20"
+        >
+          Ir al dashboard
+        </a>
         <div className="inline-block px-4 py-2 bg-zinc-800 rounded-full text-xs font-bold text-zinc-500 font-mono">
           TOKEN: {token.substring(0, 8)}...
         </div>
