@@ -16,6 +16,9 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Portal - JS Solutions",
   description: "Portal de Clientes de JS Solutions",
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

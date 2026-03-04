@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   title: "Admin | JS Solutions",
   description: "Consola administrativa de operaciones internas.",
   icons: {
-    icon: "/favicon.svg",
+    icon: "/logo.svg",
   },
 };
 
