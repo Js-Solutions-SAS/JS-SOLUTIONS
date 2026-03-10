@@ -1,25 +1,21 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo } from "react";
 import {
-  ArrowDownUp,
-  ArrowUpDown,
   Building2,
-  CheckCircle2,
   Copy,
   ExternalLink,
-  FileSignature,
   Mail,
   UserCircle,
 } from "lucide-react";
 import {
   createColumnHelper,
-  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   type SortingState,
+  type Updater,
   useReactTable,
 } from "@tanstack/react-table";
 import { toast } from "sonner";
@@ -30,22 +26,19 @@ import {
   previewQuoteAction,
   requestTechnicalBriefAction,
 } from "@/app/cotizaciones/actions";
-import { QuoteIntakeForm } from "@/components/cotizaciones/quote-intake-form";
+import { BriefDialog } from "@/components/cotizaciones/brief-dialog";
+import { QuoteActionsCell } from "@/components/cotizaciones/quote-actions-cell";
+import { QuotesFilters } from "@/components/cotizaciones/quotes-filters";
+import { QuotesGrid } from "@/components/cotizaciones/quotes-grid";
+import { QuotesMetricsCards } from "@/components/cotizaciones/quotes-metrics-cards";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { parseAmount, statusTone } from "@/lib/quote-utils";
 import type { Quote, QuotesFeedSource } from "@/lib/types";
+import { useCotizacionesStore, type QuoteOperation } from "@/stores/cotizaciones-store";
+
+import { buildBriefSummary, getStatusLabel } from "./quotes-table-helpers";
 
 interface QuotesTableProps {
   initialQuotes: Quote[];
@@ -57,80 +50,20 @@ interface QuotesTableProps {
 const PAGE_SIZE = 8;
 const columnHelper = createColumnHelper<Quote>();
 
-function sourceTone(source: QuotesFeedSource) {
-  if (source === "live") return "success";
-  if (source === "error") return "pending";
-  return "neutral";
+function createRequestId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function sourceLabel(source: QuotesFeedSource) {
-  if (source === "live") return "Fuente n8n activa";
-  if (source === "error") return "Error de sincronizacion";
-  return "Sin conexion n8n";
-}
-
-function normalizeList(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((item) => String(item || "").trim())
-    .filter(Boolean);
-}
-
-function buildBriefSummary(quote: Quote): Array<{ label: string; value: string }> {
-  const brief = quote.technicalBrief;
-
-  if (!brief) {
-    return [];
-  }
-
-  const objectives = normalizeList(brief.objectives);
-  const integrations = normalizeList(brief.integrations);
-
-  return [
-    {
-      label: "Objetivos",
-      value: objectives.length > 0 ? objectives.join(", ") : "No definidos",
-    },
-    {
-      label: "Urgencia",
-      value: String(brief.urgency ?? "No definida"),
-    },
-    {
-      label: "Stack actual",
-      value: String(brief.currentStack ?? "No especificado"),
-    },
-    {
-      label: "Activos de diseño",
-      value: String(brief.designAssets ?? "No especificados"),
-    },
-    {
-      label: "Integraciones",
-      value: integrations.length > 0 ? integrations.join(", ") : "No definidas",
-    },
-    {
-      label: "Notas adicionales",
-      value: String(brief.additionalNotes ?? "Sin observaciones"),
-    },
-  ];
-}
-
-function getStatusLabel(quote: Quote): string {
-  if (quote.contractUrl || quote.estado === "Contrato Enviado") {
-    return "Contrato Enviado";
-  }
-
-  if (quote.estado === "Firmado") {
-    return "Firmado";
-  }
-
-  if (quote.quoteStatus === "En revisión") {
-    return "Cotización En Revisión";
-  }
-
-  return quote.estado;
+function isOperationLoading(
+  opsByQuoteId: ReturnType<typeof useCotizacionesStore.getState>["opsByQuoteId"],
+  quoteId: string,
+  operation: QuoteOperation,
+) {
+  return Boolean(opsByQuoteId[quoteId]?.[operation]?.loading);
 }
 
 export function QuotesTable({
@@ -139,17 +72,25 @@ export function QuotesTable({
   sourceMessage,
   createEnabled,
 }: QuotesTableProps) {
-  const [quotes, setQuotes] = useState(initialQuotes);
-  const [search, setSearch] = useState("");
-  const [industry, setIndustry] = useState("Todas");
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [runningId, setRunningId] = useState<string | null>(null);
-  const [runningBriefId, setRunningBriefId] = useState<string | null>(null);
-  const [runningQuoteId, setRunningQuoteId] = useState<string | null>(null);
-  const [previewQuoteId, setPreviewQuoteId] = useState<string | null>(null);
-  const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
-  const [quoteFeedback, setQuoteFeedback] = useState("");
-  const [isActionPending, startActionTransition] = useTransition();
+  const quotes = useCotizacionesStore((state) => state.quotes);
+  const search = useCotizacionesStore((state) => state.search);
+  const industry = useCotizacionesStore((state) => state.industry);
+  const sorting = useCotizacionesStore((state) => state.sorting);
+  const selectedQuoteId = useCotizacionesStore((state) => state.selectedQuoteId);
+  const feedbackByQuoteId = useCotizacionesStore((state) => state.feedbackByQuoteId);
+  const opsByQuoteId = useCotizacionesStore((state) => state.opsByQuoteId);
+  const initializeFromQuotes = useCotizacionesStore((state) => state.initializeFromQuotes);
+  const setSearch = useCotizacionesStore((state) => state.setSearch);
+  const setIndustry = useCotizacionesStore((state) => state.setIndustry);
+  const setSorting = useCotizacionesStore((state) => state.setSorting);
+  const setSelectedQuoteId = useCotizacionesStore((state) => state.setSelectedQuoteId);
+  const setQuoteFeedback = useCotizacionesStore((state) => state.setQuoteFeedback);
+  const patchQuote = useCotizacionesStore((state) => state.patchQuote);
+  const setOperationStatus = useCotizacionesStore((state) => state.setOperationStatus);
+
+  useEffect(() => {
+    initializeFromQuotes(initialQuotes);
+  }, [initializeFromQuotes, initialQuotes]);
 
   const industries = useMemo(() => {
     const unique = new Set(quotes.map((quote) => quote.industria || "General"));
@@ -161,10 +102,12 @@ export function QuotesTable({
     [quotes, selectedQuoteId],
   );
 
-  const withEmailCount = quotes.filter((quote) => Boolean(quote.email)).length;
-  const withoutEmailCount = quotes.length - withEmailCount;
-  const withBriefCount = quotes.filter((quote) => Boolean(quote.briefCompletedAt)).length;
-  const withQuoteCount = quotes.filter((quote) => Boolean(quote.quotePdfUrl)).length;
+  const quoteFeedback = selectedQuoteId ? feedbackByQuoteId[selectedQuoteId] || "" : "";
+
+  const briefSummary = useMemo(
+    () => (selectedQuote ? buildBriefSummary(selectedQuote) : []),
+    [selectedQuote],
+  );
 
   const handleCopyValue = async (
     value: string | undefined,
@@ -189,13 +132,38 @@ export function QuotesTable({
 
   const handleOpenBrief = (quote: Quote) => {
     setSelectedQuoteId(quote.id);
-    setQuoteFeedback(quote.quoteLastFeedback || "");
+
+    const currentFeedback = useCotizacionesStore.getState().feedbackByQuoteId[quote.id];
+    if (!currentFeedback && quote.quoteLastFeedback) {
+      setQuoteFeedback(quote.id, quote.quoteLastFeedback);
+    }
   };
 
-  const handleGenerateContract = (quote: Quote) => {
-    setRunningId(quote.id);
+  const executeOperation = async (
+    quoteId: string,
+    operation: QuoteOperation,
+    callback: () => Promise<void>,
+  ) => {
+    if (isOperationLoading(useCotizacionesStore.getState().opsByQuoteId, quoteId, operation)) {
+      return;
+    }
 
-    startActionTransition(async () => {
+    setOperationStatus(quoteId, operation, { loading: true });
+
+    try {
+      await callback();
+      setOperationStatus(quoteId, operation, { loading: false });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error inesperado";
+      setOperationStatus(quoteId, operation, { loading: false, error: message });
+      toast.error("Error de ejecución", {
+        description: message,
+      });
+    }
+  };
+
+  const handleGenerateContract = async (quote: Quote) => {
+    await executeOperation(quote.id, "generateContract", async () => {
       const result = await generateContractAction({
         leadId: quote.id,
         email: quote.email,
@@ -203,72 +171,63 @@ export function QuotesTable({
       });
 
       if (result.ok) {
-        setQuotes((prev) =>
-          prev.map((row) =>
-            row.id === quote.id
-              ? {
-                  ...row,
-                  estado: "Contrato Enviado",
-                  contractUrl: result.contractUrl || row.contractUrl,
-                  contractGeneratedAt: new Date().toISOString(),
-                }
-              : row,
-          ),
-        );
+        patchQuote(quote.id, {
+          estado: "Contrato Enviado",
+          contractUrl: result.contractUrl || quote.contractUrl,
+          contractGeneratedAt: new Date().toISOString(),
+        });
         toast.success("Contrato generado", {
           description: result.message,
         });
-      } else {
-        toast.error("Error de conexion", {
-          description: result.message,
-        });
+        return;
       }
 
-      setRunningId(null);
+      toast.error("Error de conexion", {
+        description: result.message,
+      });
     });
   };
 
-  const handleRequestBrief = (quote: Quote) => {
-    setRunningBriefId(quote.id);
-
-    startActionTransition(async () => {
+  const handleRequestBrief = async (quote: Quote) => {
+    await executeOperation(quote.id, "requestBrief", async () => {
+      const shouldForceResend = quote.estado === "Brief Enviado" || Boolean(quote.briefUrl);
       const result = await requestTechnicalBriefAction({
         leadId: quote.id,
         email: quote.email,
+        forceResend: shouldForceResend,
+        requestId: createRequestId(),
       });
 
       if (result.ok) {
-        setQuotes((prev) =>
-          prev.map((row) =>
-            row.id === quote.id
-              ? {
-                  ...row,
-                  estado: "Brief Enviado",
-                  briefUrl: result.briefUrl || row.briefUrl,
-                  briefToken: result.token || row.briefToken,
-                  clientDashboardUrl:
-                    result.clientDashboardUrl || row.clientDashboardUrl,
-                }
-              : row,
-          ),
-        );
-        toast.success("Brief solicitado", {
-          description: result.message,
+        patchQuote(quote.id, {
+          estado: "Brief Enviado",
+          briefUrl: result.briefUrl || quote.briefUrl,
+          briefToken: result.token || quote.briefToken,
+          clientDashboardUrl: result.clientDashboardUrl || quote.clientDashboardUrl,
         });
-      } else {
-        toast.error("Error de conexion", {
-          description: result.message,
-        });
+
+        if (result.deliveryStatus === "skipped_idempotent") {
+          toast.info("Solicitud ya procesada", {
+            description: result.message,
+          });
+        } else {
+          toast.success(shouldForceResend ? "Brief reenviado" : "Brief solicitado", {
+            description: result.message,
+          });
+        }
+
+        return;
       }
 
-      setRunningBriefId(null);
+      toast.error("Error de conexion", {
+        description: result.message,
+      });
     });
   };
 
-  const handleGenerateQuote = (quote: Quote) => {
-    setRunningQuoteId(quote.id);
-
-    startActionTransition(async () => {
+  const handleGenerateQuote = async (quote: Quote) => {
+    await executeOperation(quote.id, "generateQuote", async () => {
+      const feedback = useCotizacionesStore.getState().feedbackByQuoteId[quote.id] || "";
       const result = await generateQuoteAction({
         leadId: quote.id,
         nombre: quote.nombre,
@@ -277,49 +236,39 @@ export function QuotesTable({
         servicio: quote.servicio,
         briefToken: quote.briefToken,
         technicalBrief: quote.technicalBrief,
-        feedback: quoteFeedback,
+        feedback,
       });
 
       if (result.ok) {
-        setQuotes((prev) =>
-          prev.map((row) =>
-            row.id === quote.id
-              ? {
-                  ...row,
-                  estado: "Cotización En Revisión",
-                  quoteStatus: "En revisión",
-                  quotePdfUrl: result.quotePdfUrl || row.quotePdfUrl,
-                  quoteDocumentId:
-                    result.quoteDocumentId || row.quoteDocumentId,
-                  quoteGeneratedAt: new Date().toISOString(),
-                  quoteLastFeedback: quoteFeedback || row.quoteLastFeedback,
-                  clientDashboardUrl:
-                    result.dashboardUrl || row.clientDashboardUrl,
-                }
-              : row,
-          ),
-        );
+        patchQuote(quote.id, {
+          estado: "Cotización En Revisión",
+          quoteStatus: "En revisión",
+          quotePdfUrl: result.quotePdfUrl || quote.quotePdfUrl,
+          quoteDocumentId: result.quoteDocumentId || quote.quoteDocumentId,
+          quoteGeneratedAt: new Date().toISOString(),
+          quoteLastFeedback: feedback || quote.quoteLastFeedback,
+          clientDashboardUrl: result.dashboardUrl || quote.clientDashboardUrl,
+        });
+
         if (selectedQuoteId === quote.id) {
           setSelectedQuoteId(null);
-          setQuoteFeedback("");
         }
+
         toast.success("Cotización generada", {
           description: result.message,
         });
-      } else {
-        toast.error("No se pudo generar", {
-          description: result.message,
-        });
+        return;
       }
 
-      setRunningQuoteId(null);
+      toast.error("No se pudo generar", {
+        description: result.message,
+      });
     });
   };
 
-  const handlePreviewQuote = (quote: Quote) => {
-    setPreviewQuoteId(quote.id);
-
-    startActionTransition(async () => {
+  const handlePreviewQuote = async (quote: Quote) => {
+    await executeOperation(quote.id, "previewQuote", async () => {
+      const feedback = useCotizacionesStore.getState().feedbackByQuoteId[quote.id] || "";
       const result = await previewQuoteAction({
         leadId: quote.id,
         nombre: quote.nombre,
@@ -328,7 +277,7 @@ export function QuotesTable({
         servicio: quote.servicio,
         briefToken: quote.briefToken,
         technicalBrief: quote.technicalBrief,
-        feedback: quoteFeedback,
+        feedback,
       });
 
       if (result.ok) {
@@ -344,13 +293,13 @@ export function QuotesTable({
             description: "n8n respondió sin URL de preview.",
           });
         }
-      } else {
-        toast.error("No se pudo previsualizar", {
-          description: result.message,
-        });
+
+        return;
       }
 
-      setPreviewQuoteId(null);
+      toast.error("No se pudo previsualizar", {
+        description: result.message,
+      });
     });
   };
 
@@ -391,9 +340,7 @@ export function QuotesTable({
         header: "Brief",
         cell: ({ row }) => {
           const quote = row.original;
-          const hasBriefDetails = Boolean(
-            quote.technicalBrief || quote.technicalBriefRaw,
-          );
+          const hasBriefDetails = Boolean(quote.technicalBrief || quote.technicalBriefRaw);
 
           return (
             <div className="flex flex-wrap items-center gap-2">
@@ -413,7 +360,7 @@ export function QuotesTable({
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      handleCopyValue(
+                      void handleCopyValue(
                         quote.briefUrl,
                         "Enlace del brief copiado",
                         "No se pudo copiar",
@@ -456,11 +403,7 @@ export function QuotesTable({
                 Abrir PDF
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
-              <Badge
-                tone={
-                  row.original.quoteStatus === "Aprobado" ? "success" : "pending"
-                }
-              >
+              <Badge tone={row.original.quoteStatus === "Aprobado" ? "success" : "pending"}>
                 {row.original.quoteStatus || "Sin cotización"}
               </Badge>
             </div>
@@ -488,7 +431,7 @@ export function QuotesTable({
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  handleCopyValue(
+                  void handleCopyValue(
                     row.original.clientDashboardUrl,
                     "Enlace del dashboard copiado",
                     "No se pudo copiar",
@@ -505,9 +448,7 @@ export function QuotesTable({
       }),
       columnHelper.accessor("industria", {
         header: "Industria",
-        cell: ({ row }) => (
-          <Badge tone="neutral">{row.original.industria || "General"}</Badge>
-        ),
+        cell: ({ row }) => <Badge tone="neutral">{row.original.industria || "General"}</Badge>,
       }),
       columnHelper.accessor("servicio", {
         header: "Servicio",
@@ -519,16 +460,12 @@ export function QuotesTable({
           const amountB = parseAmount(String(rowB.getValue(columnId)));
           return amountA - amountB;
         },
-        cell: ({ row }) => (
-          <span className="font-semibold text-white">{row.original.monto}</span>
-        ),
+        cell: ({ row }) => <span className="font-semibold text-white">{row.original.monto}</span>,
       }),
       columnHelper.accessor("estado", {
         header: "Estado",
         cell: ({ row }) => (
-          <Badge tone={statusTone(getStatusLabel(row.original))}>
-            {getStatusLabel(row.original)}
-          </Badge>
+          <Badge tone={statusTone(getStatusLabel(row.original))}>{getStatusLabel(row.original)}</Badge>
         ),
       }),
       columnHelper.display({
@@ -536,73 +473,30 @@ export function QuotesTable({
         header: () => <div className="text-right">Accion</div>,
         cell: ({ row }) => {
           const quote = row.original;
-          const isRunningContract = runningId === quote.id && isActionPending;
-          const isRunningBrief = runningBriefId === quote.id && isActionPending;
-          const isRunningQuote = runningQuoteId === quote.id && isActionPending;
-          const canRequestBrief = Boolean(quote.email);
-          const hasBriefDetails = Boolean(quote.technicalBrief);
-          const isSigned = quote.estado === "Firmado";
-          const isContractSent =
-            quote.estado === "Contrato Enviado" || Boolean(quote.contractUrl);
+          const isRunningBrief = isOperationLoading(opsByQuoteId, quote.id, "requestBrief");
+          const isRunningQuote =
+            isOperationLoading(opsByQuoteId, quote.id, "generateQuote") ||
+            isOperationLoading(opsByQuoteId, quote.id, "previewQuote");
+          const isRunningContract = isOperationLoading(
+            opsByQuoteId,
+            quote.id,
+            "generateContract",
+          );
 
           return (
-            <div className="flex flex-wrap justify-end gap-2">
-              {!quote.briefCompletedAt ? (
-                <Button
-                  onClick={() => handleRequestBrief(quote)}
-                  disabled={
-                    !canRequestBrief ||
-                    isRunningBrief ||
-                    isRunningContract ||
-                    isRunningQuote ||
-                    quote.estado === "Brief Enviado"
-                  }
-                  variant="outline"
-                  size="sm"
-                  className="bg-brand-charcoal hover:bg-white/10"
-                >
-                  {!canRequestBrief
-                    ? "Falta email"
-                    : isRunningBrief
-                      ? "Enviando..."
-                      : quote.estado === "Brief Enviado"
-                        ? "Brief Pendiente"
-                        : "Solicitar Brief"}
-                </Button>
-              ) : null}
-
-              {hasBriefDetails ? (
-                <Button
-                  onClick={() => handleOpenBrief(quote)}
-                  disabled={isRunningQuote || isRunningBrief || isRunningContract}
-                  variant="outline"
-                  size="sm"
-                >
-                  {quote.quotePdfUrl ? "Regenerar Cotización" : "Generar Cotización"}
-                </Button>
-              ) : null}
-
-              <Button
-                onClick={() => handleGenerateContract(quote)}
-                disabled={
-                  !isSigned || isContractSent || isRunningContract || isRunningBrief
-                }
-                variant={isContractSent ? "outline" : "default"}
-                size="sm"
-              >
-                {isContractSent ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                    Contrato enviado
-                  </>
-                ) : (
-                  <>
-                    <FileSignature className="h-4 w-4" />
-                    {isRunningContract ? "Procesando..." : "Generar Contrato"}
-                  </>
-                )}
-              </Button>
-            </div>
+            <QuoteActionsCell
+              quote={quote}
+              isRunningBrief={isRunningBrief}
+              isRunningQuote={isRunningQuote}
+              isRunningContract={isRunningContract}
+              onRequestBrief={() => {
+                void handleRequestBrief(quote);
+              }}
+              onOpenBrief={() => handleOpenBrief(quote)}
+              onGenerateContract={() => {
+                void handleGenerateContract(quote);
+              }}
+            />
           );
         },
       }),
@@ -614,11 +508,15 @@ export function QuotesTable({
     state: {
       sorting,
       globalFilter: search,
-      columnFilters:
-        industry === "Todas" ? [] : [{ id: "industria", value: industry }],
+      columnFilters: industry === "Todas" ? [] : [{ id: "industria", value: industry }],
     },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setSearch,
+    onSortingChange: (updater: Updater<SortingState>) => {
+      setSorting(typeof updater === "function" ? updater(sorting) : updater);
+    },
+    onGlobalFilterChange: (updater: Updater<string>) => {
+      const nextValue = typeof updater === "function" ? updater(search) : updater;
+      setSearch(String(nextValue || ""));
+    },
     globalFilterFn: (row, _columnId, value) => {
       const query = String(value).toLowerCase().trim();
       if (!query) return true;
@@ -637,399 +535,66 @@ export function QuotesTable({
     },
   });
 
-  const briefSummary = selectedQuote ? buildBriefSummary(selectedQuote) : [];
+  const isPreviewingSelected = selectedQuote
+    ? isOperationLoading(opsByQuoteId, selectedQuote.id, "previewQuote")
+    : false;
+  const isGeneratingSelected = selectedQuote
+    ? isOperationLoading(opsByQuoteId, selectedQuote.id, "generateQuote")
+    : false;
 
   return (
     <>
       <div className="space-y-4">
-        <div className="grid gap-4 xl:grid-cols-[1.2fr,1fr]">
-          <Card>
-            <CardContent className="space-y-4 p-4 sm:p-6">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-white">
-                    Estado de sincronizacion
-                  </h2>
-                  <p className="mt-1 text-sm text-brand-off-white/70">
-                    {sourceMessage}
-                  </p>
-                </div>
-                <Badge tone={sourceTone(source)}>{sourceLabel(source)}</Badge>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                    Total visibles
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
-                    {quotes.length}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                    Con email
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
-                    {withEmailCount}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                    Brief completo
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
-                    {withBriefCount}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                    Sin email
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
-                    {withoutEmailCount}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                    Cotización lista
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
-                    {withQuoteCount}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <QuoteIntakeForm enabled={createEnabled} />
-        </div>
+        <QuotesMetricsCards
+          quotes={quotes}
+          source={source}
+          sourceMessage={sourceMessage}
+          createEnabled={createEnabled}
+        />
 
         <Card>
           <CardContent className="space-y-4 p-4 sm:p-6">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="grid gap-3 sm:grid-cols-2 lg:flex">
-                <Input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Buscar lead, empresa, servicio o email"
-                  className="w-full lg:w-80"
-                />
-
-                <Select
-                  value={industry}
-                  onChange={(event) => setIndustry(event.target.value)}
-                  className="w-full sm:w-56"
-                >
-                  {industries.map((option) => (
-                    <option
-                      key={option}
-                      value={option}
-                      className="bg-brand-charcoal text-white"
-                    >
-                      {option}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-brand-off-white/60">
-                <ArrowDownUp className="h-4 w-4 text-brand-off-white/70" />
-                Haz click en los encabezados para ordenar
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-xl border border-white/10">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-white/5">
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => {
-                          const sortable = header.column.getCanSort();
-
-                          return (
-                            <th
-                              key={header.id}
-                              className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-brand-off-white/80"
-                            >
-                              {header.isPlaceholder ? null : sortable ? (
-                                <button
-                                  onClick={header.column.getToggleSortingHandler()}
-                                  className="inline-flex items-center gap-1 hover:text-brand-gold"
-                                >
-                                  {flexRender(
-                                    header.column.columnDef.header,
-                                    header.getContext(),
-                                  )}
-                                  <ArrowUpDown className="h-3.5 w-3.5" />
-                                </button>
-                              ) : (
-                                flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext(),
-                                )
-                              )}
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </thead>
-
-                  <tbody className="divide-y divide-white/10">
-                    {table.getRowModel().rows.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={table.getAllLeafColumns().length}
-                          className="px-4 py-10 text-center text-sm text-brand-off-white/65"
-                        >
-                          {sourceMessage}
-                        </td>
-                      </tr>
-                    ) : (
-                      table.getRowModel().rows.map((row) => (
-                        <tr key={row.id} className="hover:bg-white/5">
-                          {row.getVisibleCells().map((cell) => (
-                            <td
-                              key={cell.id}
-                              className="px-4 py-3 text-brand-off-white/85"
-                            >
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext(),
-                              )}
-                            </td>
-                          ))}
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 border-t border-white/10 pt-3 text-sm text-brand-off-white/75 sm:flex-row sm:items-center sm:justify-between">
-              <p>
-                Mostrando {table.getRowModel().rows.length} de{" "}
-                {table.getFilteredRowModel().rows.length} registros
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  Anterior
-                </Button>
-                <span className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/60">
-                  Pagina {table.getState().pagination.pageIndex + 1} /{" "}
-                  {table.getPageCount() || 1}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                >
-                  Siguiente
-                </Button>
-              </div>
-            </div>
+            <QuotesFilters
+              search={search}
+              industry={industry}
+              industries={industries}
+              onSearchChange={setSearch}
+              onIndustryChange={setIndustry}
+            />
+            <QuotesGrid table={table} sourceMessage={sourceMessage} />
           </CardContent>
         </Card>
       </div>
 
-      <Dialog
+      <BriefDialog
+        selectedQuote={selectedQuote}
         open={Boolean(selectedQuote)}
+        quoteFeedback={quoteFeedback}
+        briefSummary={briefSummary}
+        isPreviewing={isPreviewingSelected}
+        isGeneratingQuote={isGeneratingSelected}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedQuoteId(null);
           }
         }}
-      >
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Brief técnico del lead</DialogTitle>
-            <DialogDescription>
-              {selectedQuote
-                ? `${selectedQuote.nombre} · ${selectedQuote.empresa}`
-                : "Resumen operativo del brief y acciones de cotización."}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedQuote ? (
-            <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                    Email
-                  </p>
-                  <p className="mt-2 text-sm text-white">
-                    {selectedQuote.email || "Sin email"}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                    Token
-                  </p>
-                  <p className="mt-2 break-all text-sm text-white">
-                    {selectedQuote.briefToken || "Sin token"}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                    Estado
-                  </p>
-                  <div className="mt-2">
-                    <Badge tone={statusTone(getStatusLabel(selectedQuote))}>
-                      {getStatusLabel(selectedQuote)}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                    Dashboard
-                  </p>
-                  {selectedQuote.clientDashboardUrl ? (
-                    <a
-                      href={selectedQuote.clientDashboardUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-gold"
-                    >
-                      Abrir
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  ) : (
-                    <p className="mt-2 text-sm text-brand-off-white/70">
-                      Sin dashboard
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-[1.4fr,1fr]">
-                <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
-                  <h3 className="text-sm font-semibold text-white">
-                    Resumen del brief
-                  </h3>
-
-                  {briefSummary.length > 0 ? (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {briefSummary.map((item) => (
-                        <div
-                          key={item.label}
-                          className="rounded-xl border border-white/10 bg-white/5 p-3"
-                        >
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-off-white/55">
-                            {item.label}
-                          </p>
-                          <p className="mt-2 text-sm text-white">{item.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-brand-off-white/70">
-                      No hay un resumen estructurado disponible.
-                    </p>
-                  )}
-
-                  {selectedQuote.technicalBriefRaw ? (
-                    <div className="rounded-xl border border-white/10 bg-black/30 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                        JSON recibido
-                      </p>
-                      <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap text-xs text-brand-off-white/80">
-                        {selectedQuote.technicalBriefRaw}
-                      </pre>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
-                  <h3 className="text-sm font-semibold text-white">
-                    Cotización comercial
-                  </h3>
-                  <p className="text-sm text-brand-off-white/70">
-                    Puedes generar o regenerar la cotización con base en el brief
-                    y dejar observaciones para el workflow.
-                  </p>
-
-                  <label className="space-y-2 text-sm text-brand-off-white/80">
-                    <span className="block text-xs font-semibold uppercase tracking-wide text-brand-off-white/55">
-                      Observaciones para regenerar
-                    </span>
-                    <textarea
-                      value={quoteFeedback}
-                      onChange={(event) => setQuoteFeedback(event.target.value)}
-                      rows={7}
-                      className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-gold/60 focus:ring-2 focus:ring-brand-gold/15"
-                      placeholder="Agrega feedback opcional para que el workflow refine la cotización."
-                    />
-                  </label>
-
-                  {selectedQuote.quotePdfUrl ? (
-                    <a
-                      href={selectedQuote.quotePdfUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-sm font-semibold text-brand-gold"
-                    >
-                      Abrir cotización actual
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  ) : (
-                    <p className="text-sm text-brand-off-white/70">
-                      Aún no se ha generado una cotización.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSelectedQuoteId(null)}
-            >
-              Cerrar
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => selectedQuote && handlePreviewQuote(selectedQuote)}
-              disabled={
-                !selectedQuote?.technicalBrief ||
-                !selectedQuote?.briefToken ||
-                (previewQuoteId === selectedQuote?.id && isActionPending)
-              }
-            >
-              {selectedQuote &&
-              previewQuoteId === selectedQuote.id &&
-              isActionPending
-                ? "Previsualizando..."
-                : "Previsualizar"}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => selectedQuote && handleGenerateQuote(selectedQuote)}
-              disabled={
-                !selectedQuote?.technicalBrief ||
-                !selectedQuote?.briefToken ||
-                (runningQuoteId === selectedQuote.id && isActionPending)
-              }
-            >
-              {selectedQuote && runningQuoteId === selectedQuote.id && isActionPending
-                ? "Generando..."
-                : "Generar Cotización"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onClose={() => setSelectedQuoteId(null)}
+        onQuoteFeedbackChange={(value) => {
+          if (selectedQuote) {
+            setQuoteFeedback(selectedQuote.id, value);
+          }
+        }}
+        onPreview={() => {
+          if (selectedQuote) {
+            void handlePreviewQuote(selectedQuote);
+          }
+        }}
+        onGenerateQuote={() => {
+          if (selectedQuote) {
+            void handleGenerateQuote(selectedQuote);
+          }
+        }}
+      />
     </>
   );
 }
