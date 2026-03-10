@@ -38,6 +38,7 @@ N8N_EXECUTIVE_PORTFOLIO_WEBHOOK_URL=https://<your-n8n>/webhook/admin-executive-p
 N8N_OPERATIONAL_FINANCE_WEBHOOK_URL=https://<your-n8n>/webhook/admin-operational-finance
 N8N_RAID_WEBHOOK_URL=https://<your-n8n>/webhook/admin-raid-log
 N8N_SECRET_TOKEN=<optional_bearer_token>
+N8N_REQUEST_TIMEOUT_MS=15000
 ```
 
 ## Local Auth Environment Variables (Required)

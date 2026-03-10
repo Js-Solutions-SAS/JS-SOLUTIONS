@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import {
   generateContractAction,
   generateQuoteAction,
+  previewQuoteAction,
   requestTechnicalBriefAction,
 } from "@/app/cotizaciones/actions";
 import { QuoteIntakeForm } from "@/components/cotizaciones/quote-intake-form";
@@ -145,6 +146,7 @@ export function QuotesTable({
   const [runningId, setRunningId] = useState<string | null>(null);
   const [runningBriefId, setRunningBriefId] = useState<string | null>(null);
   const [runningQuoteId, setRunningQuoteId] = useState<string | null>(null);
+  const [previewQuoteId, setPreviewQuoteId] = useState<string | null>(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
   const [quoteFeedback, setQuoteFeedback] = useState("");
   const [isActionPending, startActionTransition] = useTransition();
@@ -311,6 +313,44 @@ export function QuotesTable({
       }
 
       setRunningQuoteId(null);
+    });
+  };
+
+  const handlePreviewQuote = (quote: Quote) => {
+    setPreviewQuoteId(quote.id);
+
+    startActionTransition(async () => {
+      const result = await previewQuoteAction({
+        leadId: quote.id,
+        nombre: quote.nombre,
+        empresa: quote.empresa,
+        email: quote.email,
+        servicio: quote.servicio,
+        briefToken: quote.briefToken,
+        technicalBrief: quote.technicalBrief,
+        feedback: quoteFeedback,
+      });
+
+      if (result.ok) {
+        const previewUrl = result.quotePdfUrl;
+
+        if (previewUrl) {
+          window.open(previewUrl, "_blank", "noopener,noreferrer");
+          toast.success("Preview generado", {
+            description: result.message,
+          });
+        } else {
+          toast.success("Preview generado", {
+            description: "n8n respondió sin URL de preview.",
+          });
+        }
+      } else {
+        toast.error("No se pudo previsualizar", {
+          description: result.message,
+        });
+      }
+
+      setPreviewQuoteId(null);
     });
   };
 
@@ -957,6 +997,22 @@ export function QuotesTable({
               onClick={() => setSelectedQuoteId(null)}
             >
               Cerrar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => selectedQuote && handlePreviewQuote(selectedQuote)}
+              disabled={
+                !selectedQuote?.technicalBrief ||
+                !selectedQuote?.briefToken ||
+                (previewQuoteId === selectedQuote?.id && isActionPending)
+              }
+            >
+              {selectedQuote &&
+              previewQuoteId === selectedQuote.id &&
+              isActionPending
+                ? "Previsualizando..."
+                : "Previsualizar"}
             </Button>
             <Button
               type="button"

@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  generateCorrelationId,
+  generateIdempotencyKey,
+  postJsonWithTimeout,
+} from "@/lib/network";
 import type { Quote } from "@/lib/types";
 
 interface CreateQuoteInput {
@@ -38,6 +43,7 @@ interface GenerateQuoteInput {
   briefToken?: string;
   technicalBrief?: Record<string, unknown> | null;
   feedback?: string;
+  mode?: "preview" | "send";
 }
 
 function normalizeInput(value: string | undefined): string {
@@ -123,28 +129,40 @@ export async function createQuoteAction(input: CreateQuoteInput) {
   }
 
   try {
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      cache: "no-store",
+    const correlationId = generateCorrelationId("create-quote");
+    const idempotencyKey = generateIdempotencyKey(
+      "create-quote",
+      payload.leadId || `${payload.email || payload.nombre}:${payload.empresa}`,
+    );
+    const response = await postJsonWithTimeout(webhookUrl, {
+      body: payload,
+      correlationId,
+      idempotencyKey,
+      secretToken: process.env.N8N_SECRET_TOKEN,
     });
-
+    const result = response.data;
     if (!response.ok) {
-      throw new Error(`n8n respondio con estado ${response.status}`);
+      throw new Error(
+        response.errorMessage || `n8n respondio con estado ${response.status}`,
+      );
     }
-
-    const result = await response.json().catch(() => ({}));
 
     revalidatePath("/cotizaciones");
 
     return {
       ok: true,
       message: "Cotización creada y sincronizada correctamente.",
-      briefUrl: result.briefUrl,
-      leadId: result.leadId,
-      briefToken: result.token,
-      clientDashboardUrl: result.clientDashboardUrl || result.dashboardUrl,
+      briefUrl:
+        typeof result.briefUrl === "string" ? normalizeInput(result.briefUrl) : undefined,
+      leadId: typeof result.leadId === "string" ? normalizeInput(result.leadId) : undefined,
+      briefToken: typeof result.token === "string" ? normalizeInput(result.token) : undefined,
+      clientDashboardUrl:
+        typeof result.clientDashboardUrl === "string"
+          ? normalizeInput(result.clientDashboardUrl)
+          : typeof result.dashboardUrl === "string"
+            ? normalizeInput(result.dashboardUrl)
+            : undefined,
+      correlationId: response.correlationId,
     };
   } catch (error) {
     console.error("createQuoteAction", error);
@@ -188,10 +206,14 @@ export async function generateQuoteAction(input: GenerateQuoteInput) {
   }
 
   try {
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const mode = input.mode || "send";
+    const correlationId = generateCorrelationId("generate-quote");
+    const idempotencyKey = generateIdempotencyKey(
+      `generate-quote:${mode}`,
+      `${leadId}:${clientToken}:${feedback || "na"}`,
+    );
+    const response = await postJsonWithTimeout(webhookUrl, {
+      body: {
         leadId,
         clientToken,
         transcripcion,
@@ -204,23 +226,42 @@ export async function generateQuoteAction(input: GenerateQuoteInput) {
           .join(" | "),
         datos_proveedor: "JS Solutions",
         feedback: feedback || undefined,
-      }),
-      cache: "no-store",
+        mode,
+      },
+      correlationId,
+      idempotencyKey,
+      secretToken: process.env.N8N_SECRET_TOKEN,
     });
-
+    const result = response.data;
     if (!response.ok) {
-      throw new Error(`n8n respondio con estado ${response.status}`);
+      throw new Error(
+        response.errorMessage || `n8n respondio con estado ${response.status}`,
+      );
     }
-
-    const result = await response.json().catch(() => ({}));
     revalidatePath("/cotizaciones");
 
     return {
       ok: true,
-      message: "Cotización generada y enviada correctamente.",
-      quotePdfUrl: result.quotePdfUrl || result.pdfUrl,
-      quoteDocumentId: result.quoteDocumentId,
-      dashboardUrl: result.dashboardUrl,
+      message:
+        mode === "preview"
+          ? "Previsualización de cotización generada correctamente."
+          : "Cotización generada y enviada correctamente.",
+      quotePdfUrl:
+        typeof result.quotePdfUrl === "string"
+          ? normalizeInput(result.quotePdfUrl)
+          : typeof result.pdfUrl === "string"
+            ? normalizeInput(result.pdfUrl)
+            : undefined,
+      quoteDocumentId:
+        typeof result.quoteDocumentId === "string"
+          ? normalizeInput(result.quoteDocumentId)
+          : undefined,
+      dashboardUrl:
+        typeof result.dashboardUrl === "string"
+          ? normalizeInput(result.dashboardUrl)
+          : undefined,
+      mode,
+      correlationId: response.correlationId,
     };
   } catch (error) {
     console.error("generateQuoteAction", error);
@@ -260,25 +301,34 @@ export async function generateContractAction(input: GenerateContractInput) {
   }
 
   try {
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-      cache: "no-store",
+    const correlationId = generateCorrelationId("generate-contract");
+    const idempotencyKey = generateIdempotencyKey(
+      "generate-contract",
+      `${input.leadId || "na"}:${input.email || "na"}`,
+    );
+    const response = await postJsonWithTimeout(webhookUrl, {
+      body: input as unknown as Record<string, unknown>,
+      correlationId,
+      idempotencyKey,
+      secretToken: process.env.N8N_SECRET_TOKEN,
     });
-
+    const result = response.data;
     if (!response.ok) {
-      throw new Error(`n8n respondio con estado ${response.status}`);
+      throw new Error(
+        response.errorMessage || `n8n respondio con estado ${response.status}`,
+      );
     }
-
-    const result = await response.json().catch(() => ({}));
 
     revalidatePath("/cotizaciones");
 
     return {
       ok: true,
       message: "Contrato generado y enviado correctamente.",
-      contractUrl: result.contractUrl,
+      contractUrl:
+        typeof result.contractUrl === "string"
+          ? normalizeInput(result.contractUrl)
+          : undefined,
+      correlationId: response.correlationId,
     };
   } catch (error) {
     console.error("generateContractAction", error);
@@ -311,27 +361,39 @@ export async function requestTechnicalBriefAction(
   }
 
   try {
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-      cache: "no-store",
+    const correlationId = generateCorrelationId("request-brief");
+    const idempotencyKey = generateIdempotencyKey(
+      "request-brief",
+      `${input.leadId || "na"}:${input.email || "na"}`,
+    );
+    const response = await postJsonWithTimeout(webhookUrl, {
+      body: input as unknown as Record<string, unknown>,
+      correlationId,
+      idempotencyKey,
+      secretToken: process.env.N8N_SECRET_TOKEN,
     });
-
+    const result = response.data;
     if (!response.ok) {
-      throw new Error(`n8n respondio con estado ${response.status}`);
+      throw new Error(
+        response.errorMessage || `n8n respondio con estado ${response.status}`,
+      );
     }
-
-    const result = await response.json().catch(() => ({}));
 
     revalidatePath("/cotizaciones");
 
     return {
       ok: true,
       message: "Brief técnico solicitado y enviado al prospecto correctamente.",
-      briefUrl: result.briefUrl,
-      token: result.token,
-      clientDashboardUrl: result.clientDashboardUrl || result.dashboardUrl,
+      briefUrl:
+        typeof result.briefUrl === "string" ? normalizeInput(result.briefUrl) : undefined,
+      token: typeof result.token === "string" ? normalizeInput(result.token) : undefined,
+      clientDashboardUrl:
+        typeof result.clientDashboardUrl === "string"
+          ? normalizeInput(result.clientDashboardUrl)
+          : typeof result.dashboardUrl === "string"
+            ? normalizeInput(result.dashboardUrl)
+            : undefined,
+      correlationId: response.correlationId,
     };
   } catch (error) {
     console.error("requestTechnicalBriefAction", error);
@@ -340,4 +402,8 @@ export async function requestTechnicalBriefAction(
       message: "No fue posible solicitar el brief. Revisa la conexion con n8n.",
     };
   }
+}
+
+export async function previewQuoteAction(input: GenerateQuoteInput) {
+  return generateQuoteAction({ ...input, mode: "preview" });
 }
