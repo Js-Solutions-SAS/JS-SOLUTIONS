@@ -24,13 +24,17 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 import {
+  approveContractAction,
   approveDeliverableAction,
   approveQuoteAction,
+  createPaymentIntentAction,
 } from "@/app/dashboard/actions";
 import type {
   DocumentStatus,
+  ProjectContract,
   ProjectData,
   ProjectDocument,
+  ProjectPayments,
   ProjectQuote,
   Task,
   TaskStatus,
@@ -192,6 +196,13 @@ function ToastViewport({ toasts }: { toasts: Toast[] }) {
 export function DashboardClient({ token, initialData }: DashboardClientProps) {
   const [documents, setDocuments] = useState(initialData.documents);
   const [quote, setQuote] = useState<ProjectQuote | null>(initialData.quote ?? null);
+  const [contract, setContract] = useState<ProjectContract | null>(
+    initialData.contract ?? null,
+  );
+  const [payments, setPayments] = useState<ProjectPayments | null>(
+    initialData.payments ?? null,
+  );
+  const signature = initialData.signature;
   const [activeMilestoneId, setActiveMilestoneId] = useState(
     () =>
       initialData.milestones.find((milestone) => milestone.status === "En Proceso")?.id ??
@@ -200,6 +211,8 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
   );
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
   const [pendingQuoteId, setPendingQuoteId] = useState<string | null>(null);
+  const [pendingContractId, setPendingContractId] = useState<string | null>(null);
+  const [isPaymentPending, setIsPaymentPending] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isPending, startTransition] = useTransition();
 
@@ -212,7 +225,7 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
   );
   const [optimisticQuote, addOptimisticQuoteApproval] = useOptimistic(
     quote,
-    (currentState: ProjectQuote | null, _approved: true) =>
+    (currentState: ProjectQuote | null) =>
       currentState
         ? {
             ...currentState,
@@ -259,6 +272,22 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
   const approvedDocs = useMemo(
     () => optimisticDocuments.filter((document) => document.status === "Aprobado").length,
     [optimisticDocuments],
+  );
+  const paymentMethods = useMemo(
+    () =>
+      payments?.methods && payments.methods.length > 0
+        ? payments.methods
+        : [
+            {
+              label: "Cuenta de ahorros Bancolombia",
+              value: "91242128414",
+            },
+            {
+              label: "Llave Bre-B",
+              value: "3173152913",
+            },
+          ],
+    [payments?.methods],
   );
 
   const handleApproveDeliverable = (document: ProjectDocument) => {
@@ -349,6 +378,96 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
         description: result.message,
       });
       setPendingQuoteId(null);
+    });
+  };
+
+  const handleApproveContract = (activeContract: ProjectContract) => {
+    if (activeContract.status === "Aprobado") {
+      return;
+    }
+
+    startTransition(async () => {
+      setPendingContractId(activeContract.id);
+
+      const result = await approveContractAction({
+        clientToken: token,
+        resourceId: activeContract.id,
+        resourceName: activeContract.name,
+      });
+
+      if (!result.ok) {
+        pushToast({
+          tone: "error",
+          title: "No se pudo firmar",
+          description: result.message,
+        });
+        setPendingContractId(null);
+        return;
+      }
+
+      setContract((current) =>
+        current
+          ? {
+              ...current,
+              status: "Aprobado",
+              approvedAt: current.approvedAt ?? new Date().toISOString(),
+            }
+          : current,
+      );
+      setDocuments((current) =>
+        current.map((document) =>
+          document.kind === "contract" || document.id === activeContract.id
+            ? { ...document, status: "Aprobado" as const }
+            : document,
+        ),
+      );
+
+      pushToast({
+        tone: "success",
+        title: "Contrato firmado",
+        description: result.message,
+      });
+      setPendingContractId(null);
+    });
+  };
+
+  const handleCreatePayment = () => {
+    startTransition(async () => {
+      setIsPaymentPending(true);
+      const result = await createPaymentIntentAction({
+        clientToken: token,
+        amount: payments?.amount,
+        currency: "COP",
+        method: "bancolombia_button",
+      });
+
+      if (!result.ok || !result.checkoutUrl) {
+        pushToast({
+          tone: "error",
+          title: "No se pudo iniciar el pago",
+          description: result.message,
+        });
+        setIsPaymentPending(false);
+        return;
+      }
+
+      setPayments((current) => ({
+        status: current?.status || "processing",
+        amount: current?.amount,
+        currency: "COP",
+        paymentIntentId: result.paymentIntentId || current?.paymentIntentId,
+        checkoutUrl: result.checkoutUrl,
+        methods: current?.methods,
+        approvedAt: current?.approvedAt,
+      }));
+
+      window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
+      pushToast({
+        tone: "success",
+        title: "Pago iniciado",
+        description: "Se abrió Botón Bancolombia en una nueva pestaña.",
+      });
+      setIsPaymentPending(false);
     });
   };
 
@@ -586,6 +705,17 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
                   Abrir cotización
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
+                {signature?.quoteSignUrl ? (
+                  <a
+                    href={signature.quoteSignUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-brand-charcoal transition hover:scale-[1.01] hover:border-black/20 hover:shadow-md"
+                  >
+                    Firmar en DocuSign
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                ) : null}
                 <button
                   onClick={() => handleApproveQuote(optimisticQuote)}
                   disabled={
@@ -621,6 +751,188 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
           </section>
         ) : null}
 
+        {contract ? (
+          <section className="rounded-3xl border border-black/10 bg-white p-6 shadow-lg shadow-black/5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                  Contrato Comercial
+                </p>
+                <h2 className="text-xl font-semibold text-brand-charcoal">
+                  {contract.name}
+                </h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                      getDocumentStatusClass(contract.status),
+                    )}
+                  >
+                    {contract.status}
+                  </span>
+                  {contract.sentAt ? (
+                    <span className="text-xs text-neutral-500">
+                      Enviado: {contract.sentAt}
+                    </span>
+                  ) : null}
+                  {contract.approvedAt ? (
+                    <span className="text-xs text-neutral-500">
+                      Firmado: {contract.approvedAt}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={contract.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-brand-charcoal transition hover:scale-[1.01] hover:border-black/20 hover:shadow-md"
+                >
+                  Abrir contrato
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+                {signature?.contractSignUrl ? (
+                  <a
+                    href={signature.contractSignUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-brand-charcoal transition hover:scale-[1.01] hover:border-black/20 hover:shadow-md"
+                  >
+                    Firmar en DocuSign
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                ) : null}
+                <button
+                  onClick={() => handleApproveContract(contract)}
+                  disabled={
+                    contract.status === "Aprobado" ||
+                    pendingContractId === contract.id
+                  }
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold text-white transition",
+                    contract.status === "Aprobado"
+                      ? "cursor-default bg-emerald-600"
+                      : "bg-brand-charcoal hover:scale-[1.01] hover:bg-black disabled:cursor-not-allowed disabled:opacity-70",
+                  )}
+                >
+                  {pendingContractId === contract.id ? (
+                    <>
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                      Firmando
+                    </>
+                  ) : contract.status === "Aprobado" ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Firmado
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4" />
+                      Firmar contrato
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="rounded-3xl border border-black/10 bg-white p-6 shadow-lg shadow-black/5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                Pagos
+              </p>
+              <h2 className="text-xl font-semibold text-brand-charcoal">
+                Estado del recaudo
+              </h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                    payments?.status === "approved"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : payments?.status === "processing"
+                        ? "border-blue-200 bg-blue-50 text-blue-700"
+                        : "border-amber-200 bg-amber-50 text-amber-700",
+                  )}
+                >
+                  {payments?.status || "pending"}
+                </span>
+                {payments?.amount ? (
+                  <span className="text-xs text-neutral-500">
+                    Monto: ${payments.amount.toLocaleString("es-CO")} COP
+                  </span>
+                ) : null}
+                {payments?.approvedAt ? (
+                  <span className="text-xs text-neutral-500">
+                    Confirmado: {payments.approvedAt}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleCreatePayment}
+                disabled={isPaymentPending || payments?.status === "approved"}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold text-white transition",
+                  payments?.status === "approved"
+                    ? "cursor-default bg-emerald-600"
+                    : "bg-brand-charcoal hover:scale-[1.01] hover:bg-black disabled:cursor-not-allowed disabled:opacity-70",
+                )}
+              >
+                {isPaymentPending ? (
+                  <>
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    Procesando...
+                  </>
+                ) : payments?.status === "approved" ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Pago confirmado
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="h-4 w-4" />
+                    Pagar con Botón Bancolombia
+                  </>
+                )}
+              </button>
+              {payments?.checkoutUrl ? (
+                <a
+                  href={payments.checkoutUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-brand-charcoal transition hover:scale-[1.01] hover:border-black/20 hover:shadow-md"
+                >
+                  Abrir pago actual
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              ) : null}
+            </div>
+          </div>
+          <div className="mt-5 rounded-2xl border border-black/10 bg-neutral-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+              Medios manuales habilitados
+            </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {paymentMethods.map((method) => (
+                <div
+                  key={method.label}
+                  className="rounded-xl border border-black/10 bg-white px-3 py-2"
+                >
+                  <p className="text-xs text-neutral-500">{method.label}</p>
+                  <p className="text-sm font-semibold text-brand-charcoal">{method.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-3xl border border-black/10 bg-white p-6 shadow-lg shadow-black/5">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -640,6 +952,7 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
               const isApproving = pendingDocumentId === document.id;
               const isApproved = document.status === "Aprobado";
               const isQuoteDocument = document.kind === "quote";
+              const isContractDocument = document.kind === "contract";
 
               return (
                 <article
@@ -683,9 +996,11 @@ export function DashboardClient({ token, initialData }: DashboardClientProps) {
                       </span>
                     )}
 
-                    {isQuoteDocument ? (
+                    {isQuoteDocument || isContractDocument ? (
                       <span className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-neutral-100 px-3 py-2 text-xs font-semibold text-neutral-500">
-                        Acepta desde el bloque superior
+                        {isQuoteDocument
+                          ? "Acepta desde el bloque superior"
+                          : "Firma desde el bloque superior"}
                       </span>
                     ) : (
                       <button

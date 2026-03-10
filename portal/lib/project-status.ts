@@ -4,8 +4,11 @@ import {
   type Milestone,
   type MilestoneStatus,
   type ProjectData,
+  type ProjectPayments,
   type ProjectDocument,
+  type ProjectContract,
   type ProjectQuote,
+  type ProjectSignature,
   type QuoteStatus,
   type Task,
   type TaskStatus,
@@ -335,6 +338,128 @@ function parseQuote(rawQuote: unknown, documents: ProjectDocument[]): ProjectQuo
   };
 }
 
+function parseContract(
+  rawContract: unknown,
+  documents: ProjectDocument[],
+): ProjectContract | undefined {
+  if (rawContract && typeof rawContract === "object") {
+    const record = rawContract as Record<string, unknown>;
+    const id = String(record.id ?? record.contractId ?? "").trim();
+    const name = String(record.name ?? "Contrato Comercial").trim();
+    const url = String(record.url ?? record.href ?? "").trim();
+
+    if (!id || !url) {
+      return undefined;
+    }
+
+    return {
+      id,
+      name,
+      url,
+      status: toQuoteStatus(record.status),
+      sentAt: String(record.sentAt ?? record.generatedAt ?? "").trim() || undefined,
+      approvedAt:
+        String(record.approvedAt ?? record.contractApprovedAt ?? "").trim() ||
+        undefined,
+    };
+  }
+
+  const contractDocument = documents.find((document) => document.kind === "contract");
+  if (!contractDocument) {
+    return undefined;
+  }
+
+  return {
+    id: contractDocument.id,
+    name: contractDocument.name,
+    url: contractDocument.url,
+    status: toQuoteStatus(contractDocument.status),
+  };
+}
+
+function parseSignature(rawSignature: unknown): ProjectSignature | undefined {
+  if (!rawSignature || typeof rawSignature !== "object") {
+    return undefined;
+  }
+
+  const record = rawSignature as Record<string, unknown>;
+  const signature: ProjectSignature = {
+    provider: String(record.provider ?? "").trim() || undefined,
+    quoteEnvelopeId: String(record.quoteEnvelopeId ?? "").trim() || undefined,
+    contractEnvelopeId: String(record.contractEnvelopeId ?? "").trim() || undefined,
+    quoteSignUrl: String(record.quoteSignUrl ?? "").trim() || undefined,
+    contractSignUrl: String(record.contractSignUrl ?? "").trim() || undefined,
+    status: String(record.status ?? "").trim() || undefined,
+    updatedAt: String(record.updatedAt ?? "").trim() || undefined,
+  };
+
+  if (
+    !signature.provider &&
+    !signature.quoteEnvelopeId &&
+    !signature.contractEnvelopeId &&
+    !signature.quoteSignUrl &&
+    !signature.contractSignUrl &&
+    !signature.status &&
+    !signature.updatedAt
+  ) {
+    return undefined;
+  }
+
+  return signature;
+}
+
+function parsePayments(rawPayments: unknown): ProjectPayments | undefined {
+  if (!rawPayments || typeof rawPayments !== "object") {
+    return undefined;
+  }
+
+  const record = rawPayments as Record<string, unknown>;
+  const methodsRaw = Array.isArray(record.methods) ? record.methods : [];
+  const methods = methodsRaw.reduce<Array<{ label: string; value: string }>>(
+    (acc, item) => {
+      if (!item || typeof item !== "object") {
+        return acc;
+      }
+
+    const obj = item as Record<string, unknown>;
+    const label = String(obj.label ?? "").trim();
+    const value = String(obj.value ?? "").trim();
+
+    if (!label || !value) {
+      return acc;
+    }
+
+      acc.push({ label, value });
+      return acc;
+    },
+    [],
+  );
+
+  const status = String(record.status ?? "pending")
+    .trim()
+    .toLowerCase() as ProjectPayments["status"];
+
+  return {
+    status:
+      ["pending", "processing", "approved", "rejected", "manual_review"].includes(
+        status,
+      )
+        ? status
+        : "pending",
+    amount:
+      typeof record.amount === "number"
+        ? record.amount
+        : Number.isFinite(Number(record.amount))
+          ? Number(record.amount)
+          : undefined,
+    currency: "COP",
+    checkoutUrl: String(record.checkoutUrl ?? record.paymentUrl ?? "").trim() || undefined,
+    paymentIntentId: String(record.paymentIntentId ?? "").trim() || undefined,
+    approvedAt: String(record.approvedAt ?? "").trim() || undefined,
+    methods: methods && methods.length > 0 ? methods : undefined,
+  };
+}
+
 function normalizeProjectData(rawData: unknown): ProjectData {
   if (!rawData || typeof rawData !== "object") {
     throw new ProjectStatusError(
@@ -383,6 +508,22 @@ function normalizeProjectData(rawData: unknown): ProjectData {
         : null),
     documents,
   );
+  const contract = parseContract(
+    data.contract ??
+      (data.Contract_URL
+        ? {
+            id: data.Contract_Document_Id ?? "contract",
+            name: "Contrato Comercial",
+            url: data.Contract_URL,
+            status: data.Contract_Status ?? data.status,
+            sentAt: data.Contract_Generated_At,
+            approvedAt: data.Contract_Approved_At,
+          }
+        : null),
+    documents,
+  );
+  const signature = parseSignature(data.signature);
+  const payments = parsePayments(data.payments);
   const clientToken = String(
     data.clientToken ?? data.Brief_Token ?? data.client_token ?? "",
   ).trim();
@@ -397,6 +538,9 @@ function normalizeProjectData(rawData: unknown): ProjectData {
     progressPercentage,
     driveFolderUrl,
     quote,
+    contract,
+    signature,
+    payments,
     tasks: parseTasks(data.tasks),
     milestones: deriveMilestones(currentPhase, progressPercentage, data.milestones),
     documents,

@@ -18,6 +18,22 @@ export default function BriefWizard({ token }: { token: string }) {
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
+  const buildClientRequestIds = () => {
+    const seed = `${token}:${Date.now()}`;
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      const uuid = crypto.randomUUID();
+      return {
+        correlationId: `brief-${uuid}`,
+        idempotencyKey: `submit-brief:${token}:${uuid}`,
+      };
+    }
+
+    return {
+      correlationId: `brief-${seed}`,
+      idempotencyKey: `submit-brief:${seed}`,
+    };
+  };
+
   const objectivesOptions = [
     { id: "sales", label: "Aumentar Ventas / Leads" },
     { id: "automate", label: "Automatizar Procesos Internos" },
@@ -55,12 +71,14 @@ export default function BriefWizard({ token }: { token: string }) {
     setErrorMessage("");
 
     try {
+      const requestIds = buildClientRequestIds();
       const response = await fetch("/api/submit-brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
           technicalBrief: formData,
+          ...requestIds,
         }),
       });
 

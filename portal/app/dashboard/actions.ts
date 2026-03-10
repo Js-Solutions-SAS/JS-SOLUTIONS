@@ -1,6 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  generateCorrelationId,
+  generateIdempotencyKey,
+  postJsonWithTimeout,
+} from "@/lib/network";
 
 interface ApproveDeliverableInput {
   clientToken: string;
@@ -19,7 +24,34 @@ interface ApproveQuoteInput {
   resourceName: string;
 }
 
-async function sendApprovalRequest(payload: Record<string, unknown>) {
+interface ApproveContractInput {
+  clientToken: string;
+  resourceId: string;
+  resourceName: string;
+}
+
+interface CreatePaymentIntentInput {
+  clientToken: string;
+  amount?: number;
+  currency?: "COP";
+  method?: "bancolombia_button";
+}
+
+interface CreatePaymentIntentResult {
+  ok: boolean;
+  message: string;
+  checkoutUrl?: string;
+  paymentIntentId?: string;
+}
+
+interface ApproveResourceInput {
+  clientToken: string;
+  resourceType: "deliverable" | "quote" | "contract";
+  resourceId: string;
+  resourceName: string;
+}
+
+async function sendApprovalRequest(input: ApproveResourceInput) {
   const webhookUrl = process.env.N8N_APPROVAL_WEBHOOK_URL;
   if (!webhookUrl) {
     return {
@@ -29,20 +61,30 @@ async function sendApprovalRequest(payload: Record<string, unknown>) {
   }
 
   try {
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
+    const correlationId = generateCorrelationId("portal-approval");
+    const idempotencyKey = generateIdempotencyKey(
+      `approval:${input.resourceType}`,
+      `${input.clientToken}:${input.resourceId}`,
+    );
+    const response = await postJsonWithTimeout(webhookUrl, {
+      body: {
+        clientToken: input.clientToken,
+        resourceType: input.resourceType,
+        resourceId: input.resourceId,
+        resourceName: input.resourceName,
+        approvedAt: new Date().toISOString(),
       },
-      body: JSON.stringify(payload),
-      cache: "no-store",
+      correlationId,
+      idempotencyKey,
+      secretToken: process.env.N8N_SECRET_TOKEN,
     });
 
     if (!response.ok) {
       return {
         ok: false,
-        message: "No pudimos registrar la aprobación en este momento.",
+        message:
+          response.errorMessage ||
+          "No pudimos registrar la aprobación en este momento.",
       };
     }
 
@@ -72,9 +114,8 @@ export async function approveDeliverableAction(
   const result = await sendApprovalRequest({
     clientToken: input.clientToken,
     resourceType: "deliverable",
-    documentId: input.documentId,
-    documentName: input.documentName,
-    approvedAt: new Date().toISOString(),
+    resourceId: input.documentId,
+    resourceName: input.documentName,
   });
 
   return {
@@ -100,7 +141,6 @@ export async function approveQuoteAction(
     resourceType: "quote",
     resourceId: input.resourceId,
     resourceName: input.resourceName,
-    approvedAt: new Date().toISOString(),
   });
 
   return {
@@ -108,5 +148,90 @@ export async function approveQuoteAction(
     message: result.ok
       ? `${input.resourceName} fue aceptada correctamente.`
       : result.message,
+  };
+}
+
+export async function approveContractAction(
+  input: ApproveContractInput,
+): Promise<ApproveDeliverableResult> {
+  if (!input.clientToken || !input.resourceId) {
+    return {
+      ok: false,
+      message: "No se pudo validar la firma del contrato.",
+    };
+  }
+
+  const result = await sendApprovalRequest({
+    clientToken: input.clientToken,
+    resourceType: "contract",
+    resourceId: input.resourceId,
+    resourceName: input.resourceName,
+  });
+
+  return {
+    ok: result.ok,
+    message: result.ok
+      ? `${input.resourceName} fue firmado correctamente.`
+      : result.message,
+  };
+}
+
+export async function createPaymentIntentAction(
+  input: CreatePaymentIntentInput,
+): Promise<CreatePaymentIntentResult> {
+  if (!input.clientToken) {
+    return {
+      ok: false,
+      message: "No se recibió un token de cliente válido para iniciar el pago.",
+    };
+  }
+
+  const webhookUrl = process.env.N8N_PAYMENTS_CREATE_WEBHOOK_URL;
+  if (!webhookUrl) {
+    return {
+      ok: false,
+      message: "N8N_PAYMENTS_CREATE_WEBHOOK_URL no está configurada.",
+    };
+  }
+
+  const correlationId = generateCorrelationId("payment-create");
+  const idempotencyKey = generateIdempotencyKey(
+    "payment-create",
+    `${input.clientToken}:${input.amount || 0}:${input.method || "bancolombia_button"}`,
+  );
+
+  const response = await postJsonWithTimeout(webhookUrl, {
+    body: {
+      clientToken: input.clientToken,
+      amount: input.amount,
+      currency: input.currency || "COP",
+      method: input.method || "bancolombia_button",
+    },
+    correlationId,
+    idempotencyKey,
+    secretToken: process.env.N8N_SECRET_TOKEN,
+  });
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      message:
+        response.errorMessage ||
+        "No se pudo iniciar el pago automático con Botón Bancolombia.",
+    };
+  }
+
+  const checkoutUrl = String(
+    response.data.checkoutUrl || response.data.paymentUrl || "",
+  ).trim();
+  const paymentIntentId = String(response.data.paymentIntentId || "").trim();
+
+  return {
+    ok: Boolean(checkoutUrl),
+    message: checkoutUrl
+      ? "Intento de pago creado correctamente."
+      : "El backend respondió sin URL de pago.",
+    checkoutUrl: checkoutUrl || undefined,
+    paymentIntentId: paymentIntentId || undefined,
   };
 }

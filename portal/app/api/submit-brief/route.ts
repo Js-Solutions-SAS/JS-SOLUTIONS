@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  generateCorrelationId,
+  generateIdempotencyKey,
+  postJsonWithTimeout,
+} from "@/lib/network";
 
 export async function POST(req: Request) {
   try {
@@ -26,27 +31,23 @@ export async function POST(req: Request) {
 
     console.log("Enviando brief a n8n:", webhookUrl);
 
-    // Enviar los datos a n8n
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
+    const correlationId =
+      typeof data.correlationId === "string" && data.correlationId
+        ? data.correlationId
+        : generateCorrelationId("submit-brief");
+    const idempotencyKey =
+      typeof data.idempotencyKey === "string" && data.idempotencyKey
+        ? data.idempotencyKey
+        : generateIdempotencyKey("submit-brief", String(data.token || "na"));
+    const upstream = await postJsonWithTimeout(webhookUrl, {
+      body: data,
+      correlationId,
+      idempotencyKey,
+      secretToken: process.env.N8N_SECRET_TOKEN,
     });
+    const result = upstream.data;
 
-    const responseText = await response.text();
-    const result = responseText
-      ? (() => {
-          try {
-            return JSON.parse(responseText);
-          } catch {
-            return { raw: responseText };
-          }
-        })()
-      : {};
-
-    if (!response.ok) {
+    if (!upstream.ok) {
       const details =
         typeof result?.error === "string"
           ? result.error
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
             ? result.message
             : typeof result?.raw === "string"
               ? result.raw.slice(0, 280)
-              : `n8n respondio con estado ${response.status}`;
+              : `n8n respondio con estado ${upstream.status}`;
 
       throw new Error(details);
     }
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
       success: true,
       message: "El brief técnico ha sido enviado con éxito.",
       result,
+      correlationId: upstream.correlationId,
     });
   } catch (error) {
     console.error("Error submitting technical brief to n8n:", error);

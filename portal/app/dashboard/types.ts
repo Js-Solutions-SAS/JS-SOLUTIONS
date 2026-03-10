@@ -49,6 +49,47 @@ export interface ProjectQuote {
   approvedAt?: string;
 }
 
+export interface ProjectContract {
+  id: string;
+  name: string;
+  url: string;
+  status: QuoteStatus;
+  sentAt?: string;
+  approvedAt?: string;
+}
+
+export interface ProjectSignature {
+  provider?: string;
+  quoteEnvelopeId?: string;
+  contractEnvelopeId?: string;
+  quoteSignUrl?: string;
+  contractSignUrl?: string;
+  status?: string;
+  updatedAt?: string;
+}
+
+export type PaymentStatus =
+  | "pending"
+  | "processing"
+  | "approved"
+  | "rejected"
+  | "manual_review";
+
+export interface PaymentMethodInfo {
+  label: string;
+  value: string;
+}
+
+export interface ProjectPayments {
+  status: PaymentStatus;
+  amount?: number;
+  currency?: "COP";
+  checkoutUrl?: string;
+  paymentIntentId?: string;
+  approvedAt?: string;
+  methods?: PaymentMethodInfo[];
+}
+
 export interface ProjectData {
   clientToken: string;
   projectName: string;
@@ -57,6 +98,9 @@ export interface ProjectData {
   progressPercentage: number;
   driveFolderUrl: string;
   quote?: ProjectQuote;
+  contract?: ProjectContract;
+  signature?: ProjectSignature;
+  payments?: ProjectPayments;
   tasks: Task[];
   milestones: Milestone[];
   documents: ProjectDocument[];
