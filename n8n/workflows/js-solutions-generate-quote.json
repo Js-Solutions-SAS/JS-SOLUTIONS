@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? $json;\nconst fallbackId = body.id ?? '';\nconst leadId = body.leadId ?? (fallbackId ? `lead-${fallbackId}` : '');\nconst clientToken = body.clientToken ?? body.token ?? body.Brief_Token ?? fallbackId ?? '';\nconst transcripcion = body.transcripcion ?? '';\nconst rawDatosCliente = body.datos_cliente ?? '';\nconst datosCliente = typeof rawDatosCliente === 'string'\n  ? rawDatosCliente\n  : [rawDatosCliente?.nombre, rawDatosCliente?.empresa, rawDatosCliente?.email]\n      .map((value) => String(value ?? '').trim())\n      .filter(Boolean)\n      .join(' | ');\nconst datosProveedor = body.datos_proveedor ?? 'JS Solutions';\nconst feedback = body.feedback ?? '';\nconst emailCandidates = [\n  typeof body.email === 'string' ? body.email.trim() : '',\n  typeof rawDatosCliente === 'object' && rawDatosCliente\n    ? String(rawDatosCliente.email ?? '').trim()\n    : '',\n  datosCliente.split('|').map((item) => item.trim()).find((item) => item.includes('@')) || '',\n];\nconst email = emailCandidates.find(Boolean) || '';\n\nif (!leadId || !clientToken || !transcripcion) {\n  throw new Error('leadId, clientToken and transcripcion are required');\n}\n\nreturn [{\n  json: {\n    leadId,\n    clientToken,\n    transcripcion,\n    datos_cliente: datosCliente,\n    datos_proveedor: datosProveedor,\n    feedback,\n    email,\n    dashboardUrl: `https://portal.jssolutions.com.co/dashboard?token=${clientToken}`,\n    quoteDocumentId: `quote-${leadId}`,\n    generatedAt: new Date().toISOString()\n  }\n}];"
+        "jsCode": "const body = $json.body ?? $json;\nconst fallbackId = body.id ?? '';\nconst leadId = body.leadId ?? (fallbackId ? `lead-${fallbackId}` : '');\nconst clientToken = body.clientToken ?? body.token ?? body.Brief_Token ?? fallbackId ?? '';\nconst transcripcion = body.transcripcion ?? '';\nconst rawDatosCliente = body.datos_cliente ?? '';\nconst datosCliente = typeof rawDatosCliente === 'string'\n  ? rawDatosCliente\n  : [rawDatosCliente?.nombre, rawDatosCliente?.empresa, rawDatosCliente?.email]\n      .map((value) => String(value ?? '').trim())\n      .filter(Boolean)\n      .join(' | ');\nconst datosProveedor = body.datos_proveedor ?? 'JS Solutions';\nconst feedback = body.feedback ?? '';\nconst mode = body.mode === 'preview' ? 'preview' : 'send';\nconst idempotencyKey = body.idempotencyKey ?? '';\nconst correlationId = body.correlationId ?? `generate-quote-${Date.now()}`;\nconst emailCandidates = [\n  typeof body.email === 'string' ? body.email.trim() : '',\n  typeof rawDatosCliente === 'object' && rawDatosCliente\n    ? String(rawDatosCliente.email ?? '').trim()\n    : '',\n  datosCliente.split('|').map((item) => item.trim()).find((item) => item.includes('@')) || '',\n];\nconst email = emailCandidates.find(Boolean) || '';\n\nif (!leadId || !clientToken || !transcripcion) {\n  throw new Error('leadId, clientToken and transcripcion are required');\n}\n\nreturn [{\n  json: {\n    leadId,\n    clientToken,\n    transcripcion,\n    datos_cliente: datosCliente,\n    datos_proveedor: datosProveedor,\n    feedback,\n    email,\n    mode,\n    idempotencyKey,\n    correlationId,\n    dashboardUrl: `https://portal.jssolutions.com.co/dashboard?token=${clientToken}`,\n    quoteDocumentId: `quote-${leadId}`,\n    generatedAt: new Date().toISOString()\n  }\n}];"
       },
       "id": "1d1ad184-92de-4f74-ab0d-2013f71b887f",
       "name": "Validate Quote Request",
@@ -224,7 +224,9 @@
             "Quote_Generated_At": "={{ $('Validate Quote Request').item.json.generatedAt }}",
             "Quote_Last_Feedback": "={{ $('Validate Quote Request').item.json.feedback }}",
             "Client_Dashboard_URL": "={{ $('Validate Quote Request').item.json.dashboardUrl }}",
-            "estado": "Cotización En Revisión"
+            "estado": "Cotización En Revisión",
+            "Last_Quote_Idempotency_Key": "={{ $('Validate Quote Request').item.json.idempotencyKey }}",
+            "Last_Correlation_Id": "={{ $('Validate Quote Request').item.json.correlationId }}"
           },
           "schema": [
             {
@@ -302,6 +304,24 @@
             {
               "id": "estado",
               "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Last_Quote_Idempotency_Key",
+              "displayName": "Last_Quote_Idempotency_Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Last_Correlation_Id",
+              "displayName": "Last_Correlation_Id",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -410,6 +430,18 @@
               "name": "message",
               "value": "Cotización generada, guardada y enviada.",
               "type": "string"
+            },
+            {
+              "id": "mode-id",
+              "name": "mode",
+              "value": "={{ $('Validate Quote Request').item.json.mode }}",
+              "type": "string"
+            },
+            {
+              "id": "corr-id",
+              "name": "correlationId",
+              "value": "={{ $('Validate Quote Request').item.json.correlationId }}",
+              "type": "string"
             }
           ]
         },
@@ -439,6 +471,80 @@
       "position": [
         3320,
         320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "if-preview-mode",
+              "leftValue": "={{ $('Validate Quote Request').item.json.mode }}",
+              "rightValue": "preview",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-preview-mode-node",
+      "name": "IF Preview Mode",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1880,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "preview-success",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "preview-mode",
+              "name": "mode",
+              "value": "preview",
+              "type": "string"
+            },
+            {
+              "id": "preview-pdf",
+              "name": "quotePdfUrl",
+              "value": "={{ $('Generar PDF').item.json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "preview-msg",
+              "name": "message",
+              "value": "Preview de cotización generado (sin envío).",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "preview-response-node",
+      "name": "Preview Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2140,
+        180
       ]
     }
   ],
@@ -529,7 +635,7 @@
       "main": [
         [
           {
-            "node": "Descargar PDF Temporal",
+            "node": "IF Preview Mode",
             "type": "main",
             "index": 0
           }
@@ -581,6 +687,35 @@
       ]
     },
     "Success Response": {
+      "main": [
+        [
+          {
+            "node": "Responder Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Preview Mode": {
+      "main": [
+        [
+          {
+            "node": "Preview Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Descargar PDF Temporal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preview Response": {
       "main": [
         [
           {

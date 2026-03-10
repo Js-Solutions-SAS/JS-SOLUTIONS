@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? $json;\nconst clientToken = body.clientToken ?? '';\nconst resourceType = body.resourceType ?? 'deliverable';\nconst resourceId = body.resourceId ?? body.documentId ?? '';\nconst resourceName = body.resourceName ?? body.documentName ?? 'Entregable';\nconst approvedAt = body.approvedAt ?? new Date().toISOString();\n\nif (!clientToken || !resourceId) {\n  throw new Error('clientToken and resourceId are required');\n}\n\nreturn [{\n  json: {\n    clientToken,\n    resourceType,\n    resourceId,\n    resourceName,\n    approvedAt\n  }\n}];"
+        "jsCode": "const body = $json.body ?? $json;\nconst clientToken = body.clientToken ?? '';\nconst resourceTypeRaw = body.resourceType ?? 'deliverable';\nconst resourceType = ['quote', 'contract', 'deliverable'].includes(resourceTypeRaw)\n  ? resourceTypeRaw\n  : 'deliverable';\nconst resourceId = body.resourceId ?? body.documentId ?? '';\nconst resourceName = body.resourceName ?? body.documentName ?? 'Entregable';\nconst approvedAt = body.approvedAt ?? new Date().toISOString();\nconst correlationId = body.correlationId ?? '';\nconst idempotencyKey = body.idempotencyKey ?? '';\n\nif (!clientToken || !resourceId) {\n  throw new Error('clientToken and resourceId are required');\n}\n\nreturn [{\n  json: {\n    clientToken,\n    resourceType,\n    resourceId,\n    resourceName,\n    approvedAt,\n    correlationId,\n    idempotencyKey\n  }\n}];"
       },
       "id": "9d48031f-12da-4d8f-a861-b844f7e3492d",
       "name": "Validate Approval Request",
@@ -76,10 +76,10 @@
             {
               "id": "db8da4da-2b90-4cd1-8a38-2a1ca5eed55f",
               "leftValue": "={{ $('Validate Approval Request').item.json.resourceType }}",
-              "rightValue": "quote",
+              "rightValue": "deliverable",
               "operator": {
                 "type": "string",
-                "operation": "equals"
+                "operation": "notEquals"
               }
             }
           ],
@@ -98,7 +98,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const row = $json ?? {};\nconst request = $('Validate Approval Request').item.json;\nconst expectedId = row.Quote_Document_Id ?? '';\n\nif (!row.leadId) {\n  throw new Error('lead not found for clientToken');\n}\n\nif (expectedId && expectedId !== request.resourceId) {\n  throw new Error('resourceId does not match Quote_Document_Id');\n}\n\nreturn [{\n  json: {\n    leadId: row.leadId,\n    clientToken: request.clientToken,\n    resourceId: request.resourceId,\n    resourceName: request.resourceName,\n    approvedAt: request.approvedAt\n  }\n}];"
+        "jsCode": "const row = $json ?? {};\nconst request = $('Validate Approval Request').item.json;\nconst expectedQuoteId = row.Quote_Document_Id ?? '';\nconst expectedContractId = row.Contract_Document_Id ?? `contract-${row.leadId || ''}`;\n\nif (!row.leadId) {\n  throw new Error('lead not found for clientToken');\n}\n\nif (request.resourceType === 'quote' && expectedQuoteId && expectedQuoteId !== request.resourceId) {\n  throw new Error('resourceId does not match Quote_Document_Id');\n}\n\nif (request.resourceType === 'contract' && expectedContractId && expectedContractId !== request.resourceId) {\n  throw new Error('resourceId does not match Contract_Document_Id');\n}\n\nreturn [{\n  json: {\n    leadId: row.leadId,\n    clientToken: request.clientToken,\n    resourceType: request.resourceType,\n    resourceId: request.resourceId,\n    resourceName: request.resourceName,\n    approvedAt: request.approvedAt,\n    correlationId: request.correlationId,\n    idempotencyKey: request.idempotencyKey,\n    currentQuoteStatus: row.Quote_Status ?? '',\n    currentQuoteApprovedAt: row.Quote_Approved_At ?? '',\n    currentContractStatus: row.Contract_Status ?? '',\n    currentContractApprovedAt: row.Contract_Approved_At ?? '',\n    currentEstado: row.estado ?? ''\n  }\n}];"
       },
       "id": "6a5571ab-444c-48d2-a312-e40af82cda09",
       "name": "Validate Quote Match",
@@ -125,9 +125,12 @@
         "columns": {
           "value": {
             "Brief_Token": "={{ $('Validate Approval Request').item.json.clientToken }}",
-            "Quote_Status": "Aprobado",
-            "Quote_Approved_At": "={{ $('Validate Approval Request').item.json.approvedAt }}",
-            "estado": "Firmado"
+            "Quote_Status": "={{ $('Validate Quote Match').item.json.resourceType === 'quote' ? 'Aprobado' : $('Validate Quote Match').item.json.currentQuoteStatus }}",
+            "Quote_Approved_At": "={{ $('Validate Quote Match').item.json.resourceType === 'quote' ? $('Validate Approval Request').item.json.approvedAt : $('Validate Quote Match').item.json.currentQuoteApprovedAt }}",
+            "estado": "={{ $('Validate Quote Match').item.json.resourceType === 'quote' ? 'Firmado' : ($('Validate Quote Match').item.json.resourceType === 'contract' ? 'Contrato Firmado' : $('Validate Quote Match').item.json.currentEstado) }}",
+            "Contract_Status": "={{ $('Validate Quote Match').item.json.resourceType === 'contract' ? 'Aprobado' : $('Validate Quote Match').item.json.currentContractStatus }}",
+            "Contract_Approved_At": "={{ $('Validate Quote Match').item.json.resourceType === 'contract' ? $('Validate Approval Request').item.json.approvedAt : $('Validate Quote Match').item.json.currentContractApprovedAt }}",
+            "Last_Correlation_Id": "={{ $('Validate Approval Request').item.json.correlationId }}"
           },
           "schema": [
             {
@@ -165,6 +168,33 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": false
+            },
+            {
+              "id": "Contract_Status",
+              "displayName": "Contract_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Contract_Approved_At",
+              "displayName": "Contract_Approved_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Last_Correlation_Id",
+              "displayName": "Last_Correlation_Id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
             }
           ]
         },
@@ -196,6 +226,12 @@
               "id": "1d1bed65-4b89-4968-93dc-367c76f877d5",
               "name": "message",
               "value": "Cotización aprobada y sincronizada.",
+              "type": "string"
+            },
+            {
+              "id": "resource-type",
+              "name": "resourceType",
+              "value": "={{ $('Validate Approval Request').item.json.resourceType }}",
               "type": "string"
             }
           ]

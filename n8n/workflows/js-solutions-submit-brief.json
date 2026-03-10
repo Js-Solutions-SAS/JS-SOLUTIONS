@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? $json;\nconst token = body.token ?? '';\nconst answers = body.answers ?? body.technicalBrief ?? {};\n\nif (!token) {\n  throw new Error('token is required');\n}\n\nreturn [{\n  json: {\n    token,\n    answers,\n    answersJson: JSON.stringify(answers),\n    completedAt: new Date().toISOString(),\n    nextStatus: 'Brief Completado'\n  }\n}];"
+        "jsCode": "const body = $json.body ?? $json;\nconst token = body.token ?? '';\nconst answers = body.answers ?? body.technicalBrief ?? {};\nconst idempotencyKey = body.idempotencyKey ?? '';\nconst correlationId = body.correlationId ?? `submit-brief-${Date.now()}`;\nconst briefSubmissionId = typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`;\n\nif (!token) {\n  throw new Error('token is required');\n}\n\nreturn [{\n  json: {\n    token,\n    answers,\n    answersJson: JSON.stringify(answers),\n    completedAt: new Date().toISOString(),\n    nextStatus: 'Brief Completado',\n    idempotencyKey,\n    correlationId,\n    briefSubmissionId\n  }\n}];"
       },
       "id": "a515d8f6-e708-48b6-85e4-fac2c6a0a1f6",
       "name": "Validate And Normalize Brief",
@@ -117,7 +117,9 @@
             "Brief_Token": "={{ $('Validate And Normalize Brief').item.json.token }}",
             "Technical_Brief_JSON": "={{ $('Validate And Normalize Brief').item.json.answersJson }}",
             "estado": "={{ $('Validate And Normalize Brief').item.json.nextStatus }}",
-            "Brief_Completed_At": "={{ $('Validate And Normalize Brief').item.json.completedAt }}"
+            "Brief_Completed_At": "={{ $('Validate And Normalize Brief').item.json.completedAt }}",
+            "Last_Submit_Brief_Idempotency_Key": "={{ $('Validate And Normalize Brief').item.json.idempotencyKey }}",
+            "Last_Correlation_Id": "={{ $('Validate And Normalize Brief').item.json.correlationId }}"
           },
           "matchingColumns": [
             "Brief_Token"
@@ -153,6 +155,24 @@
             {
               "id": "Brief_Completed_At",
               "displayName": "Brief_Completed_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Last_Submit_Brief_Idempotency_Key",
+              "displayName": "Last_Submit_Brief_Idempotency_Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Last_Correlation_Id",
+              "displayName": "Last_Correlation_Id",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -195,6 +215,24 @@
               "id": "c75bc58f-6108-4faf-8fbf-f9a5efebc0fd",
               "name": "message",
               "value": "Brief tecnico recibido y registrado.",
+              "type": "string"
+            },
+            {
+              "id": "brief-sub-id",
+              "name": "briefSubmissionId",
+              "value": "={{ $('Validate And Normalize Brief').item.json.briefSubmissionId }}",
+              "type": "string"
+            },
+            {
+              "id": "corr-id",
+              "name": "correlationId",
+              "value": "={{ $('Validate And Normalize Brief').item.json.correlationId }}",
+              "type": "string"
+            },
+            {
+              "id": "lead-id",
+              "name": "leadId",
+              "value": "={{ $json.leadId || $('Lookup Lead By Token').item.json.leadId ||  }}",
               "type": "string"
             }
           ]
