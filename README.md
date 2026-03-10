@@ -81,6 +81,8 @@ N8N_APPROVAL_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/portal-approval
 N8N_SECRET_TOKEN=tu_token_bearer_opcional
 N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
 N8N_SUBMIT_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/submit-brief
+N8N_PAYMENTS_CREATE_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/payments/create
+N8N_REQUEST_TIMEOUT_MS=15000
 ```
 
 ### 3) Admin (`admin`)
@@ -141,6 +143,7 @@ N8N_EXECUTIVE_PORTFOLIO_WEBHOOK_URL=https://tu-n8n/webhook/admin-portafolio
 N8N_OPERATIONAL_FINANCE_WEBHOOK_URL=https://tu-n8n/webhook/admin-finanzas
 N8N_RAID_WEBHOOK_URL=https://tu-n8n/webhook/admin-raid
 N8N_SECRET_TOKEN=tu_token_bearer_opcional
+N8N_REQUEST_TIMEOUT_MS=15000
 ```
 
 Notas:
@@ -165,5 +168,6 @@ npm run start
 - `Estructura_Google_Sheets.md`: esquema de hojas y campos.
 - `n8n_sheets_project_status.json`: flujo base para estado de proyectos.
 - `n8n_sheets_onboarding.json`: flujo base para onboarding.
-- `n8n/workflows/`: imports listos para get quotes, create quote, request brief, submit brief, generate quote, project status, portal approval y generate contract.
+- `n8n/workflows/`: imports listos para get quotes, create quote, request brief, submit brief, generate quote, project status, portal approval, generate contract, callback de firma DocuSign y create/callback de pagos Bancolombia.
+- `n8n/sql/js_solutions_postgres_schema.sql`: esquema base para migración operativa a Postgres VPS.
 - `n8n/README.md`: guia de importacion y mapeo de `.env.local`.
