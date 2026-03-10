@@ -34,6 +34,13 @@ interface GenerateContractInput {
   estado?: string;
 }
 
+interface RequestTechnicalBriefInput {
+  leadId?: string;
+  email?: string;
+  forceResend?: boolean;
+  requestId?: string;
+}
+
 interface GenerateQuoteInput {
   leadId: string;
   nombre: string;
@@ -341,7 +348,7 @@ export async function generateContractAction(input: GenerateContractInput) {
 }
 
 export async function requestTechnicalBriefAction(
-  input: GenerateContractInput,
+  input: RequestTechnicalBriefInput,
 ) {
   if (!input.leadId && !input.email) {
     return {
@@ -362,12 +369,22 @@ export async function requestTechnicalBriefAction(
 
   try {
     const correlationId = generateCorrelationId("request-brief");
+    const requestId =
+      normalizeInput(input.requestId) ||
+      (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `req-brief-${Date.now()}-${Math.random().toString(16).slice(2)}`);
     const idempotencyKey = generateIdempotencyKey(
       "request-brief",
-      `${input.leadId || "na"}:${input.email || "na"}`,
+      requestId,
     );
     const response = await postJsonWithTimeout(webhookUrl, {
-      body: input as unknown as Record<string, unknown>,
+      body: {
+        leadId: normalizeInput(input.leadId) || undefined,
+        email: normalizeInput(input.email) || undefined,
+        forceResend: Boolean(input.forceResend),
+        requestId,
+      },
       correlationId,
       idempotencyKey,
       secretToken: process.env.N8N_SECRET_TOKEN,
@@ -381,9 +398,20 @@ export async function requestTechnicalBriefAction(
 
     revalidatePath("/cotizaciones");
 
+    const deliveryStatus =
+      typeof result.deliveryStatus === "string"
+        ? normalizeInput(result.deliveryStatus)
+        : "sent";
+    const resultMessage =
+      typeof result.message === "string" && normalizeInput(result.message)
+        ? normalizeInput(result.message)
+        : deliveryStatus === "skipped_idempotent"
+          ? "Solicitud de brief ya procesada previamente."
+          : "Brief técnico solicitado y enviado al prospecto correctamente.";
+
     return {
       ok: true,
-      message: "Brief técnico solicitado y enviado al prospecto correctamente.",
+      message: resultMessage,
       briefUrl:
         typeof result.briefUrl === "string" ? normalizeInput(result.briefUrl) : undefined,
       token: typeof result.token === "string" ? normalizeInput(result.token) : undefined,
@@ -393,6 +421,7 @@ export async function requestTechnicalBriefAction(
           : typeof result.dashboardUrl === "string"
             ? normalizeInput(result.dashboardUrl)
             : undefined,
+      deliveryStatus,
       correlationId: response.correlationId,
     };
   } catch (error) {

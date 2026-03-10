@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? $json;\nconst leadId = body.leadId ?? body.quoteId ?? '';\nconst email = body.email ?? '';\nconst idempotencyKey = body.idempotencyKey ?? '';\nconst correlationId = body.correlationId ?? `req-brief-${Date.now()}`;\n\nif (!leadId && !email) {\n  throw new Error('leadId or email is required');\n}\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    requestedAt: new Date().toISOString(),\n    idempotencyKey,\n    correlationId\n  }\n}];"
+        "jsCode": "const body = $json.body ?? $json;\nconst leadId = body.leadId ?? body.quoteId ?? '';\nconst email = body.email ?? '';\nconst idempotencyKey = body.idempotencyKey ?? '';\nconst correlationId = body.correlationId ?? `req-brief-${Date.now()}`;\nconst requestId = body.requestId ?? body.idempotencyKey ?? `req-brief-${Date.now()}`;\nconst forceResend = Boolean(body.forceResend);\n\nif (!leadId && !email) {\n  throw new Error('leadId or email is required');\n}\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    requestedAt: new Date().toISOString(),\n    idempotencyKey,\n    correlationId,\n    requestId,\n    forceResend\n  }\n}];"
       },
       "id": "62b7d5bf-d5d6-4f43-ac48-48f60bc9fa5b",
       "name": "Validate Request",
@@ -65,7 +65,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const request = $('Validate Request').item.json;\nconst row = $json ?? {};\nconst portalBaseUrl = 'https://portal.jssolutions.com.co';\nconst existingToken = row.Brief_Token ?? row.briefToken ?? '';\nconst token = existingToken || (typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`);\nconst briefUrl = row.Brief_URL || row.briefUrl || `${portalBaseUrl}/brief/${token}`;\nconst clientDashboardUrl = row.Client_Dashboard_URL || row.clientDashboardUrl || `${portalBaseUrl}/dashboard?token=${token}`;\nconst email = request.email || row.email || row.Prospect_Email || '';\nconst leadId = request.leadId || row.leadId || row.id || '';\nconst previousKey = row.Last_Request_Brief_Idempotency_Key || '';\nconst skipEmail = Boolean(request.idempotencyKey && previousKey && previousKey === request.idempotencyKey);\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    token,\n    briefUrl,\n    clientDashboardUrl,\n    requestedAt: request.requestedAt,\n    nextStatus: 'Brief Enviado',\n    idempotencyKey: request.idempotencyKey,\n    correlationId: request.correlationId,\n    skipEmail\n  }\n}];"
+        "jsCode": "const request = $('Validate Request').item.json;\nconst row = $json ?? {};\nconst portalBaseUrl = 'https://portal.jssolutions.com.co';\nconst existingToken = row.Brief_Token ?? row.briefToken ?? '';\nconst token = existingToken || (typeof crypto !== 'undefined' && crypto.randomUUID\n  ? crypto.randomUUID()\n  : `${Date.now()}-${Math.random().toString(16).slice(2)}`);\nconst briefUrl = row.Brief_URL || row.briefUrl || `${portalBaseUrl}/brief/${token}`;\nconst clientDashboardUrl = row.Client_Dashboard_URL || row.clientDashboardUrl || `${portalBaseUrl}/dashboard?token=${token}`;\nconst email = request.email || row.email || row.Prospect_Email || '';\nconst leadId = request.leadId || row.leadId || row.id || '';\nconst previousKey = row.Last_Request_Brief_Idempotency_Key || '';\nconst skipEmail = !request.forceResend && Boolean(request.idempotencyKey && previousKey && previousKey === request.idempotencyKey);\nconst deliveryStatus = skipEmail ? 'skipped_idempotent' : 'sent';\n\nreturn [{\n  json: {\n    leadId,\n    email,\n    token,\n    briefUrl,\n    clientDashboardUrl,\n    requestedAt: request.requestedAt,\n    nextStatus: 'Brief Enviado',\n    idempotencyKey: request.idempotencyKey,\n    correlationId: request.correlationId,\n    requestId: request.requestId,\n    forceResend: request.forceResend,\n    skipEmail,\n    deliveryStatus\n  }\n}];"
       },
       "id": "be973217-2858-4b30-bfcb-bc33b0dc3a3a",
       "name": "Resolve Brief Token",
@@ -252,7 +252,7 @@
             {
               "id": "1ba6e6bc-1b37-4a08-bf7f-bb412ddce78d",
               "name": "message",
-              "value": "={{ $('Resolve Brief Token').item.json.skipEmail ? 'Solicitud de brief ya procesada previamente por idempotencia.' : 'Brief tecnico solicitado y enviado.' }}",
+              "value": "={{ $('Resolve Brief Token').item.json.deliveryStatus === 'skipped_idempotent' ? 'Solicitud de brief ya procesada previamente por idempotencia.' : $('Resolve Brief Token').item.json.forceResend ? 'Brief tecnico reenviado correctamente.' : 'Brief tecnico solicitado y enviado.' }}",
               "type": "string"
             },
             {
@@ -272,6 +272,12 @@
               "name": "skippedEmail",
               "value": "={{ $('Resolve Brief Token').item.json.skipEmail }}",
               "type": "boolean"
+            },
+            {
+              "id": "deliveryStatus-229c52ffc76788",
+              "name": "deliveryStatus",
+              "value": "={{ $('Resolve Brief Token').item.json.deliveryStatus }}",
+              "type": "string"
             }
           ]
         },
