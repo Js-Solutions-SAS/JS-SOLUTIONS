@@ -1,0 +1,76 @@
+{
+  "name": "JS Solutions - Payments Create",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "js-solutions/payments/create",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "payments-create-webhook-1",
+      "name": "Webhook (Trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst clientToken = body.clientToken ?? '';\nconst amount = Number(body.amount ?? 0);\nconst currency = body.currency ?? 'COP';\nconst method = body.method ?? 'bancolombia_button';\nconst idempotencyKey = body.idempotencyKey ?? '';\nconst correlationId = body.correlationId ?? '';\n\nif (!clientToken) {\n  throw new Error('clientToken is required');\n}\n\nconst paymentIntentId = `pi_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;\nconst providerReference = `bc_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;\nconst checkoutUrl = `https://pagos.bancolombia.com/checkout?reference=${providerReference}`;\n\nreturn [{\n  json: {\n    success: true,\n    paymentIntentId,\n    provider: 'bancolombia',\n    providerReference,\n    checkoutUrl,\n    amount,\n    currency,\n    method,\n    idempotencyKey,\n    correlationId,\n    message: 'Intento de pago creado.'\n  }\n}];"
+      },
+      "id": "payments-create-validate-1",
+      "name": "Validate And Build Payment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "payments-create-respond-1",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Webhook (Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Validate And Build Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate And Build Payment": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "js-solutions-payments-create"
+}

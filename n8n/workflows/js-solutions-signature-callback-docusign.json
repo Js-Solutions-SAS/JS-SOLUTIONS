@@ -1,0 +1,76 @@
+{
+  "name": "JS Solutions - Signature Callback DocuSign",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "js-solutions/signature-callback/docusign",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "docusign-webhook-1",
+      "name": "Webhook (Trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst envelopeId = body.envelopeId ?? body.data?.envelopeId ?? '';\nconst resourceType = body.resourceType ?? body.data?.resourceType ?? 'contract';\nconst status = String(body.status ?? body.event ?? body.data?.status ?? '').toLowerCase();\nconst correlationId = body.correlationId ?? '';\n\nif (!envelopeId) {\n  throw new Error('envelopeId is required');\n}\n\nconst signedStatuses = ['completed', 'signed', 'envelope-completed'];\nconst signed = signedStatuses.includes(status);\n\nreturn [{\n  json: {\n    success: true,\n    provider: 'docusign',\n    envelopeId,\n    resourceType,\n    signed,\n    status,\n    correlationId,\n    message: signed\n      ? 'Firma electrónica confirmada.'\n      : 'Evento de firma recibido.'\n  }\n}];"
+      },
+      "id": "docusign-validate-1",
+      "name": "Validate Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "docusign-respond-1",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Webhook (Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Validate Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Callback": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "js-solutions-signature-callback-docusign"
+}

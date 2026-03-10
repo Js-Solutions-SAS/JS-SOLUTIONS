@@ -16,6 +16,9 @@ Estos workflows estan alineados con el contrato real del codigo actual y cubren 
 - `workflows/js-solutions-generate-quote.json`
 - `workflows/js-solutions-project-status.json`
 - `workflows/js-solutions-portal-approval.json`
+- `workflows/js-solutions-signature-callback-docusign.json`
+- `workflows/js-solutions-payments-create.json`
+- `workflows/js-solutions-payments-callback-bancolombia.json`
 
 ## Importacion en la VPS
 
@@ -49,6 +52,9 @@ En `portal/.env.local`:
 N8N_WEBHOOK_URL=https://tu-n8n/webhook/project-status
 N8N_APPROVAL_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/portal-approval
 N8N_SUBMIT_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/submit-brief
+N8N_PAYMENTS_CREATE_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/payments/create
+N8N_SECRET_TOKEN=tu_token_bearer_opcional
+N8N_REQUEST_TIMEOUT_MS=15000
 ```
 
 ## Notas de adaptacion
@@ -62,3 +68,4 @@ N8N_SUBMIT_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/submit-brief
 - `portal-approval` reutiliza el mismo endpoint para `deliverable` y `quote`; cuando `resourceType = "quote"` actualiza `Quote_Status`, `Quote_Approved_At` y `estado = Firmado`.
 - El workflow de contrato deja una URL de contrato de ejemplo para que el Admin reciba `success` y `contractUrl`. Si luego conectas Google Docs, DocuSign o un servicio PDF, solo reemplaza el nodo de preparacion del contrato.
 - Si quieres notificaciones a Slack/Teams, puedes agregar un `HTTP Request` despues del update del brief completado.
+- Para Postgres VPS usa `n8n/sql/js_solutions_postgres_schema.sql` como base del modelo operacional y reemplaza gradualmente los nodos Google Sheets en los workflows críticos.

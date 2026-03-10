@@ -1,0 +1,76 @@
+{
+  "name": "JS Solutions - Payments Callback Bancolombia",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "js-solutions/payments/callback/bancolombia",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "payments-callback-webhook-1",
+      "name": "Webhook (Trigger)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\nconst providerReference = body.providerReference ?? body.reference ?? body.transactionId ?? '';\nconst status = String(body.status ?? body.transactionStatus ?? '').toLowerCase();\nconst correlationId = body.correlationId ?? '';\n\nif (!providerReference) {\n  throw new Error('providerReference is required');\n}\n\nconst approved = ['approved', 'paid', 'success', 'succeeded'].includes(status);\n\nreturn [{\n  json: {\n    success: true,\n    provider: 'bancolombia',\n    providerReference,\n    status: approved ? 'approved' : status || 'processing',\n    approved,\n    correlationId,\n    ackAt: new Date().toISOString(),\n    message: approved\n      ? 'Pago confirmado por callback.'\n      : 'Callback recibido y pendiente de conciliación.'\n  }\n}];"
+      },
+      "id": "payments-callback-validate-1",
+      "name": "Validate Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "payments-callback-respond-1",
+      "name": "Respond ACK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Webhook (Trigger)": {
+      "main": [
+        [
+          {
+            "node": "Validate Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Callback": {
+      "main": [
+        [
+          {
+            "node": "Respond ACK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "js-solutions-payments-callback-bancolombia"
+}
