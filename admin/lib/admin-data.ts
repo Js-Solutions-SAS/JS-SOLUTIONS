@@ -71,6 +71,11 @@ import {
   milestoneRiskLevel,
   normalizeMilestone,
 } from "@/lib/milestone-utils";
+import {
+  generateCorrelationId,
+  getJsonWithTimeout,
+  resolveApiInternalToken,
+} from "@/lib/network";
 
 const DEFAULT_HEADERS = {
   "Content-Type": "application/json",
@@ -728,28 +733,38 @@ const MOCK_EXECUTIVE_PORTFOLIO: ExecutivePortfolioEntry[] = [
 ];
 
 export async function getQuotes(): Promise<Quote[]> {
-  const webhookUrl = process.env.N8N_GET_QUOTES_URL;
+  const apiBaseUrl = String(process.env.API_BASE_URL || "").trim();
+  const apiToken = resolveApiInternalToken();
+  const correlationId = generateCorrelationId("quotes-list");
 
-  if (!webhookUrl) {
+  if (!apiBaseUrl) {
     return MOCK_QUOTES;
   }
 
-  const response = await fetch(webhookUrl, {
-    method: "GET",
-    headers: DEFAULT_HEADERS,
-    cache: "no-store",
-  });
-
+  const response = await getJsonWithTimeout(
+    `${apiBaseUrl.replace(/\/$/, "")}/api/v1/quotes`,
+    {
+      correlationId,
+      secretToken: apiToken,
+    },
+  );
   if (!response.ok) {
-    throw new Error("No fue posible obtener cotizaciones desde n8n.");
+    throw new Error(
+      `${response.errorMessage || "No fue posible obtener cotizaciones desde la API."} CorrelationId: ${response.correlationId}`,
+    );
   }
 
-  const raw = await response.json();
-  const items = Array.isArray(raw) ? raw : raw.quotes || [];
+  const raw = response.data;
+  const itemsSource: unknown = Array.isArray(raw)
+    ? raw
+    : Array.isArray(raw.items)
+      ? raw.items
+      : raw.quotes;
+  const items = Array.isArray(itemsSource) ? itemsSource : [];
 
   return items.map(
-    (item: Partial<Quote> & Record<string, unknown>, index: number) =>
-      normalizeQuote(item, index),
+    (item: unknown, index: number) =>
+      normalizeQuote((item as Partial<Quote> & Record<string, unknown>) || {}, index),
   );
 }
 
@@ -760,41 +775,51 @@ export interface QuotesFeedResult {
 }
 
 export async function getQuotesFeed(): Promise<QuotesFeedResult> {
-  const webhookUrl = process.env.N8N_GET_QUOTES_URL;
+  const apiBaseUrl = String(process.env.API_BASE_URL || "").trim();
+  const apiToken = resolveApiInternalToken();
+  const correlationId = generateCorrelationId("quotes-feed");
 
-  if (!webhookUrl) {
+  if (!apiBaseUrl) {
     return {
       quotes: [],
       source: "unconfigured",
       message:
-        "Configura N8N_GET_QUOTES_URL para ver cotizaciones reales desde n8n. El panel ya no muestra datos mock en esta vista.",
+        "Configura API_BASE_URL para ver cotizaciones reales desde la API.",
     };
   }
 
   try {
-    const response = await fetch(webhookUrl, {
-      method: "GET",
-      headers: DEFAULT_HEADERS,
-      cache: "no-store",
-    });
-
+    const response = await getJsonWithTimeout(
+      `${apiBaseUrl.replace(/\/$/, "")}/api/v1/quotes`,
+      {
+        correlationId,
+        secretToken: apiToken,
+      },
+    );
     if (!response.ok) {
-      throw new Error(`n8n respondio con estado ${response.status}`);
+      throw new Error(
+        response.errorMessage || `API respondio con estado ${response.status}`,
+      );
     }
 
-    const raw = await response.json();
-    const items = Array.isArray(raw) ? raw : raw.quotes || raw.data || [];
+    const raw = response.data;
+    const itemsSource: unknown = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw.items)
+        ? raw.items
+        : raw.quotes || raw.data;
+    const items = Array.isArray(itemsSource) ? itemsSource : [];
 
     return {
       quotes: items.map(
-        (item: Partial<Quote> & Record<string, unknown>, index: number) =>
-          normalizeQuote(item, index),
+        (item: unknown, index: number) =>
+          normalizeQuote((item as Partial<Quote> & Record<string, unknown>) || {}, index),
       ),
       source: "live",
       message:
         items.length > 0
-          ? "Cotizaciones sincronizadas en tiempo real desde n8n."
-          : "La conexión con n8n está activa, pero aún no hay cotizaciones registradas.",
+          ? "Cotizaciones sincronizadas en tiempo real desde la API."
+          : "La conexión con la API está activa, pero aún no hay cotizaciones registradas.",
     };
   } catch (error) {
     console.error("getQuotesFeed", error);
@@ -803,7 +828,7 @@ export async function getQuotesFeed(): Promise<QuotesFeedResult> {
       quotes: [],
       source: "error",
       message:
-        "No fue posible sincronizar cotizaciones desde n8n. Revisa el webhook N8N_GET_QUOTES_URL.",
+        `No fue posible sincronizar cotizaciones desde la API. Revisa API_BASE_URL. CorrelationId: ${correlationId}`,
     };
   }
 }

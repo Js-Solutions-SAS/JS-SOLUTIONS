@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import {
+  buildApiUrl,
   generateCorrelationId,
   generateIdempotencyKey,
   postJsonWithTimeout,
+  resolveApiInternalToken,
 } from "@/lib/network";
 import type { Quote } from "@/lib/types";
 
@@ -125,13 +127,13 @@ export async function createQuoteAction(input: CreateQuoteInput) {
     };
   }
 
-  const webhookUrl = process.env.N8N_CREATE_QUOTE_URL;
+  const apiUrl = buildApiUrl("/api/v1/leads/intake");
 
-  if (!webhookUrl) {
+  if (!apiUrl) {
     return {
       ok: false,
       message:
-        "Configura N8N_CREATE_QUOTE_URL para crear cotizaciones reales desde el admin.",
+        "Configura API_BASE_URL para crear cotizaciones reales desde el admin.",
     };
   }
 
@@ -143,16 +145,16 @@ export async function createQuoteAction(input: CreateQuoteInput) {
       "create-quote",
       payload.leadId || `${payload.email || payload.nombre}:${payload.empresa}`,
     );
-    const response = await postJsonWithTimeout(webhookUrl, {
+    const response = await postJsonWithTimeout(apiUrl, {
       body: payload,
       correlationId,
       idempotencyKey,
-      secretToken: process.env.N8N_SECRET_TOKEN,
+      secretToken: resolveApiInternalToken(),
     });
     const result = response.data;
     if (!response.ok) {
       throw new Error(
-        response.errorMessage || `n8n respondio con estado ${response.status}`,
+        response.errorMessage || `API respondio con estado ${response.status}`,
       );
     }
 
@@ -169,13 +171,13 @@ export async function createQuoteAction(input: CreateQuoteInput) {
       throw new Error(
         typeof result.message === "string"
           ? normalizeInput(result.message)
-          : "n8n rechazó la creación de la cotización.",
+          : "La API rechazó la creación de la cotización.",
       );
     }
 
     if (!hasExpectedData) {
       throw new Error(
-        "n8n respondió sin datos esperados del lead (leadId/token/briefUrl). Revisa el workflow activo de create-quote.",
+        "La API respondió sin datos esperados del lead (leadId/token/briefUrl).",
       );
     }
 
@@ -201,7 +203,7 @@ export async function createQuoteAction(input: CreateQuoteInput) {
 
     return {
       ok: false,
-      message: `No fue posible crear la cotización. Revisa la conexión/workflow de n8n.${correlationId ? ` CorrelationId: ${correlationId}` : ""}`,
+      message: `No fue posible crear la cotización. Revisa la conexión con la API.${correlationId ? ` CorrelationId: ${correlationId}` : ""}`,
     };
   }
 }
@@ -228,46 +230,40 @@ export async function generateQuoteAction(input: GenerateQuoteInput) {
     };
   }
 
-  const webhookUrl = process.env.N8N_GENERATE_QUOTE_URL;
-  if (!webhookUrl) {
+  const apiUrl = buildApiUrl("/api/v1/quotes/generate");
+  if (!apiUrl) {
     return {
       ok: false,
       message:
-        "Configura N8N_GENERATE_QUOTE_URL para generar cotizaciones reales.",
+        "Configura API_BASE_URL para generar cotizaciones reales.",
     };
   }
 
+  let correlationId = "";
+
   try {
     const mode = input.mode || "send";
-    const correlationId = generateCorrelationId("generate-quote");
+    correlationId = generateCorrelationId("generate-quote");
     const idempotencyKey = generateIdempotencyKey(
       `generate-quote:${mode}`,
       `${leadId}:${clientToken}:${feedback || "na"}`,
     );
-    const response = await postJsonWithTimeout(webhookUrl, {
+    const response = await postJsonWithTimeout(apiUrl, {
       body: {
         leadId,
         clientToken,
         transcripcion,
-        datos_cliente: [
-          normalizeInput(input.nombre),
-          normalizeInput(input.empresa),
-          normalizeInput(input.email),
-        ]
-          .filter(Boolean)
-          .join(" | "),
-        datos_proveedor: "JS Solutions",
         feedback: feedback || undefined,
         mode,
       },
       correlationId,
       idempotencyKey,
-      secretToken: process.env.N8N_SECRET_TOKEN,
+      secretToken: resolveApiInternalToken(),
     });
     const result = response.data;
     if (!response.ok) {
       throw new Error(
-        response.errorMessage || `n8n respondio con estado ${response.status}`,
+        response.errorMessage || `API respondio con estado ${response.status}`,
       );
     }
     revalidatePath("/cotizaciones");
@@ -301,7 +297,7 @@ export async function generateQuoteAction(input: GenerateQuoteInput) {
     return {
       ok: false,
       message:
-        "No fue posible generar la cotización. Revisa la conexión con n8n.",
+        `No fue posible generar la cotización. Revisa la conexión con la API.${correlationId ? ` CorrelationId: ${correlationId}` : ""}`,
     };
   }
 }
@@ -322,32 +318,34 @@ export async function generateContractAction(input: GenerateContractInput) {
     };
   }
 
-  const webhookUrl = process.env.N8N_GENERATE_CONTRACT_URL;
+  const apiUrl = buildApiUrl("/api/v1/contracts/generate");
 
-  if (!webhookUrl) {
+  if (!apiUrl) {
     return {
       ok: false,
       message:
-        "Configura N8N_GENERATE_CONTRACT_URL para generar contratos reales.",
+        "Configura API_BASE_URL para generar contratos reales.",
     };
   }
 
+  let correlationId = "";
+
   try {
-    const correlationId = generateCorrelationId("generate-contract");
+    correlationId = generateCorrelationId("generate-contract");
     const idempotencyKey = generateIdempotencyKey(
       "generate-contract",
       `${input.leadId || "na"}:${input.email || "na"}`,
     );
-    const response = await postJsonWithTimeout(webhookUrl, {
+    const response = await postJsonWithTimeout(apiUrl, {
       body: input as unknown as Record<string, unknown>,
       correlationId,
       idempotencyKey,
-      secretToken: process.env.N8N_SECRET_TOKEN,
+      secretToken: resolveApiInternalToken(),
     });
     const result = response.data;
     if (!response.ok) {
       throw new Error(
-        response.errorMessage || `n8n respondio con estado ${response.status}`,
+        response.errorMessage || `API respondio con estado ${response.status}`,
       );
     }
 
@@ -367,7 +365,7 @@ export async function generateContractAction(input: GenerateContractInput) {
     return {
       ok: false,
       message:
-        "No fue posible generar el contrato. Revisa la conexion con n8n.",
+        `No fue posible generar el contrato. Revisa la conexion con la API.${correlationId ? ` CorrelationId: ${correlationId}` : ""}`,
     };
   }
 }
@@ -382,18 +380,20 @@ export async function requestTechnicalBriefAction(
     };
   }
 
-  const webhookUrl = process.env.N8N_REQUEST_BRIEF_WEBHOOK_URL;
+  const apiUrl = buildApiUrl("/api/v1/brief/request");
 
-  if (!webhookUrl) {
+  if (!apiUrl) {
     return {
       ok: false,
       message:
-        "Configura N8N_REQUEST_BRIEF_WEBHOOK_URL para enviar briefs reales.",
+        "Configura API_BASE_URL para enviar briefs reales.",
     };
   }
 
+  let correlationId = "";
+
   try {
-    const correlationId = generateCorrelationId("request-brief");
+    correlationId = generateCorrelationId("request-brief");
     const requestId =
       normalizeInput(input.requestId) ||
       (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -403,7 +403,7 @@ export async function requestTechnicalBriefAction(
       "request-brief",
       requestId,
     );
-    const response = await postJsonWithTimeout(webhookUrl, {
+    const response = await postJsonWithTimeout(apiUrl, {
       body: {
         leadId: normalizeInput(input.leadId) || undefined,
         email: normalizeInput(input.email) || undefined,
@@ -412,12 +412,12 @@ export async function requestTechnicalBriefAction(
       },
       correlationId,
       idempotencyKey,
-      secretToken: process.env.N8N_SECRET_TOKEN,
+      secretToken: resolveApiInternalToken(),
     });
     const result = response.data;
     if (!response.ok) {
       throw new Error(
-        response.errorMessage || `n8n respondio con estado ${response.status}`,
+        response.errorMessage || `API respondio con estado ${response.status}`,
       );
     }
 
@@ -453,7 +453,7 @@ export async function requestTechnicalBriefAction(
     console.error("requestTechnicalBriefAction", error);
     return {
       ok: false,
-      message: "No fue posible solicitar el brief. Revisa la conexion con n8n.",
+      message: `No fue posible solicitar el brief. Revisa la conexion con la API.${correlationId ? ` CorrelationId: ${correlationId}` : ""}`,
     };
   }
 }
