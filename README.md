@@ -16,9 +16,7 @@ Repositorio monorepo con 4 aplicaciones:
 ├── admin/
 ├── api/
 ├── n8n/
-├── Estructura_Google_Sheets.md
-├── n8n_sheets_project_status.json
-└── n8n_sheets_onboarding.json
+└── BLUEPRINT_SAAS_POR_MODULO.md
 ```
 
 ## Requisitos
@@ -41,7 +39,7 @@ Servidor local: `http://localhost:4321`
 Variables recomendadas (`landing/.env`):
 
 ```env
-PUBLIC_N8N_WEBHOOK_URL=https://tu-n8n/webhook/cotizador_js_solutions
+PUBLIC_API_BASE_URL=http://localhost:3003
 ```
 
 ### 2) Portal (`portal`)
@@ -57,12 +55,9 @@ Servidor local: `http://localhost:3001` (si usas `start.sh`) o `http://localhost
 Variables recomendadas (`portal/.env.local`):
 
 ```env
-N8N_WEBHOOK_URL=https://tu-n8n/webhook/project-status
-N8N_APPROVAL_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/portal-approval
-N8N_SECRET_TOKEN=tu_token_bearer_opcional
+API_BASE_URL=http://localhost:3003
+API_REQUEST_TIMEOUT_MS=15000
 N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
-N8N_SUBMIT_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/submit-brief
-N8N_PAYMENTS_CREATE_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/payments/create
 N8N_REQUEST_TIMEOUT_MS=15000
 ```
 
@@ -86,15 +81,8 @@ API_INTERNAL_TOKEN=token_compartido_admin_api
 API_REQUEST_TIMEOUT_MS=15000
 
 N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
-N8N_MILESTONES_WEBHOOK_URL=https://tu-n8n/webhook/admin-entregas
 N8N_CAPACITY_WEBHOOK_URL=https://tu-n8n/webhook/admin-capacidad
-N8N_APPROVALS_WEBHOOK_URL=https://tu-n8n/webhook/admin-aprobaciones
-N8N_APPROVALS_ACTION_WEBHOOK_URL=https://tu-n8n/webhook/admin-aprobaciones-action
-N8N_CHANGE_REQUESTS_WEBHOOK_URL=https://tu-n8n/webhook/admin-cambios
-N8N_CHANGE_REQUESTS_ACTION_WEBHOOK_URL=https://tu-n8n/webhook/admin-cambios-action
-N8N_TICKETS_SLA_WEBHOOK_URL=https://tu-n8n/webhook/admin-sla
 N8N_EXECUTIVE_PORTFOLIO_WEBHOOK_URL=https://tu-n8n/webhook/admin-portafolio
-N8N_OPERATIONAL_FINANCE_WEBHOOK_URL=https://tu-n8n/webhook/admin-finanzas
 N8N_RAID_WEBHOOK_URL=https://tu-n8n/webhook/admin-raid
 N8N_SECRET_TOKEN=tu_token_bearer_opcional
 N8N_REQUEST_TIMEOUT_MS=15000
@@ -124,8 +112,11 @@ N8N_REQUEST_TIMEOUT_MS=15000
 N8N_REQUEST_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/request-brief
 N8N_GENERATE_QUOTE_URL=https://tu-n8n/webhook/cotizador_js_solutions
 N8N_GENERATE_CONTRACT_URL=https://tu-n8n/webhook/js-solutions/generate-contract
+N8N_PAYMENTS_CREATE_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/payments/create
 N8N_SECRET_TOKEN=
 HEALTH_DB_PROTECTED=false
+INTERNAL_HMAC_SECRET=CHANGE_ME
+INTERNAL_REQUIRE_HMAC_FOR_INTERNAL=true
 ```
 
 ## Arranque conjunto

@@ -19,6 +19,34 @@ Internos (`Authorization: Bearer API_INTERNAL_TOKEN`):
 - `GET /api/v1/leads/:leadId`
 - `POST /api/v1/workflow-events`
 - `GET /api/v1/workflow-events?limit=50`
+- `POST /api/v1/internal/channels/whatsapp/inbound-events`
+- `POST /api/v1/internal/workflows/events`
+- `POST /api/v1/internal/webhooks/payments`
+- `POST /api/v1/internal/webhooks/signatures`
+
+Públicos:
+
+- `POST /api/v1/public/leads/intake`
+- `POST /api/v1/public/briefs/:briefToken/submissions`
+- `POST /api/v1/public/quotes/estimate`
+
+Cliente:
+
+- `GET /api/v1/client/projects/:projectId/dashboard`
+- `GET /api/v1/client/projects/dashboard?clientToken=...`
+- `POST /api/v1/client/approvals`
+- `POST /api/v1/client/payments/intents`
+
+Admin:
+
+- `GET /api/v1/admin/milestones`
+- `GET /api/v1/admin/approvals`
+- `PATCH /api/v1/admin/approvals/:approvalId/decision`
+- `GET /api/v1/admin/change-requests`
+- `PATCH /api/v1/admin/change-requests/:id/decision`
+- `GET /api/v1/admin/tickets`
+- `GET /api/v1/admin/finance`
+- `GET /api/v1/admin/raid`
 
 ## Variables de entorno
 
@@ -32,6 +60,7 @@ Mínimas para operar:
 - `N8N_REQUEST_BRIEF_WEBHOOK_URL=...`
 - `N8N_GENERATE_QUOTE_URL=...`
 - `N8N_GENERATE_CONTRACT_URL=...`
+- `N8N_PAYMENTS_CREATE_WEBHOOK_URL=...`
 - `PORTAL_BASE_URL=https://portal.jssolutions.com.co`
 
 ## Desarrollo local
