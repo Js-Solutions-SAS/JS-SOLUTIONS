@@ -1,10 +1,11 @@
 # JS Solutions Workspace
 
-Repositorio con tres aplicaciones del ecosistema JS Solutions:
+Repositorio monorepo con 4 aplicaciones:
 
 - `landing`: sitio comercial y cotizador (Astro + React)
 - `portal`: portal de cliente para seguimiento de proyectos (Next.js)
-- `admin`: panel interno para SOPs, cotizaciones y contratos (Next.js)
+- `admin`: panel interno operativo (Next.js)
+- `api`: backend interno/orquestador de cotizaciones (NestJS + Postgres + n8n)
 
 ## Estructura del repositorio
 
@@ -13,6 +14,8 @@ Repositorio con tres aplicaciones del ecosistema JS Solutions:
 ├── landing/
 ├── portal/
 ├── admin/
+├── api/
+├── n8n/
 ├── Estructura_Google_Sheets.md
 ├── n8n_sheets_project_status.json
 └── n8n_sheets_onboarding.json
@@ -23,19 +26,9 @@ Repositorio con tres aplicaciones del ecosistema JS Solutions:
 - Node.js 18+
 - npm 9+
 
-## Ejecución local
-
-Cada aplicación se ejecuta por separado desde su carpeta.
+## Ejecucion local
 
 ### 1) Landing (`landing`)
-
-Sitio público con página principal y cotizador.
-
-- Stack: Astro 5 + React + Tailwind
-- Rutas principales:
-  - `/` (home)
-  - `/cotizador` (formulario que envía a n8n)
-- Comandos:
 
 ```bash
 cd landing
@@ -43,7 +36,7 @@ npm install
 npm run dev
 ```
 
-Servidor local por defecto: `http://localhost:4321`
+Servidor local: `http://localhost:4321`
 
 Variables recomendadas (`landing/.env`):
 
@@ -51,19 +44,7 @@ Variables recomendadas (`landing/.env`):
 PUBLIC_N8N_WEBHOOK_URL=https://tu-n8n/webhook/cotizador_js_solutions
 ```
 
-Si no se define, usa el fallback que aparece en `landing/src/pages/cotizador.astro`.
-
 ### 2) Portal (`portal`)
-
-Portal de clientes para consultar estado de proyecto mediante magic link/token.
-
-- Stack: Next.js 14 + React + Tailwind
-- Rutas principales:
-  - `/` redirige a `/dashboard`
-  - `/dashboard?token=...` carga estado de proyecto
-  - `POST /api/project-status` consulta n8n
-  - `GET /api/admin/sops` obtiene SOPs desde n8n
-- Comandos:
 
 ```bash
 cd portal
@@ -71,7 +52,7 @@ npm install
 npm run dev
 ```
 
-Servidor local por defecto: `http://localhost:3000`
+Servidor local: `http://localhost:3001` (si usas `start.sh`) o `http://localhost:3000` (si corres solo portal).
 
 Variables recomendadas (`portal/.env.local`):
 
@@ -87,33 +68,7 @@ N8N_REQUEST_TIMEOUT_MS=15000
 
 ### 3) Admin (`admin`)
 
-Panel interno para operación: dashboard, entregas, capacidad, aprobaciones, control de cambios, SLA de tickets, portafolio ejecutivo, finanzas operativas, RAID log, SOPs y cotizaciones/contratos.
-
-- Stack: Next.js 14 + React + Tailwind
-- Rutas principales:
-  - `/` (dashboard interno)
-  - `/entregas` (calendario operativo y asignación)
-  - `/capacidad` (carga por persona/rol)
-  - `/aprobaciones` (checkpoints por etapa)
-  - `/cambios` (control de change requests costo/fecha)
-  - `/sla` (cumplimiento SLA de tickets por tipo de cliente)
-  - `/portafolio` (salud ejecutiva por industria)
-  - `/finanzas` (presupuesto vs ejecutado vs pendiente de facturar)
-  - `/raid` (riesgos, supuestos, issues, dependencias)
-  - `/sops` (consulta SOPs)
-  - `/cotizaciones` (lista leads y genera contratos)
-  - `GET /api/admin/entregas`
-  - `GET /api/admin/capacidad`
-  - `GET /api/admin/aprobaciones`
-  - `GET /api/admin/cambios`
-  - `GET /api/admin/sla`
-  - `GET /api/admin/portafolio`
-  - `GET /api/admin/finanzas`
-  - `GET /api/admin/raid`
-  - `GET /api/admin/sops`
-  - `GET /api/admin/cotizaciones`
-  - `POST /api/admin/cotizaciones`
-- Comandos:
+`/cotizaciones` ya no consume n8n directamente: ahora usa `api` para listado, intake, solicitud de brief, generacion de cotizacion y contrato.
 
 ```bash
 cd admin
@@ -121,17 +76,16 @@ npm install
 npm run dev
 ```
 
-Servidor local por defecto: `http://localhost:3000`
+Servidor local: `http://localhost:3002` (si usas `start.sh`) o `http://localhost:3000` (si corres solo admin).
 
 Variables recomendadas (`admin/.env.local`):
 
 ```env
+API_BASE_URL=http://localhost:3003
+API_INTERNAL_TOKEN=token_compartido_admin_api
+API_REQUEST_TIMEOUT_MS=15000
+
 N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
-N8N_GET_QUOTES_URL=https://tu-n8n/webhook/js-solutions/get-quotes
-N8N_CREATE_QUOTE_URL=https://tu-n8n/webhook/js-solutions/create-quote
-N8N_REQUEST_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/request-brief
-N8N_GENERATE_QUOTE_URL=https://tu-n8n/webhook/cotizador_js_solutions
-N8N_GENERATE_CONTRACT_URL=https://tu-n8n/webhook/js-solutions/generate-contract
 N8N_MILESTONES_WEBHOOK_URL=https://tu-n8n/webhook/admin-entregas
 N8N_CAPACITY_WEBHOOK_URL=https://tu-n8n/webhook/admin-capacidad
 N8N_APPROVALS_WEBHOOK_URL=https://tu-n8n/webhook/admin-aprobaciones
@@ -146,28 +100,58 @@ N8N_SECRET_TOKEN=tu_token_bearer_opcional
 N8N_REQUEST_TIMEOUT_MS=15000
 ```
 
-Notas:
+### 4) API (`api`)
 
-- La vista `/cotizaciones` ya no usa mock: sin `N8N_GET_QUOTES_URL` muestra estado desconectado y lista vacía para control real.
-- Si `N8N_CREATE_QUOTE_URL` no está configurada, no se pueden crear cotizaciones reales desde el admin.
-- Si `N8N_REQUEST_BRIEF_WEBHOOK_URL` no está configurada, el admin bloquea el envío y muestra el error de configuración.
-- Si `N8N_GENERATE_QUOTE_URL` no está configurada, el admin no podrá generar ni re-generar la cotización desde el brief técnico.
-- Si `N8N_GENERATE_CONTRACT_URL` no está configurada, el admin bloquea la generación y muestra el error de configuración.
+Backend NestJS con base path interno `/api/v1`.
 
-## Build de producción
+```bash
+cd api
+npm install
+npm run start:dev
+```
 
-Ejecuta por aplicación:
+Servidor local: `http://localhost:3003` (si usas `start.sh`) o `http://localhost:3000` (si corres solo api).
+
+Variables recomendadas (`api/.env`):
+
+```env
+PORT=3000
+API_INTERNAL_TOKEN=token_compartido_admin_api
+DATABASE_URL=postgres://postgres:password@agencia_js-solutions:5432/agencia?sslmode=disable
+DB_SSL=false
+PORTAL_BASE_URL=https://portal.jssolutions.com.co
+N8N_REQUEST_TIMEOUT_MS=15000
+N8N_REQUEST_BRIEF_WEBHOOK_URL=https://tu-n8n/webhook/js-solutions/request-brief
+N8N_GENERATE_QUOTE_URL=https://tu-n8n/webhook/cotizador_js_solutions
+N8N_GENERATE_CONTRACT_URL=https://tu-n8n/webhook/js-solutions/generate-contract
+N8N_SECRET_TOKEN=
+HEALTH_DB_PROTECTED=false
+```
+
+## Arranque conjunto
+
+`start.sh` levanta los 4 servicios:
+
+- Landing: `http://localhost:4321`
+- Portal: `http://localhost:3001`
+- Admin: `http://localhost:3002`
+- API: `http://localhost:3003`
+
+```bash
+./start.sh
+```
+
+## Build de produccion
+
+En cada app:
 
 ```bash
 npm run build
 npm run start
 ```
 
-## Archivos de apoyo n8n / Google Sheets
+## Archivos de apoyo n8n / SQL
 
-- `Estructura_Google_Sheets.md`: esquema de hojas y campos.
-- `n8n_sheets_project_status.json`: flujo base para estado de proyectos.
-- `n8n_sheets_onboarding.json`: flujo base para onboarding.
-- `n8n/workflows/`: imports listos para get quotes, create quote, request brief, submit brief, generate quote, project status, portal approval, generate contract, callback de firma DocuSign y create/callback de pagos Bancolombia.
-- `n8n/sql/js_solutions_postgres_schema.sql`: esquema base para migración operativa a Postgres VPS.
-- `n8n/README.md`: guia de importacion y mapeo de `.env.local`.
+- `n8n/workflows/`: workflows de briefs, cotizacion, aprobacion portal, firma y pagos.
+- `n8n/sql/js_solutions_postgres_schema.sql`: esquema base operativo para Postgres VPS.
+- `n8n/README.md`: guia de importacion y mapeo de variables.

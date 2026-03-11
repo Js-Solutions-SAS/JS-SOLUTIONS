@@ -1,32 +1,55 @@
-This is the JS Solutions Admin microfrontend built with [Next.js](https://nextjs.org) + Tailwind CSS.
+# JS Solutions Admin
 
-`/cotizaciones` now runs the full operational chain against n8n with one canonical `Brief_Token`: intake, brief request, brief visualization, quote generation/re-generation, quote approval sync from portal, and contract generation.
+Panel interno (Next.js 14 + Tailwind) para operacion de JS Solutions.
 
-## Key Modules
+## Modulos principales
 
-- `/` Dashboard Operativo
-- `/entregas` Calendario y asignación de tareas
-- `/capacidad` Gestión de carga por persona/rol
-- `/aprobaciones` Flujo de checkpoints (Brief, Scope, QA, UAT, Contract, Scope Change)
-- `/cambios` Control de change requests con impacto costo/fecha
-- `/sla` Cumplimiento SLA de tickets por tipo de cliente
-- `/portafolio` Salud ejecutiva por industria (público, retail, lujo, media)
-- `/finanzas` Finanzas operativas (presupuesto, ejecutado, facturación)
-- `/raid` RAID log por proyecto
-- `/cotizaciones` Cotizaciones y contratos
-- `/sops` SOPs operativos
+- `/` Dashboard operativo
+- `/entregas` Entregables e hitos
+- `/capacidad` Carga por persona/rol
+- `/aprobaciones` Checkpoints por etapa
+- `/cambios` Control de cambios
+- `/sla` SLA de tickets
+- `/portafolio` Salud ejecutiva
+- `/finanzas` Finanzas operativas
+- `/raid` RAID log
+- `/sops` SOPs
+- `/cotizaciones` Flujo operativo de briefs, cotizaciones y contratos
 
-## n8n Environment Variables
+## Arquitectura de componentes
 
-Create `admin/.env.local`:
+`admin/components` fue migrado a Atomic Design:
+
+- `atoms/`
+- `molecules/`
+- `organisms/`
+- `templates/`
+- `features/`
+
+Las vistas de dominio (incluyendo `cotizaciones`) viven bajo `organisms/`.
+
+## Integracion de cotizaciones
+
+`/cotizaciones` consume API interna (`api`) en vez de llamar n8n directamente.
+
+Operaciones conectadas a API:
+
+- listado: `GET /api/v1/quotes`
+- intake: `POST /api/v1/leads/intake`
+- solicitud/reenvio brief: `POST /api/v1/brief/request`
+- previsualizar/enviar cotizacion: `POST /api/v1/quotes/generate`
+- generar contrato: `POST /api/v1/contracts/generate`
+
+## Variables de entorno (`admin/.env.local`)
 
 ```env
+# Integracion interna admin -> api
+API_BASE_URL=https://api.jssolutions.com.co
+API_INTERNAL_TOKEN=<shared_secret>
+API_REQUEST_TIMEOUT_MS=15000
+
+# Integraciones n8n para otros modulos operativos
 N8N_SOPS_WEBHOOK_URL=https://<your-n8n>/webhook/sops
-N8N_GET_QUOTES_URL=https://<your-n8n>/webhook/js-solutions/get-quotes
-N8N_CREATE_QUOTE_URL=https://<your-n8n>/webhook/js-solutions/create-quote
-N8N_REQUEST_BRIEF_WEBHOOK_URL=https://<your-n8n>/webhook/js-solutions/request-brief
-N8N_GENERATE_QUOTE_URL=https://<your-n8n>/webhook/cotizador_js_solutions
-N8N_GENERATE_CONTRACT_URL=https://<your-n8n>/webhook/js-solutions/generate-contract
 N8N_MILESTONES_WEBHOOK_URL=https://<your-n8n>/webhook/admin-entregas
 N8N_CAPACITY_WEBHOOK_URL=https://<your-n8n>/webhook/admin-capacity
 N8N_APPROVALS_WEBHOOK_URL=https://<your-n8n>/webhook/admin-approvals
@@ -41,76 +64,32 @@ N8N_SECRET_TOKEN=<optional_bearer_token>
 N8N_REQUEST_TIMEOUT_MS=15000
 ```
 
-## Local Auth Environment Variables (Required)
-
-The admin now includes local authentication (no external auth API required).
-
-Add these variables in `admin/.env.local`:
+## Auth local (requerido)
 
 ```env
 AUTH_ADMIN_USERNAME=admin
 AUTH_ADMIN_PASSWORD_HASH=<scrypt_hash>
 AUTH_ADMIN_PASSWORD_HASH_ALT=<optional_second_scrypt_hash>
 AUTH_SESSION_SECRET=<32+_char_random_secret>
-# Optional (if omitted, AUTH_SESSION_SECRET is reused)
 AUTH_CSRF_SECRET=<32+_char_random_secret>
 ```
 
-Generate the password hash (run inside `admin/`):
+Generar hash (en `admin/`):
 
 ```bash
-node scripts/generate-hash.js replace-with-strong-password
+node scripts/generate-hash.js <strong-password>
 ```
 
-The generated value uses a `scrypt:...` format backed by Node's built-in `crypto.scrypt`, so it works in Vercel serverless without native addons. It also contains no `$`, so you can paste it directly into `.env.local` and in Vercel without escaping.
-
-Generate a strong secret:
-
-```bash
-openssl rand -base64 48
-```
-
-## Getting Started
-
-First, run the development server:
+## Comandos
 
 ```bash
 npm run dev
+npm run lint
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-## Tailwind Stability (Important)
-
-This project had intermittent cache corruption that could make styles look uncompiled.
-
-- `npm run dev` uses a dedicated development build directory: `.next-dev`
-- `npm run build` uses a dedicated production build directory: `.next-build`
-- This prevents collisions between dev server artifacts and production builds.
-
-If you need a hard reset:
+Si necesitas limpiar cache:
 
 ```bash
 npm run clean:cache
 ```
-
-Then start dev again:
-
-```bash
-npm run dev
-```
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
