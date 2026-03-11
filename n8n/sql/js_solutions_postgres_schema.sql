@@ -119,3 +119,6 @@ CREATE INDEX IF NOT EXISTS idx_contracts_lead ON contracts(lead_id);
 CREATE INDEX IF NOT EXISTS idx_signature_events_envelope ON signature_events(envelope_id);
 CREATE INDEX IF NOT EXISTS idx_payment_events_reference ON payment_events(provider_reference);
 CREATE INDEX IF NOT EXISTS idx_workflow_events_created ON workflow_events(created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_workflow_events_name_idem
+  ON workflow_events(workflow_name, idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
