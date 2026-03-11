@@ -135,8 +135,10 @@ export async function createQuoteAction(input: CreateQuoteInput) {
     };
   }
 
+  let correlationId = "";
+
   try {
-    const correlationId = generateCorrelationId("create-quote");
+    correlationId = generateCorrelationId("create-quote");
     const idempotencyKey = generateIdempotencyKey(
       "create-quote",
       payload.leadId || `${payload.email || payload.nombre}:${payload.empresa}`,
@@ -151,6 +153,29 @@ export async function createQuoteAction(input: CreateQuoteInput) {
     if (!response.ok) {
       throw new Error(
         response.errorMessage || `n8n respondio con estado ${response.status}`,
+      );
+    }
+
+    const upstreamSuccess =
+      typeof result.success === "boolean" ? result.success : undefined;
+    const hasExpectedData =
+      typeof result.leadId === "string" ||
+      typeof result.token === "string" ||
+      typeof result.briefUrl === "string" ||
+      typeof result.clientDashboardUrl === "string" ||
+      typeof result.dashboardUrl === "string";
+
+    if (upstreamSuccess === false) {
+      throw new Error(
+        typeof result.message === "string"
+          ? normalizeInput(result.message)
+          : "n8n rechazó la creación de la cotización.",
+      );
+    }
+
+    if (!hasExpectedData) {
+      throw new Error(
+        "n8n respondió sin datos esperados del lead (leadId/token/briefUrl). Revisa el workflow activo de create-quote.",
       );
     }
 
@@ -176,7 +201,7 @@ export async function createQuoteAction(input: CreateQuoteInput) {
 
     return {
       ok: false,
-      message: "No fue posible crear la cotización. Revisa la conexión con n8n.",
+      message: `No fue posible crear la cotización. Revisa la conexión/workflow de n8n.${correlationId ? ` CorrelationId: ${correlationId}` : ""}`,
     };
   }
 }

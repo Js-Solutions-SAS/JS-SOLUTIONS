@@ -344,13 +344,7 @@
             "node": "Upsert Quote In Google Sheets",
             "type": "main",
             "index": 0
-          }
-        ]
-      ]
-    },
-    "Upsert Quote In Google Sheets": {
-      "main": [
-        [
+          },
           {
             "node": "Success Response",
             "type": "main",
