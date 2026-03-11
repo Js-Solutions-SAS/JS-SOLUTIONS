@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  buildApiUrl,
   generateCorrelationId,
   generateIdempotencyKey,
   postJsonWithTimeout,
@@ -17,19 +18,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const webhookUrl = process.env.N8N_SUBMIT_BRIEF_WEBHOOK_URL;
+    const apiUrl = buildApiUrl(
+      `/api/v1/public/briefs/${encodeURIComponent(String(data.token))}/submissions`,
+    );
 
-    if (!webhookUrl) {
-      console.warn("N8N_SUBMIT_BRIEF_WEBHOOK_URL is not configured.");
-      // Modo de prueba si no hay webhook
-      return NextResponse.json({
-        success: true,
-        message: "Brief recibido (modo simulado, webhook no configurado).",
-        receivedData: data,
-      });
+    if (!apiUrl) {
+      return NextResponse.json(
+        {
+          error: "API_BASE_URL no está configurada.",
+        },
+        { status: 500 },
+      );
     }
-
-    console.log("Enviando brief a n8n:", webhookUrl);
 
     const correlationId =
       typeof data.correlationId === "string" && data.correlationId
@@ -39,11 +39,18 @@ export async function POST(req: Request) {
       typeof data.idempotencyKey === "string" && data.idempotencyKey
         ? data.idempotencyKey
         : generateIdempotencyKey("submit-brief", String(data.token || "na"));
-    const upstream = await postJsonWithTimeout(webhookUrl, {
-      body: data,
+    const upstream = await postJsonWithTimeout(apiUrl, {
+      body: {
+        answers:
+          (data.technicalBrief as Record<string, unknown> | undefined) ||
+          (data.answers as Record<string, unknown> | undefined) ||
+          data,
+        attachments: Array.isArray(data.attachments) ? data.attachments : [],
+        submittedBy:
+          typeof data.submittedBy === "string" ? data.submittedBy : "portal",
+      },
       correlationId,
       idempotencyKey,
-      secretToken: process.env.N8N_SECRET_TOKEN,
     });
     const result = upstream.data;
 
@@ -55,7 +62,7 @@ export async function POST(req: Request) {
             ? result.message
             : typeof result?.raw === "string"
               ? result.raw.slice(0, 280)
-              : `n8n respondio con estado ${upstream.status}`;
+              : `API respondio con estado ${upstream.status}`;
 
       throw new Error(details);
     }

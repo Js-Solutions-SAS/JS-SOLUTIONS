@@ -2,16 +2,14 @@
 import Layout from "../layouts/Layout.astro";
 import CotizadorInteractivo from "../components/CotizadorInteractivo";
 
-// Replace this with the actual target n8n webhook URL:
-const WEBHOOK_URL =
-  import.meta.env.PUBLIC_N8N_WEBHOOK_URL ||
-  "https://agencia-n8n.reuctr.easypanel.host/webhook/cotizador_js_solutions";
+const API_BASE_URL =
+  import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:3003";
 ---
 
 <Layout title="Cotizador - JS SOLUTIONS">
   <main class="min-h-screen bg-gray-50 dark:bg-zinc-950 py-16 px-4">
     <div class="max-w-3xl mx-auto">
-      <CotizadorInteractivo client:load webhookUrl={WEBHOOK_URL} />
+      <CotizadorInteractivo client:load apiBaseUrl={API_BASE_URL} />
     </div>
   </main>
 </Layout>

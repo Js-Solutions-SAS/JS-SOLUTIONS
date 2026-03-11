@@ -4,6 +4,31 @@ const PENDING_KEYWORDS = ["pendiente", "revisi", "cotiz", "diagn"];
 const IN_PROGRESS_KEYWORDS = ["proceso", "curso", "gesti", "aprob", "brief", "enviado", "complet"];
 const SIGNED_KEYWORDS = ["firm", "contrato"];
 
+function mapStatusLabel(value: string): string {
+  const normalized = value.toLowerCase().trim();
+
+  if (["diagnostic_captured", "lead_captured", "captured"].includes(normalized)) {
+    return "Diagnóstico Capturado";
+  }
+  if (["brief_sent", "brief_requested"].includes(normalized)) {
+    return "Brief Enviado";
+  }
+  if (["brief_submitted", "brief_completed"].includes(normalized)) {
+    return "Brief Completado";
+  }
+  if (["in_review", "quote_in_review"].includes(normalized)) {
+    return "Cotización En Revisión";
+  }
+  if (["approved", "signed"].includes(normalized)) {
+    return "Firmado";
+  }
+  if (["contract_sent", "contracted"].includes(normalized)) {
+    return "Contrato Enviado";
+  }
+
+  return value;
+}
+
 function normalizeString(value: unknown): string {
   return String(value ?? "").trim();
 }
@@ -118,7 +143,9 @@ export function normalizeQuote(
   const monto =
     readVariant(raw, "monto", "amount", "Monto", "Amount") || "$0";
   const estado =
-    readVariant(raw, "estado", "status", "Estado", "Status") || "Pendiente";
+    mapStatusLabel(
+      readVariant(raw, "estado", "status", "Estado", "Status") || "Pendiente",
+    );
   const email =
     readVariant(
       raw,
@@ -160,8 +187,9 @@ export function normalizeQuote(
     readVariant(raw, "quotePdfUrl", "Quote_PDF_URL", "quote_pdf_url") ||
     undefined;
   const quoteStatus =
-    readVariant(raw, "quoteStatus", "Quote_Status", "quote_status") ||
-    undefined;
+    mapStatusLabel(
+      readVariant(raw, "quoteStatus", "Quote_Status", "quote_status") || "",
+    ) || undefined;
   const quoteGeneratedAt =
     readVariant(
       raw,

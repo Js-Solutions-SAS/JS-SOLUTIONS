@@ -1,11 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  buildApiUrl,
+  generateCorrelationId,
+  generateIdempotencyKey,
+  resolveApiInternalToken,
+} from "@/lib/network";
 
 interface ReviewChangeRequestInput {
   changeRequestId: string;
   projectId: string;
   decision: "approve" | "reject";
+  expectedVersion?: number;
 }
 
 export async function reviewChangeRequestAction(input: ReviewChangeRequestInput) {
@@ -16,30 +23,46 @@ export async function reviewChangeRequestAction(input: ReviewChangeRequestInput)
     };
   }
 
-  const webhookUrl = process.env.N8N_CHANGE_REQUESTS_ACTION_WEBHOOK_URL;
+  const apiUrl = buildApiUrl(
+    `/api/v1/admin/change-requests/${encodeURIComponent(input.changeRequestId)}/decision`,
+  );
 
-  if (!webhookUrl) {
-    revalidatePath("/cambios");
+  if (!apiUrl) {
     return {
-      ok: true,
-      message: "Decisión simulada (sin webhook configurado).",
+      ok: false,
+      message: "Configura API_BASE_URL para procesar cambios reales.",
     };
   }
 
   try {
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: input.decision,
-        changeRequestId: input.changeRequestId,
-        projectId: input.projectId,
-      }),
+    const correlationId = generateCorrelationId("admin-change-decision");
+    const idempotencyKey = generateIdempotencyKey(
+      "admin-change-decision",
+      `${input.changeRequestId}:${input.decision}`,
+    );
+    const token = resolveApiInternalToken();
+    const response = await fetch(apiUrl, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Correlation-Id": correlationId,
+        "Idempotency-Key": idempotencyKey,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       cache: "no-store",
+      body: JSON.stringify({
+        decision: input.decision,
+        reason:
+          input.decision === "approve"
+            ? "Approved from admin UI"
+            : "Rejected from admin UI",
+        expectedVersion: input.expectedVersion,
+      }),
     });
 
     if (!response.ok) {
-      throw new Error(`n8n respondió con estado ${response.status}`);
+      const raw = await response.text();
+      throw new Error(raw || `API respondió con estado ${response.status}`);
     }
 
     revalidatePath("/cambios");
@@ -48,8 +71,8 @@ export async function reviewChangeRequestAction(input: ReviewChangeRequestInput)
       ok: true,
       message:
         input.decision === "approve"
-          ? "Solicitud de cambio aprobada y sincronizada con n8n."
-          : "Solicitud de cambio rechazada y sincronizada con n8n.",
+          ? "Solicitud de cambio aprobada y sincronizada con la API."
+          : "Solicitud de cambio rechazada y sincronizada con la API.",
     };
   } catch (error) {
     console.error("reviewChangeRequestAction", error);

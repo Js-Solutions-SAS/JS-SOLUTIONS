@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  buildApiUrl,
   generateCorrelationId,
   generateIdempotencyKey,
   postJsonWithTimeout,
@@ -52,11 +53,11 @@ interface ApproveResourceInput {
 }
 
 async function sendApprovalRequest(input: ApproveResourceInput) {
-  const webhookUrl = process.env.N8N_APPROVAL_WEBHOOK_URL;
-  if (!webhookUrl) {
+  const apiUrl = buildApiUrl("/api/v1/client/approvals");
+  if (!apiUrl) {
     return {
       ok: false,
-      message: "N8N_APPROVAL_WEBHOOK_URL no está configurada.",
+      message: "API_BASE_URL no está configurada.",
     };
   }
 
@@ -66,17 +67,16 @@ async function sendApprovalRequest(input: ApproveResourceInput) {
       `approval:${input.resourceType}`,
       `${input.clientToken}:${input.resourceId}`,
     );
-    const response = await postJsonWithTimeout(webhookUrl, {
+    const response = await postJsonWithTimeout(apiUrl, {
       body: {
         clientToken: input.clientToken,
         resourceType: input.resourceType,
         resourceId: input.resourceId,
         resourceName: input.resourceName,
-        approvedAt: new Date().toISOString(),
+        decision: "approved",
       },
       correlationId,
       idempotencyKey,
-      secretToken: process.env.N8N_SECRET_TOKEN,
     });
 
     if (!response.ok) {
@@ -186,11 +186,11 @@ export async function createPaymentIntentAction(
     };
   }
 
-  const webhookUrl = process.env.N8N_PAYMENTS_CREATE_WEBHOOK_URL;
-  if (!webhookUrl) {
+  const apiUrl = buildApiUrl("/api/v1/client/payments/intents");
+  if (!apiUrl) {
     return {
       ok: false,
-      message: "N8N_PAYMENTS_CREATE_WEBHOOK_URL no está configurada.",
+      message: "API_BASE_URL no está configurada.",
     };
   }
 
@@ -200,7 +200,7 @@ export async function createPaymentIntentAction(
     `${input.clientToken}:${input.amount || 0}:${input.method || "bancolombia_button"}`,
   );
 
-  const response = await postJsonWithTimeout(webhookUrl, {
+  const response = await postJsonWithTimeout(apiUrl, {
     body: {
       clientToken: input.clientToken,
       amount: input.amount,
@@ -209,7 +209,6 @@ export async function createPaymentIntentAction(
     },
     correlationId,
     idempotencyKey,
-    secretToken: process.env.N8N_SECRET_TOKEN,
   });
 
   if (!response.ok) {

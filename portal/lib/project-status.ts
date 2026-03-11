@@ -13,6 +13,7 @@ import {
   type Task,
   type TaskStatus,
 } from "@/app/dashboard/types";
+import { buildApiUrl, generateCorrelationId, getJsonWithTimeout } from "@/lib/network";
 
 class ProjectStatusError extends Error {
   status: number;
@@ -557,41 +558,49 @@ export async function fetchProjectStatus(clientToken: string): Promise<ProjectDa
     );
   }
 
-  if (!process.env.N8N_WEBHOOK_URL) {
+  const apiUrl = buildApiUrl(
+    `/api/v1/client/projects/dashboard?clientToken=${encodeURIComponent(normalizedToken)}`,
+  );
+
+  if (!apiUrl) {
     throw new ProjectStatusError(
-      "N8N_WEBHOOK_URL no está configurada.",
+      "API_BASE_URL no está configurada.",
       500,
-      "missing_webhook",
+      "missing_api_base_url",
     );
   }
 
-  const n8nResponse = await fetch(process.env.N8N_WEBHOOK_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
-    },
-    body: JSON.stringify({ clientToken: normalizedToken }),
-    cache: "no-store",
+  const correlationId = generateCorrelationId("portal-dashboard");
+  const apiResponse = await getJsonWithTimeout(apiUrl, {
+    correlationId,
   });
 
-  if (!n8nResponse.ok) {
-    if ([400, 401, 403, 404].includes(n8nResponse.status)) {
+  if (!apiResponse.ok) {
+    if ([400, 401, 403, 404].includes(apiResponse.status)) {
       throw new ProjectStatusError(
         "Token caducado o proyecto no encontrado.",
-        n8nResponse.status,
+        apiResponse.status,
         "invalid_token",
       );
     }
 
     throw new ProjectStatusError(
-      "Error al contactar con el sistema central (n8n).",
+      "Error al contactar con el sistema central (API).",
       502,
-      "n8n_upstream_error",
+      "api_upstream_error",
     );
   }
 
-  const rawData = await n8nResponse.json();
+  const rawEnvelope = apiResponse.data;
+  const rawData =
+    rawEnvelope &&
+    typeof rawEnvelope === "object" &&
+    "data" in rawEnvelope &&
+    rawEnvelope.data &&
+    typeof rawEnvelope.data === "object"
+      ? (rawEnvelope.data as Record<string, unknown>)
+      : rawEnvelope;
+
   return normalizeProjectData(rawData);
 }
 

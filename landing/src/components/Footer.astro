@@ -7,6 +7,9 @@ import {
   Linkedin,
   Twitter,
 } from "lucide-react";
+
+const API_BASE_URL =
+  import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:3003";
 ---
 
 <footer
@@ -141,7 +144,7 @@ import {
         </button>
       </form>
 
-      <script>
+      <script define:vars={{ API_BASE_URL }}>
         const form = document.getElementById("contactForm") as HTMLFormElement;
         const submitButton = document.getElementById(
           "submitButton",
@@ -166,13 +169,20 @@ import {
 
           try {
             const response = await fetch(
-              "https://agencia-n8n.reuctr.easypanel.host/webhook/contact-form",
+              `${API_BASE_URL.replace(/\/$/, "")}/api/v1/public/leads/intake`,
               {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify({
+                  fullName: data.name,
+                  companyName: data.company || "Prospecto web",
+                  email: data.email,
+                  serviceInterest: "Contacto general",
+                  notes: data.message,
+                  source: "landing_contact_form",
+                }),
               },
             );
 

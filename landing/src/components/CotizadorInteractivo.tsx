@@ -24,9 +24,9 @@ const SERVICES = [
 ];
 
 export default function CotizadorInteractivo({
-  webhookUrl,
+  apiBaseUrl,
 }: {
-  webhookUrl: string;
+  apiBaseUrl: string;
 }) {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [complexity, setComplexity] = useState<"baja" | "media" | "alta">(
@@ -110,9 +110,22 @@ export default function CotizadorInteractivo({
       .map((id) => SERVICES.find((s) => s.id === id)?.name)
       .join(", ");
 
+    const mode =
+      actionOverride === "aprobar"
+        ? "send"
+        : actionOverride === "corregir"
+          ? "preview"
+          : "preview";
+
     const payload = {
-      action: actionOverride || "preview",
-      transcripcion: `
+      fullName: nombre,
+      companyName: empresa,
+      email,
+      serviceInterest: selectedServiceNames,
+      source: "landing_quote_estimator",
+      mode,
+      feedback: feedbackText || "",
+      transcription: `
         SOLICITUD DE COTIZACIÓN - JS SOLUTIONS
         --------------------------------------
         CLIENTE: ${nombre}
@@ -125,24 +138,11 @@ export default function CotizadorInteractivo({
         REQUERIMIENTOS DETALLADOS:
         ${detalles || "No se proporcionaron detalles adicionales."}
       `.trim(),
-      datos_cliente: {
-        nombre,
-        empresa,
-        email,
-        sector,
-      },
-      servicios: selectedServices,
-      rango_inversion: estimatedRange,
-      id: quoteId || `JS-${Date.now()}`,
-      feedback: feedbackText || "",
     };
 
-    // INTENTAMOS CON AMBAS URLS SI UNA FALLA
-    const primaryUrl =
-      webhookUrl ||
-      "https://agencia-n8n.reuctr.easypanel.host/webhook/cotizador_js_solutions";
+    const primaryUrl = `${apiBaseUrl.replace(/\/$/, "")}/api/v1/public/quotes/estimate`;
 
-    console.log("📤 [Cotizador] Enviando a (Directo):", primaryUrl);
+    console.log("📤 [Cotizador] Enviando a API:", primaryUrl);
 
     try {
       const response = await fetch(primaryUrl, {
@@ -159,7 +159,7 @@ export default function CotizadorInteractivo({
 
       if (!response.ok) {
         throw new Error(
-          `Error ${response.status}: El servidor de n8n no procesó la solicitud.`,
+          `Error ${response.status}: El servidor API no procesó la solicitud.`,
         );
       }
 
@@ -178,8 +178,8 @@ export default function CotizadorInteractivo({
         }
       }
 
-      const isPreview = payload.action === "preview";
-      const urlFromN8n = result?.pdfUrl || result?.driveUrl;
+      const isPreview = mode === "preview";
+      const urlFromN8n = result?.quotePdfUrl || result?.pdfUrl || result?.driveUrl;
 
       if (urlFromN8n) {
         // Transformar link de Drive para que sea visible en iframe (/view -> /preview)
@@ -209,15 +209,15 @@ export default function CotizadorInteractivo({
 
       if (err.name === "AbortError" || err.message.includes("aborted")) {
         setErrorMessage(
-          "La conexión fue cerrada prematuramente. Esto suele ser un error de n8n (Workflow no activo o error de memoria).",
+          "La conexión fue cerrada prematuramente. Verifica la API y el flujo interno de cotización.",
         );
       } else {
         setErrorMessage(
-          `No se pudo conectar con n8n (${duration}ms). \n\n` +
+          `No se pudo conectar con API (${duration}ms). \n\n` +
             "Causas posibles:\n" +
-            "1. El Workflow en n8n no está en modo 'Active'.\n" +
-            "2. n8n tiene el CORS deshabilitado.\n" +
-            "3. Estás usando la URL de producción con un flujo de Test.",
+            "1. API no está disponible o sin conexión a n8n.\n" +
+            "2. API_BASE_URL es incorrecta.\n" +
+            "3. El webhook interno de generación no está activo.",
         );
       }
     }

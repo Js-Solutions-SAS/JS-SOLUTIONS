@@ -72,6 +72,7 @@ import {
   normalizeMilestone,
 } from "@/lib/milestone-utils";
 import {
+  buildApiUrl,
   generateCorrelationId,
   getJsonWithTimeout,
   resolveApiInternalToken,
@@ -80,6 +81,50 @@ import {
 const DEFAULT_HEADERS = {
   "Content-Type": "application/json",
 };
+
+async function fetchApiCollection<T>(
+  path: string,
+  correlationId: string,
+): Promise<T[] | null> {
+  const apiUrl = buildApiUrl(path);
+  if (!apiUrl) {
+    return null;
+  }
+
+  const response = await getJsonWithTimeout(apiUrl, {
+    correlationId,
+    secretToken: resolveApiInternalToken(),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      response.errorMessage || `API respondio con estado ${response.status}`,
+    );
+  }
+
+  const raw = response.data;
+  const itemsSource: unknown = Array.isArray(raw)
+    ? raw
+    : Array.isArray(raw.items)
+      ? raw.items
+      : Array.isArray(raw.data)
+        ? raw.data
+        : Array.isArray(raw.milestones)
+          ? raw.milestones
+          : Array.isArray(raw.approvals)
+            ? raw.approvals
+            : Array.isArray(raw.changeRequests)
+              ? raw.changeRequests
+              : Array.isArray(raw.tickets)
+                ? raw.tickets
+                : Array.isArray(raw.finances)
+                  ? raw.finances
+                  : Array.isArray(raw.raid)
+                    ? raw.raid
+                    : [];
+
+  return itemsSource as T[];
+}
 
 const MOCK_QUOTES: Quote[] = [
   {
@@ -875,31 +920,25 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 }
 
 export async function getMilestones(): Promise<Milestone[]> {
-  const webhookUrl = process.env.N8N_MILESTONES_WEBHOOK_URL;
+  const correlationId = generateCorrelationId("admin-milestones");
 
-  if (!webhookUrl) {
+  try {
+    const items = await fetchApiCollection<Partial<Milestone>>(
+      "/api/v1/admin/milestones",
+      correlationId,
+    );
+
+    if (!items) {
+      return MOCK_MILESTONES;
+    }
+
+    return items.map((item: Partial<Milestone>, index: number) =>
+      normalizeMilestone(item, index),
+    );
+  } catch (error) {
+    console.error("getMilestones", error);
     return MOCK_MILESTONES;
   }
-
-  const response = await fetch(webhookUrl, {
-    method: "GET",
-    headers: {
-      ...DEFAULT_HEADERS,
-      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("No fue posible obtener hitos desde n8n.");
-  }
-
-  const raw = await response.json();
-  const items = Array.isArray(raw) ? raw : raw.milestones || raw.data || [];
-
-  return items.map((item: Partial<Milestone>, index: number) =>
-    normalizeMilestone(item, index),
-  );
 }
 
 export function getDeliveryMetrics(milestones: Milestone[]): DeliveryMetrics {
@@ -981,31 +1020,25 @@ export function getCapacityMetrics(entries: TeamCapacityEntry[]): CapacityMetric
 }
 
 export async function getRaidItems(): Promise<RaidItem[]> {
-  const webhookUrl = process.env.N8N_RAID_WEBHOOK_URL;
+  const correlationId = generateCorrelationId("admin-raid");
 
-  if (!webhookUrl) {
+  try {
+    const items = await fetchApiCollection<Partial<RaidItem>>(
+      "/api/v1/admin/raid",
+      correlationId,
+    );
+
+    if (!items) {
+      return MOCK_RAID_ITEMS;
+    }
+
+    return items.map((item: Partial<RaidItem>, index: number) =>
+      normalizeRaidItem(item, index),
+    );
+  } catch (error) {
+    console.error("getRaidItems", error);
     return MOCK_RAID_ITEMS;
   }
-
-  const response = await fetch(webhookUrl, {
-    method: "GET",
-    headers: {
-      ...DEFAULT_HEADERS,
-      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("No fue posible obtener el RAID log desde n8n.");
-  }
-
-  const raw = await response.json();
-  const items = Array.isArray(raw) ? raw : raw.raid || raw.data || [];
-
-  return items.map((item: Partial<RaidItem>, index: number) =>
-    normalizeRaidItem(item, index),
-  );
 }
 
 export function getRaidMetrics(items: RaidItem[]): RaidMetrics {
@@ -1058,31 +1091,25 @@ export function getRaidProjectSummaries(items: RaidItem[]): RaidProjectSummary[]
 }
 
 export async function getApprovals(): Promise<ApprovalItem[]> {
-  const webhookUrl = process.env.N8N_APPROVALS_WEBHOOK_URL;
+  const correlationId = generateCorrelationId("admin-approvals");
 
-  if (!webhookUrl) {
+  try {
+    const items = await fetchApiCollection<Partial<ApprovalItem>>(
+      "/api/v1/admin/approvals",
+      correlationId,
+    );
+
+    if (!items) {
+      return MOCK_APPROVAL_ITEMS;
+    }
+
+    return items.map((item: Partial<ApprovalItem>, index: number) =>
+      normalizeApprovalItem(item, index),
+    );
+  } catch (error) {
+    console.error("getApprovals", error);
     return MOCK_APPROVAL_ITEMS;
   }
-
-  const response = await fetch(webhookUrl, {
-    method: "GET",
-    headers: {
-      ...DEFAULT_HEADERS,
-      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("No fue posible obtener aprobaciones desde n8n.");
-  }
-
-  const raw = await response.json();
-  const items = Array.isArray(raw) ? raw : raw.approvals || raw.data || [];
-
-  return items.map((item: Partial<ApprovalItem>, index: number) =>
-    normalizeApprovalItem(item, index),
-  );
 }
 
 export function getApprovalMetrics(items: ApprovalItem[]): ApprovalMetrics {
@@ -1121,31 +1148,25 @@ export function getApprovalStageCoverage(
 }
 
 export async function getChangeRequests(): Promise<ChangeRequest[]> {
-  const webhookUrl = process.env.N8N_CHANGE_REQUESTS_WEBHOOK_URL;
+  const correlationId = generateCorrelationId("admin-change-requests");
 
-  if (!webhookUrl) {
+  try {
+    const items = await fetchApiCollection<Partial<ChangeRequest>>(
+      "/api/v1/admin/change-requests",
+      correlationId,
+    );
+
+    if (!items) {
+      return MOCK_CHANGE_REQUESTS;
+    }
+
+    return items.map((item: Partial<ChangeRequest>, index: number) =>
+      normalizeChangeRequest(item, index),
+    );
+  } catch (error) {
+    console.error("getChangeRequests", error);
     return MOCK_CHANGE_REQUESTS;
   }
-
-  const response = await fetch(webhookUrl, {
-    method: "GET",
-    headers: {
-      ...DEFAULT_HEADERS,
-      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("No fue posible obtener solicitudes de cambio desde n8n.");
-  }
-
-  const raw = await response.json();
-  const items = Array.isArray(raw) ? raw : raw.changeRequests || raw.data || [];
-
-  return items.map((item: Partial<ChangeRequest>, index: number) =>
-    normalizeChangeRequest(item, index),
-  );
 }
 
 export function getChangeRequestMetrics(items: ChangeRequest[]): ChangeRequestMetrics {
@@ -1172,31 +1193,25 @@ export function getChangeRequestMetrics(items: ChangeRequest[]): ChangeRequestMe
 }
 
 export async function getTicketSLAEntries(): Promise<TicketSLAEntry[]> {
-  const webhookUrl = process.env.N8N_TICKETS_SLA_WEBHOOK_URL;
+  const correlationId = generateCorrelationId("admin-tickets");
 
-  if (!webhookUrl) {
+  try {
+    const items = await fetchApiCollection<Partial<TicketSLAEntry>>(
+      "/api/v1/admin/tickets",
+      correlationId,
+    );
+
+    if (!items) {
+      return MOCK_TICKET_SLA;
+    }
+
+    return items.map((item: Partial<TicketSLAEntry>, index: number) =>
+      normalizeTicketSLAEntry(item, index),
+    );
+  } catch (error) {
+    console.error("getTicketSLAEntries", error);
     return MOCK_TICKET_SLA;
   }
-
-  const response = await fetch(webhookUrl, {
-    method: "GET",
-    headers: {
-      ...DEFAULT_HEADERS,
-      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("No fue posible obtener los tickets SLA desde n8n.");
-  }
-
-  const raw = await response.json();
-  const items = Array.isArray(raw) ? raw : raw.tickets || raw.data || [];
-
-  return items.map((item: Partial<TicketSLAEntry>, index: number) =>
-    normalizeTicketSLAEntry(item, index),
-  );
 }
 
 export function getTicketSLAMetrics(items: TicketSLAEntry[]): TicketSLAMetrics {
@@ -1265,31 +1280,25 @@ export function getTicketSLAClientSummaries(
 }
 
 export async function getOperationalFinanceEntries(): Promise<OperationalFinanceEntry[]> {
-  const webhookUrl = process.env.N8N_OPERATIONAL_FINANCE_WEBHOOK_URL;
+  const correlationId = generateCorrelationId("admin-finance");
 
-  if (!webhookUrl) {
+  try {
+    const items = await fetchApiCollection<Partial<OperationalFinanceEntry>>(
+      "/api/v1/admin/finance",
+      correlationId,
+    );
+
+    if (!items) {
+      return MOCK_OPERATIONAL_FINANCE;
+    }
+
+    return items.map((item: Partial<OperationalFinanceEntry>, index: number) =>
+      normalizeOperationalFinanceEntry(item, index),
+    );
+  } catch (error) {
+    console.error("getOperationalFinanceEntries", error);
     return MOCK_OPERATIONAL_FINANCE;
   }
-
-  const response = await fetch(webhookUrl, {
-    method: "GET",
-    headers: {
-      ...DEFAULT_HEADERS,
-      Authorization: `Bearer ${process.env.N8N_SECRET_TOKEN || ""}`,
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("No fue posible obtener finanzas operativas desde n8n.");
-  }
-
-  const raw = await response.json();
-  const items = Array.isArray(raw) ? raw : raw.finances || raw.data || [];
-
-  return items.map((item: Partial<OperationalFinanceEntry>, index: number) =>
-    normalizeOperationalFinanceEntry(item, index),
-  );
 }
 
 export function getOperationalFinanceMetrics(

@@ -1,11 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  buildApiUrl,
+  generateCorrelationId,
+  generateIdempotencyKey,
+  resolveApiInternalToken,
+} from "@/lib/network";
 
 interface ApproveCheckpointInput {
   approvalId: string;
   projectId: string;
   stage: string;
+  expectedVersion?: number;
 }
 
 export async function approveCheckpointAction(input: ApproveCheckpointInput) {
@@ -16,38 +23,52 @@ export async function approveCheckpointAction(input: ApproveCheckpointInput) {
     };
   }
 
-  const webhookUrl = process.env.N8N_APPROVALS_ACTION_WEBHOOK_URL;
+  const apiUrl = buildApiUrl(
+    `/api/v1/admin/approvals/${encodeURIComponent(input.approvalId)}/decision`,
+  );
 
-  if (!webhookUrl) {
-    revalidatePath("/aprobaciones");
+  if (!apiUrl) {
     return {
-      ok: true,
-      message: "Aprobación simulada (sin webhook configurado).",
+      ok: false,
+      message: "Configura API_BASE_URL para ejecutar aprobaciones reales.",
     };
   }
 
   try {
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "approve",
-        approvalId: input.approvalId,
-        projectId: input.projectId,
-        stage: input.stage,
-      }),
+    const correlationId = generateCorrelationId("admin-approval-decision");
+    const idempotencyKey = generateIdempotencyKey(
+      "admin-approval-decision",
+      `${input.approvalId}:approved`,
+    );
+
+    const response = await fetch(apiUrl, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Correlation-Id": correlationId,
+        "Idempotency-Key": idempotencyKey,
+        ...(resolveApiInternalToken()
+          ? { Authorization: `Bearer ${resolveApiInternalToken()}` }
+          : {}),
+      },
       cache: "no-store",
+      body: JSON.stringify({
+        decision: "approved",
+        reason: `Approved from admin stage ${input.stage}`,
+        expectedVersion: input.expectedVersion,
+      }),
     });
 
     if (!response.ok) {
-      throw new Error(`n8n respondió con estado ${response.status}`);
+      const raw = await response.text();
+      throw new Error(raw || `API respondió con estado ${response.status}`);
     }
 
     revalidatePath("/aprobaciones");
 
     return {
       ok: true,
-      message: "Punto de control aprobado y sincronizado con n8n.",
+      message: "Punto de control aprobado y sincronizado con la API.",
     };
   } catch (error) {
     console.error("approveCheckpointAction", error);

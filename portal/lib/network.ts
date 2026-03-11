@@ -1,4 +1,6 @@
-const DEFAULT_TIMEOUT_MS = Number(process.env.N8N_REQUEST_TIMEOUT_MS || 15000);
+const DEFAULT_TIMEOUT_MS = Number(
+  process.env.API_REQUEST_TIMEOUT_MS || process.env.N8N_REQUEST_TIMEOUT_MS || 15000,
+);
 
 function safeJsonParse(value: string): unknown {
   if (!value) {
@@ -30,6 +32,12 @@ export interface JsonRequestOptions {
   body: Record<string, unknown>;
   correlationId: string;
   idempotencyKey?: string;
+  secretToken?: string;
+  timeoutMs?: number;
+}
+
+export interface GetJsonRequestOptions {
+  correlationId: string;
   secretToken?: string;
   timeoutMs?: number;
 }
@@ -120,4 +128,91 @@ export async function postJsonWithTimeout(
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+export async function getJsonWithTimeout(
+  url: string,
+  options: GetJsonRequestOptions,
+): Promise<JsonRequestResult> {
+  const controller = new AbortController();
+  const timeoutMs = Number.isFinite(options.timeoutMs)
+    ? Number(options.timeoutMs)
+    : DEFAULT_TIMEOUT_MS;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Correlation-Id": options.correlationId,
+        ...(options.secretToken
+          ? { Authorization: `Bearer ${options.secretToken}` }
+          : {}),
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    const raw = await response.text();
+    const data = safeJsonParse(raw);
+    const normalizedData =
+      data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+    if (!response.ok) {
+      const errorMessage =
+        typeof normalizedData.error === "string"
+          ? normalizedData.error
+          : typeof normalizedData.message === "string"
+            ? normalizedData.message
+            : `Upstream respondió con estado ${response.status}`;
+
+      return {
+        ok: false,
+        status: response.status,
+        data: normalizedData,
+        errorMessage,
+        correlationId: options.correlationId,
+      };
+    }
+
+    return {
+      ok: true,
+      status: response.status,
+      data: normalizedData,
+      correlationId: options.correlationId,
+    };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error && error.name === "AbortError"
+        ? `Tiempo de espera agotado tras ${timeoutMs}ms al conectar con upstream.`
+        : error instanceof Error
+          ? error.message
+          : "Error de red inesperado.";
+
+    return {
+      ok: false,
+      status: 0,
+      data: {},
+      errorMessage,
+      correlationId: options.correlationId,
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export function resolveApiBaseUrl(): string | null {
+  const value = String(process.env.API_BASE_URL || "").trim();
+  return value ? value.replace(/\/$/, "") : null;
+}
+
+export function buildApiUrl(path: string): string | null {
+  const baseUrl = resolveApiBaseUrl();
+  if (!baseUrl) {
+    return null;
+  }
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${baseUrl}${normalizedPath}`;
 }

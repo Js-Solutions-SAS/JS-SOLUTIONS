@@ -21,6 +21,7 @@ export interface Quote {
   quoteLastFeedback?: string;
   contractUrl?: string;
   contractGeneratedAt?: string;
+  version?: number;
 }
 
 export type QuotesFeedSource = "live" | "unconfigured" | "error";
@@ -56,6 +57,7 @@ export interface Milestone {
   status: string;
   priority: string;
   externalUrl?: string;
+  version?: number;
 }
 
 export interface DeliveryMetrics {
@@ -107,6 +109,7 @@ export interface RaidItem {
   mitigation?: string;
   dependencyOn?: string;
   externalUrl?: string;
+  version?: number;
 }
 
 export interface RaidProjectSummary {
@@ -162,6 +165,7 @@ export interface ApprovalItem {
   title: string;
   notes?: string;
   externalUrl?: string;
+  version?: number;
 }
 
 export interface ApprovalMetrics {
@@ -211,6 +215,7 @@ export interface ChangeRequest {
   proposedDueDate: string;
   justification?: string;
   externalUrl?: string;
+  version?: number;
 }
 
 export interface ChangeRequestMetrics {
@@ -258,6 +263,7 @@ export interface TicketSLAEntry {
   targetResponseHours: number;
   targetResolutionHours: number;
   externalUrl?: string;
+  version?: number;
 }
 
 export interface TicketSLAMetrics {
@@ -306,6 +312,7 @@ export interface OperationalFinanceEntry {
   billingStatus: FinanceBillingStatus;
   updatedAt: string;
   externalUrl?: string;
+  version?: number;
 }
 
 export interface OperationalFinanceMetrics {
@@ -347,6 +354,7 @@ export interface ExecutivePortfolioEntry {
   owner: string;
   updatedAt: string;
   externalUrl?: string;
+  version?: number;
 }
 
 export interface ExecutivePortfolioMetrics {
