@@ -1,8 +1,8 @@
-import { Suspense } from "react";
 import { GitCompareArrows } from "lucide-react";
 
-import { CambiosBoard } from "@/components/cambios/cambios-board";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CambiosBoard } from "@/components/organisms/cambios/cambios-board";
+import { OperationsPageTemplate } from "@/components/templates/operations-page-template";
+import { Skeleton } from "@/components/atoms/skeleton";
 import { getChangeRequests } from "@/lib/admin-data";
 
 async function CambiosSection() {
@@ -35,20 +35,13 @@ function CambiosFallback() {
 
 export default function CambiosPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
-          <GitCompareArrows className="h-8 w-8 text-brand-gold" />
-          Control de Cambios
-        </h1>
-        <p className="mt-1 text-sm text-brand-off-white/70">
-          Gestiona solicitudes de cambio con impacto en costo y fecha para proteger alcance y margen.
-        </p>
-      </div>
-
-      <Suspense fallback={<CambiosFallback />}>
+    <OperationsPageTemplate
+      title="Control de Cambios"
+      description="Gestiona solicitudes de cambio con impacto en costo y fecha para proteger alcance y margen."
+      icon={GitCompareArrows}
+      fallback={<CambiosFallback />}
+    >
         <CambiosSection />
-      </Suspense>
-    </div>
+    </OperationsPageTemplate>
   );
 }

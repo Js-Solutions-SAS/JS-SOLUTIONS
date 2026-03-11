@@ -1,8 +1,8 @@
-import { Suspense } from "react";
 import { ShieldCheck } from "lucide-react";
 
-import { RaidBoard } from "@/components/raid/raid-board";
-import { Skeleton } from "@/components/ui/skeleton";
+import { RaidBoard } from "@/components/organisms/raid/raid-board";
+import { OperationsPageTemplate } from "@/components/templates/operations-page-template";
+import { Skeleton } from "@/components/atoms/skeleton";
 import {
   getRaidItems,
   getRaidMetrics,
@@ -49,20 +49,13 @@ function RaidFallback() {
 
 export default function RaidPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
-          <ShieldCheck className="h-8 w-8 text-brand-gold" />
-          RAID Log
-        </h1>
-        <p className="mt-1 text-sm text-brand-off-white/70">
-          Riesgos, supuestos, issues y dependencias por proyecto en una sola vista operativa.
-        </p>
-      </div>
-
-      <Suspense fallback={<RaidFallback />}>
+    <OperationsPageTemplate
+      title="RAID Log"
+      description="Riesgos, supuestos, issues y dependencias por proyecto en una sola vista operativa."
+      icon={ShieldCheck}
+      fallback={<RaidFallback />}
+    >
         <RaidSection />
-      </Suspense>
-    </div>
+    </OperationsPageTemplate>
   );
 }

@@ -1,8 +1,8 @@
-import { Suspense } from "react";
 import { CalendarClock } from "lucide-react";
 
-import { EntregasBoard } from "@/components/entregas/entregas-board";
-import { Skeleton } from "@/components/ui/skeleton";
+import { EntregasBoard } from "@/components/organisms/entregas/entregas-board";
+import { OperationsPageTemplate } from "@/components/templates/operations-page-template";
+import { Skeleton } from "@/components/atoms/skeleton";
 import { getDeliveryMetrics, getMilestones } from "@/lib/admin-data";
 
 async function EntregasSection() {
@@ -45,20 +45,13 @@ function EntregasFallback() {
 
 export default function EntregasPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
-          <CalendarClock className="h-8 w-8 text-brand-gold" />
-          Entregas y Hitos
-        </h1>
-        <p className="mt-1 text-sm text-brand-off-white/70">
-          Calendario operativo de entregables, compromisos y alertas de riesgo.
-        </p>
-      </div>
-
-      <Suspense fallback={<EntregasFallback />}>
+    <OperationsPageTemplate
+      title="Entregas y Hitos"
+      description="Calendario operativo de entregables, compromisos y alertas de riesgo."
+      icon={CalendarClock}
+      fallback={<EntregasFallback />}
+    >
         <EntregasSection />
-      </Suspense>
-    </div>
+    </OperationsPageTemplate>
   );
 }

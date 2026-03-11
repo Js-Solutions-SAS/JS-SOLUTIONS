@@ -1,8 +1,8 @@
-import { Suspense } from "react";
 import { Headset } from "lucide-react";
 
-import { TicketsSLABoard } from "@/components/sla/tickets-sla-board";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TicketsSLABoard } from "@/components/organisms/sla/tickets-sla-board";
+import { OperationsPageTemplate } from "@/components/templates/operations-page-template";
+import { Skeleton } from "@/components/atoms/skeleton";
 import {
   getTicketSLAClientSummaries,
   getTicketSLAEntries,
@@ -49,20 +49,13 @@ function SLAFallback() {
 
 export default function SLAPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
-          <Headset className="h-8 w-8 text-brand-gold" />
-          SLA de Tickets
-        </h1>
-        <p className="mt-1 text-sm text-brand-off-white/70">
-          Controla tiempos de respuesta y resolución por tipo de cliente para proteger experiencia y cumplimiento.
-        </p>
-      </div>
-
-      <Suspense fallback={<SLAFallback />}>
+    <OperationsPageTemplate
+      title="SLA de Tickets"
+      description="Controla tiempos de respuesta y resolución por tipo de cliente para proteger experiencia y cumplimiento."
+      icon={Headset}
+      fallback={<SLAFallback />}
+    >
         <SLASection />
-      </Suspense>
-    </div>
+    </OperationsPageTemplate>
   );
 }

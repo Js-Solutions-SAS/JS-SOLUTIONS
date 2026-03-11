@@ -1,10 +1,10 @@
-import { Suspense } from "react";
 import { FileText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-import { QuotesTableLoader } from "@/components/cotizaciones/quotes-table-loader";
-import { Skeleton } from "@/components/ui/skeleton";
+import { QuotesTableLoader } from "@/components/organisms/cotizaciones/quotes-table-loader";
+import { OperationsPageTemplate } from "@/components/templates/operations-page-template";
+import { Skeleton } from "@/components/atoms/skeleton";
 import { getQuotesFeed } from "@/lib/admin-data";
 
 async function QuotesTableSection() {
@@ -15,7 +15,7 @@ async function QuotesTableSection() {
       initialQuotes={feed.quotes}
       source={feed.source}
       sourceMessage={feed.message}
-      createEnabled={Boolean(process.env.N8N_CREATE_QUOTE_URL)}
+      createEnabled={Boolean(process.env.API_BASE_URL)}
     />
   );
 }
@@ -33,21 +33,13 @@ function QuotesTableFallback() {
 
 export default function CotizacionesPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
-          <FileText className="h-8 w-8 text-brand-gold" />
-          Cotizaciones y Contratos
-        </h1>
-        <p className="mt-1 text-sm text-brand-off-white/70">
-          Control real de cotizaciones: crea leads, verifica la fuente conectada
-          y ejecuta briefs o contratos sobre datos sincronizados.
-        </p>
-      </div>
-
-      <Suspense fallback={<QuotesTableFallback />}>
+    <OperationsPageTemplate
+      title="Cotizaciones y Contratos"
+      description="Control real de cotizaciones: crea leads, verifica la fuente conectada y ejecuta briefs o contratos sobre datos sincronizados."
+      icon={FileText}
+      fallback={<QuotesTableFallback />}
+    >
         <QuotesTableSection />
-      </Suspense>
-    </div>
+    </OperationsPageTemplate>
   );
 }

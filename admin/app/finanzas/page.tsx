@@ -1,8 +1,8 @@
-import { Suspense } from "react";
 import { CircleDollarSign } from "lucide-react";
 
-import { FinanzasBoard } from "@/components/finanzas/finanzas-board";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FinanzasBoard } from "@/components/organisms/finanzas/finanzas-board";
+import { OperationsPageTemplate } from "@/components/templates/operations-page-template";
+import { Skeleton } from "@/components/atoms/skeleton";
 import {
   getOperationalFinanceClientSummaries,
   getOperationalFinanceEntries,
@@ -49,20 +49,13 @@ function FinanzasFallback() {
 
 export default function FinanzasPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
-          <CircleDollarSign className="h-8 w-8 text-brand-gold" />
-          Finanzas Operativas
-        </h1>
-        <p className="mt-1 text-sm text-brand-off-white/70">
-          Control de presupuesto vs ejecutado vs pendiente de facturar por proyecto y tipo de cliente.
-        </p>
-      </div>
-
-      <Suspense fallback={<FinanzasFallback />}>
+    <OperationsPageTemplate
+      title="Finanzas Operativas"
+      description="Control de presupuesto vs ejecutado vs pendiente de facturar por proyecto y tipo de cliente."
+      icon={CircleDollarSign}
+      fallback={<FinanzasFallback />}
+    >
         <FinanzasSection />
-      </Suspense>
-    </div>
+    </OperationsPageTemplate>
   );
 }

@@ -1,8 +1,8 @@
-import { Suspense } from "react";
 import { ClipboardCheck } from "lucide-react";
 
-import { AprobacionesBoard } from "@/components/aprobaciones/aprobaciones-board";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AprobacionesBoard } from "@/components/organisms/aprobaciones/aprobaciones-board";
+import { OperationsPageTemplate } from "@/components/templates/operations-page-template";
+import { Skeleton } from "@/components/atoms/skeleton";
 import { getApprovals } from "@/lib/admin-data";
 
 async function AprobacionesSection() {
@@ -43,20 +43,13 @@ function AprobacionesFallback() {
 
 export default function AprobacionesPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
-          <ClipboardCheck className="h-8 w-8 text-brand-gold" />
-          Aprobaciones
-        </h1>
-        <p className="mt-1 text-sm text-brand-off-white/70">
-          Gestiona checkpoints de brief, alcance, QA, UAT, contrato y cambios de alcance.
-        </p>
-      </div>
-
-      <Suspense fallback={<AprobacionesFallback />}>
+    <OperationsPageTemplate
+      title="Aprobaciones"
+      description="Gestiona checkpoints de brief, alcance, QA, UAT, contrato y cambios de alcance."
+      icon={ClipboardCheck}
+      fallback={<AprobacionesFallback />}
+    >
         <AprobacionesSection />
-      </Suspense>
-    </div>
+    </OperationsPageTemplate>
   );
 }

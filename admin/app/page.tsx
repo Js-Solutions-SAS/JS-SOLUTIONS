@@ -1,6 +1,6 @@
 import { Activity, ClipboardCheck, FileSignature, Network } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/molecules/card";
 import { getDashboardMetrics } from "@/lib/admin-data";
 
 export const dynamic = "force-dynamic";

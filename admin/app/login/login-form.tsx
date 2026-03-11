@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/atoms/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/molecules/card";
+import { Input } from "@/components/atoms/input";
 
 import { type LoginActionState, loginAction } from "./actions";
 

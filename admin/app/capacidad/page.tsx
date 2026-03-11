@@ -1,8 +1,8 @@
-import { Suspense } from "react";
 import { UsersRound } from "lucide-react";
 
-import { CapacityBoard } from "@/components/capacidad/capacity-board";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CapacityBoard } from "@/components/organisms/capacidad/capacity-board";
+import { OperationsPageTemplate } from "@/components/templates/operations-page-template";
+import { Skeleton } from "@/components/atoms/skeleton";
 import { getCapacityMetrics, getTeamCapacity } from "@/lib/admin-data";
 
 async function CapacitySection() {
@@ -37,20 +37,13 @@ function CapacityFallback() {
 
 export default function CapacidadPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
-          <UsersRound className="h-8 w-8 text-brand-gold" />
-          Gestión de Capacidad
-        </h1>
-        <p className="mt-1 text-sm text-brand-off-white/70">
-          Controla carga por persona y rol para prevenir sobreasignación y proteger fechas de entrega.
-        </p>
-      </div>
-
-      <Suspense fallback={<CapacityFallback />}>
+    <OperationsPageTemplate
+      title="Gestión de Capacidad"
+      description="Controla carga por persona y rol para prevenir sobreasignación y proteger fechas de entrega."
+      icon={UsersRound}
+      fallback={<CapacityFallback />}
+    >
         <CapacitySection />
-      </Suspense>
-    </div>
+    </OperationsPageTemplate>
   );
 }

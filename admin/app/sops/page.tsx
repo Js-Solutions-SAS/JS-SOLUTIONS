@@ -1,8 +1,8 @@
-import { Suspense } from "react";
 import { BookOpen } from "lucide-react";
 
-import { SopsBentoClient } from "@/components/sops/sops-bento-client";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SopsBentoClient } from "@/components/organisms/sops/sops-bento-client";
+import { OperationsPageTemplate } from "@/components/templates/operations-page-template";
+import { Skeleton } from "@/components/atoms/skeleton";
 import { getSops } from "@/lib/admin-data";
 
 async function SopsSection() {
@@ -28,20 +28,13 @@ function SopsFallback() {
 
 export default function SopsPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
-          <BookOpen className="h-8 w-8 text-brand-gold" />
-          SOPs y Recursos
-        </h1>
-        <p className="mt-1 text-sm text-brand-off-white/70">
-          Base de conocimiento operativa en formato bento para exploracion rapida por categoria.
-        </p>
-      </div>
-
-      <Suspense fallback={<SopsFallback />}>
+    <OperationsPageTemplate
+      title="SOPs y Recursos"
+      description="Base de conocimiento operativa en formato bento para exploracion rapida por categoria."
+      icon={BookOpen}
+      fallback={<SopsFallback />}
+    >
         <SopsSection />
-      </Suspense>
-    </div>
+    </OperationsPageTemplate>
   );
 }
