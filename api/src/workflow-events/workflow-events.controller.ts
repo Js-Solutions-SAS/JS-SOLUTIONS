@@ -3,7 +3,7 @@ import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { CreateWorkflowEventDto } from './dto/create-workflow-event.dto';
 import { WorkflowEventsService } from './workflow-events.service';
 
-@Controller('api/v1/workflow-events')
+@Controller(['api/v1/workflow-events', 'api/v1/internal/workflows/events'])
 export class WorkflowEventsController {
   constructor(private readonly workflowEventsService: WorkflowEventsService) {}
 
