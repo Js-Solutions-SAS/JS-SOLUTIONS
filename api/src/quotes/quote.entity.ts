@@ -32,11 +32,23 @@ export class QuoteEntity {
   @Column({ name: 'quote_approved_at', type: 'timestamptz', nullable: true })
   quoteApprovedAt!: Date | null;
 
+  @Column({ name: 'signature_envelope_id', type: 'text', nullable: true })
+  signatureEnvelopeId!: string | null;
+
+  @Column({ name: 'signature_provider', type: 'text', nullable: true })
+  signatureProvider!: string | null;
+
+  @Column({ name: 'signature_status', type: 'text', nullable: true })
+  signatureStatus!: string | null;
+
   @Column({ name: 'idempotency_key', type: 'text', nullable: true })
   idempotencyKey!: string | null;
 
   @Column({ name: 'correlation_id', type: 'text', nullable: true })
   correlationId!: string | null;
+
+  @Column({ name: 'version', type: 'int', default: 1 })
+  version!: number;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;

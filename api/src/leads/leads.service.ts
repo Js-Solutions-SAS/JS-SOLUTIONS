@@ -16,6 +16,7 @@ import {
 import { N8nClientService } from '../common/n8n-client.service';
 import { WorkflowEventEntity } from '../workflow-events/workflow-event.entity';
 import { CreateLeadIntakeDto } from './dto/create-lead-intake.dto';
+import { PublicLeadIntakeDto } from './dto/public-lead-intake.dto';
 import { RequestBriefDto } from './dto/request-brief.dto';
 import { LeadEntity } from './lead.entity';
 
@@ -129,6 +130,23 @@ export class LeadsService {
         ? 'Lead actualizado y brief conservado.'
         : 'Lead creado y brief preparado.',
     };
+  }
+
+  async createPublicIntake(dto: PublicLeadIntakeDto) {
+    return this.createIntake({
+      nombre: dto.fullName,
+      empresa: dto.companyName,
+      email: dto.email,
+      servicio: dto.serviceInterest,
+      estado: 'diagnostic_captured',
+      correlationId: dto.correlationId,
+      idempotencyKey:
+        dto.idempotencyKey ||
+        generateIdempotencyKey(
+          'public-intake',
+          `${dto.email || dto.fullName}:${dto.companyName}:${dto.source}`,
+        ),
+    });
   }
 
   async requestBrief(dto: RequestBriefDto) {

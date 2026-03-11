@@ -32,6 +32,9 @@ export class LeadEntity {
   @Column({ name: 'status', type: 'text', default: 'Diagnóstico Capturado' })
   status!: string;
 
+  @Column({ name: 'version', type: 'int', default: 1 })
+  version!: number;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 

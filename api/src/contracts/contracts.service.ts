@@ -58,7 +58,8 @@ export class ContractsService {
   }
 
   async generateContract(dto: GenerateContractDto) {
-    if (dto.estado.trim().toLowerCase() !== 'firmado') {
+    const normalizedStatus = dto.estado.trim().toLowerCase();
+    if (!['firmado', 'approved', 'signed'].includes(normalizedStatus)) {
       throw new BadRequestException(
         'Solo puedes generar contrato cuando la cotización esté firmada.',
       );

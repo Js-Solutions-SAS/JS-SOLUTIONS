@@ -19,6 +19,7 @@ import { LeadEntity } from '../leads/lead.entity';
 import { WorkflowEventEntity } from '../workflow-events/workflow-event.entity';
 import { GenerateQuoteDto } from './dto/generate-quote.dto';
 import { ListQuotesDto } from './dto/list-quotes.dto';
+import { PublicQuoteEstimateDto } from './dto/public-quote-estimate.dto';
 import { QuoteEntity } from './quote.entity';
 
 type CountRow = {
@@ -298,6 +299,39 @@ export class QuotesService {
           ? 'Previsualización de cotización generada.'
           : 'Cotización generada y enviada.',
       correlationId,
+    };
+  }
+
+  async publicEstimate(dto: PublicQuoteEstimateDto) {
+    const leadId = generateFallbackId('lead');
+
+    const lead = await this.leadsRepository.save(
+      this.leadsRepository.create({
+        leadId,
+        briefToken: generateFallbackId('brief'),
+        name: dto.fullName.trim(),
+        company: dto.companyName.trim(),
+        email: dto.email?.trim() || null,
+        service: dto.serviceInterest.trim(),
+        status: 'diagnostic_captured',
+      }),
+    );
+
+    const mode = dto.mode || 'preview';
+    const generated = await this.generateQuote({
+      leadId: lead.leadId,
+      clientToken: lead.briefToken || generateFallbackId('brief'),
+      transcripcion: dto.transcription,
+      feedback: dto.feedback,
+      mode,
+      correlationId: dto.correlationId,
+      idempotencyKey: dto.idempotencyKey,
+    });
+
+    return {
+      ...generated,
+      leadId: lead.leadId,
+      briefToken: lead.briefToken,
     };
   }
 }
