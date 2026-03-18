@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { PublicRateLimitGuard } from '../auth/public-rate-limit.guard';
+import { MetaConversionsApiService } from '../common/meta-conversions-api.service';
 import { N8nClientService } from '../common/n8n-client.service';
 import { ContractEntity } from '../contracts/contract.entity';
 import { LeadEntity } from '../leads/lead.entity';
@@ -21,7 +22,12 @@ import { QuotesService } from './quotes.service';
     ]),
   ],
   controllers: [QuotesController, PublicQuotesController],
-  providers: [QuotesService, N8nClientService, PublicRateLimitGuard],
+  providers: [
+    QuotesService,
+    N8nClientService,
+    PublicRateLimitGuard,
+    MetaConversionsApiService,
+  ],
   exports: [QuotesService],
 })
 export class QuotesModule {}
