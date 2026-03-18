@@ -6,7 +6,13 @@ import { Menu } from "lucide-react";
   class="fixed top-0 w-full z-50 transition-all duration-300 bg-brand-black/80 backdrop-blur-md border-b border-white/5"
 >
   <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-    <a href="/" class="flex items-center gap-3 group">
+    <a
+      href="/"
+      data-track="nav_logo_click"
+      data-track-label="Logo"
+      data-track-location="navbar"
+      class="flex items-center gap-3 group"
+    >
       <img
         src="/logo.svg"
         alt="JS Solutions Logo"
@@ -22,21 +28,41 @@ import { Menu } from "lucide-react";
     <div class="hidden md:flex items-center gap-8 text-brand-off-white">
       <a
         href="#about"
+        data-track="nav_click"
+        data-track-label="Nosotros"
+        data-track-location="navbar_desktop"
         class="text-sm font-medium hover:text-brand-gold transition-colors"
         >Nosotros</a
       >
       <a
         href="#services"
+        data-track="nav_click"
+        data-track-label="Servicios"
+        data-track-location="navbar_desktop"
         class="text-sm font-medium hover:text-brand-gold transition-colors"
         >Servicios</a
       >
       <a
         href="#solutions"
+        data-track="nav_click"
+        data-track-label="Soluciones"
+        data-track-location="navbar_desktop"
         class="text-sm font-medium hover:text-brand-gold transition-colors"
         >Soluciones</a
       >
       <a
+        href="/cotizador"
+        data-track="nav_click"
+        data-track-label="Cotizador"
+        data-track-location="navbar_desktop"
+        class="text-sm font-medium hover:text-brand-gold transition-colors"
+        >Cotizador</a
+      >
+      <a
         href="#contact"
+        data-track="diagnostic_cta_click"
+        data-track-label="Diagnostico Gratuito"
+        data-track-location="navbar_desktop"
         class="px-6 py-2.5 bg-gold-gradient text-black font-bold text-sm rounded-full transition-all transform hover:scale-105 hover:shadow-[0_0_15px_rgba(212,175,55,0.3)]"
       >
         Diagnóstico Gratuito
@@ -47,6 +73,8 @@ import { Menu } from "lucide-react";
       id="mobile-menu-btn"
       class="md:hidden text-white hover:text-brand-gold transition-colors relative z-50"
       aria-label="Menu"
+      aria-expanded="false"
+      aria-controls="mobile-menu-overlay"
     >
       <Menu className="w-8 h-8" client:visible />
     </button>
@@ -59,21 +87,41 @@ import { Menu } from "lucide-react";
   >
     <a
       href="#about"
+      data-track="nav_click"
+      data-track-label="Nosotros"
+      data-track-location="navbar_mobile"
       class="mobile-link text-2xl font-bold text-white hover:text-brand-gold transition-colors"
       >Nosotros</a
     >
     <a
       href="#services"
+      data-track="nav_click"
+      data-track-label="Servicios"
+      data-track-location="navbar_mobile"
       class="mobile-link text-2xl font-bold text-white hover:text-brand-gold transition-colors"
       >Servicios</a
     >
     <a
       href="#solutions"
+      data-track="nav_click"
+      data-track-label="Soluciones"
+      data-track-location="navbar_mobile"
       class="mobile-link text-2xl font-bold text-white hover:text-brand-gold transition-colors"
       >Soluciones</a
     >
     <a
+      href="/cotizador"
+      data-track="nav_click"
+      data-track-label="Cotizador"
+      data-track-location="navbar_mobile"
+      class="mobile-link text-2xl font-bold text-white hover:text-brand-gold transition-colors"
+      >Cotizador</a
+    >
+    <a
       href="#contact"
+      data-track="diagnostic_cta_click"
+      data-track-label="Diagnostico Gratuito"
+      data-track-location="navbar_mobile"
       class="mobile-link px-8 py-3 bg-gold-gradient text-black font-bold text-xl rounded-full hover:scale-105 transition-transform"
     >
       Diagnóstico Gratuito
@@ -93,10 +141,12 @@ import { Menu } from "lucide-react";
     if (isMenuOpen) {
       menuOverlay?.classList.remove("translate-x-full", "opacity-0");
       menuOverlay?.classList.add("translate-x-0", "opacity-100");
+      menuBtn?.setAttribute("aria-expanded", "true");
       document.body.style.overflow = "hidden"; // Prevent scrolling
     } else {
       menuOverlay?.classList.add("translate-x-full", "opacity-0");
       menuOverlay?.classList.remove("translate-x-0", "opacity-100");
+      menuBtn?.setAttribute("aria-expanded", "false");
       document.body.style.overflow = "";
     }
   }

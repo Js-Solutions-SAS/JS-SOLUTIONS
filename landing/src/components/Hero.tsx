@@ -1,11 +1,50 @@
+import { lazy, Suspense, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import DataFlowBackground from "./DataFlowBackground";
+
+const DataFlowBackground = lazy(() => import("./DataFlowBackground"));
 
 export default function Hero() {
+  const [showDynamicBackground, setShowDynamicBackground] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const shouldReduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const isSmallViewport = window.matchMedia("(max-width: 1024px)").matches;
+
+    if (shouldReduceMotion || isSmallViewport) {
+      return;
+    }
+
+    let timeoutId = 0;
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(
+        () => setShowDynamicBackground(true),
+        { timeout: 1200 },
+      );
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    timeoutId = window.setTimeout(() => setShowDynamicBackground(true), 450);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-      <DataFlowBackground />
+    <section
+      id="about"
+      data-track-section="hero"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20"
+    >
+      {showDynamicBackground && (
+        <Suspense fallback={null}>
+          <DataFlowBackground />
+        </Suspense>
+      )}
 
       {/* Decorative Glows */}
       <div className="absolute top-0 transform -translate-y-1/2 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-brand-gold/10 rounded-full blur-[120px] pointer-events-none" />
@@ -18,7 +57,7 @@ export default function Hero() {
         >
           <span className="inline-flex items-center gap-2 py-1 px-3 border border-brand-gold/30 rounded-full bg-brand-gold/5 text-brand-gold text-xs font-bold uppercase tracking-widest mb-8 backdrop-blur-sm">
             <span className="w-2 h-2 rounded-full bg-brand-gold animate-pulse"></span>
-            Next-Gen Automation
+            Automatizacion con IA para empresas
           </span>
         </motion.div>
 
@@ -28,9 +67,9 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          Inteligencia Artificial <br />
+          Automatiza Tu Empresa <br />
           <span className="text-transparent bg-clip-text bg-gold-gradient filter drop-shadow-lg">
-            Para Empresas Reales
+            En Semanas, No En Meses
           </span>
         </motion.h1>
 
@@ -40,8 +79,9 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
         >
-          No vendemos humo. Construimos sistemas inteligentes que automatizan
-          tus procesos, reducen costos operativos y escalan tus ventas.
+          Diseñamos e implementamos automatizaciones reales para ventas,
+          operaciones y servicio al cliente. Menos tareas manuales, mas tiempo
+          para crecer.
         </motion.p>
 
         <motion.div
@@ -52,6 +92,9 @@ export default function Hero() {
         >
           <a
             href="#contact"
+            data-track="diagnostic_cta_click"
+            data-track-label="Diagnostico Gratuito"
+            data-track-location="hero"
             className="group relative px-8 py-4 bg-gold-gradient text-black font-bold text-lg rounded-full overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(212,175,55,0.4)]"
           >
             <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
@@ -62,6 +105,9 @@ export default function Hero() {
           </a>
           <a
             href="#services"
+            data-track="services_cta_click"
+            data-track-label="Explorar Servicios"
+            data-track-location="hero"
             className="px-8 py-4 border border-white/10 hover:border-brand-gold/50 text-white font-medium text-lg rounded-full bg-white/5 backdrop-blur-sm transition-all hover:bg-white/10 hover:text-brand-gold"
           >
             Explorar Servicios

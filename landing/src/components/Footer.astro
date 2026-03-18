@@ -10,10 +10,14 @@ import {
 
 const API_BASE_URL =
   import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:3003";
+const INSTAGRAM_URL =
+  import.meta.env.PUBLIC_INSTAGRAM_URL || "https://www.instagram.com/jssolutions.co/";
+const X_URL = import.meta.env.PUBLIC_X_URL || "https://x.com/jssolutions_co";
 ---
 
 <footer
   id="contact"
+  data-track-section="contact"
   class="bg-brand-black border-t border-white/5 pt-24 pb-12 relative overflow-hidden"
 >
   <div
@@ -138,10 +142,22 @@ const API_BASE_URL =
         <button
           type="submit"
           id="submitButton"
+          data-track="lead_submit_click"
+          data-track-label="Contact Form Submit"
+          data-track-location="contact_form"
           class="relative z-10 w-full bg-gold-gradient text-black font-bold py-4 rounded-xl hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Solicitar Diagnóstico Gratuito
         </button>
+        <p class="relative z-10 text-xs text-brand-off-white/60">
+          Respuesta en menos de 24 horas habiles. No compartimos tus datos con
+          terceros.
+        </p>
+        <p
+          id="formFeedback"
+          class="relative z-10 text-sm hidden rounded-xl px-4 py-3"
+          aria-live="polite"
+        ></p>
       </form>
 
       <script define:vars={{ API_BASE_URL }}>
@@ -149,9 +165,53 @@ const API_BASE_URL =
         const submitButton = document.getElementById(
           "submitButton",
         ) as HTMLButtonElement;
+        const formFeedback = document.getElementById("formFeedback");
+        const tracker = (window as any).__jsTrack;
+
+        const setFeedback = (message: string, variant: "ok" | "error") => {
+          if (!formFeedback) return;
+          formFeedback.classList.remove(
+            "hidden",
+            "bg-red-500/15",
+            "text-red-200",
+            "border",
+            "border-red-300/20",
+            "bg-emerald-500/15",
+            "text-emerald-200",
+            "border-emerald-300/20",
+          );
+
+          if (variant === "ok") {
+            formFeedback.classList.add(
+              "bg-emerald-500/15",
+              "text-emerald-200",
+              "border",
+              "border-emerald-300/20",
+            );
+          } else {
+            formFeedback.classList.add(
+              "bg-red-500/15",
+              "text-red-200",
+              "border",
+              "border-red-300/20",
+            );
+          }
+          formFeedback.textContent = message;
+        };
+
+        let formStarted = false;
+        form?.addEventListener("focusin", () => {
+          if (formStarted) return;
+          formStarted = true;
+          tracker?.track?.("lead_form_start", { form_id: "contact_form" });
+        });
 
         form?.addEventListener("submit", async (e) => {
           e.preventDefault();
+          tracker?.track?.("lead_form_submit_attempt", {
+            form_id: "contact_form",
+          });
+          if (formFeedback) formFeedback.classList.add("hidden");
 
           // Disable button
           if (submitButton) {
@@ -166,6 +226,7 @@ const API_BASE_URL =
             company: formData.get("company"),
             message: formData.get("message"),
           };
+          const trackingMeta = tracker?.getLeadPayloadMeta?.() || {};
 
           try {
             const response = await fetch(
@@ -182,22 +243,33 @@ const API_BASE_URL =
                   serviceInterest: "Contacto general",
                   notes: data.message,
                   source: "landing_contact_form",
+                  utm: trackingMeta.utm || {},
+                  landingPath: trackingMeta.landingPath || "",
+                  referrer: trackingMeta.referrer || "",
+                  correlationId: trackingMeta.correlationId || undefined,
                 }),
               },
             );
 
             if (response.ok) {
-              alert(
-                "¡Gracias! Hemos recibido tu solicitud. Te contactaremos pronto.",
+              tracker?.track?.("lead_submitted", { form_id: "contact_form" });
+              setFeedback(
+                "Listo. Recibimos tu solicitud y te contactaremos en menos de 24 horas habiles.",
+                "ok",
               );
               form.reset();
             } else {
+              tracker?.track?.("lead_submit_error", {
+                form_id: "contact_form",
+                status_code: response.status,
+              });
               throw new Error("Error en el envío");
             }
           } catch (error) {
             console.error(error);
-            alert(
-              "Hubo un error al enviar el formulario. Por favor intenta de nuevo.",
+            setFeedback(
+              "Hubo un error al enviar el formulario. Intenta de nuevo en unos minutos o escribenos por WhatsApp.",
+              "error",
             );
           } finally {
             // Re-enable button
@@ -224,7 +296,9 @@ const API_BASE_URL =
       </div>
       <div class="flex gap-6">
         <a
-          href="#"
+          href={INSTAGRAM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           class="text-brand-off-white/60 hover:text-brand-gold transition-colors hover:scale-110 transform"
           aria-label="Síguenos en Instagram"
           ><Instagram className="w-5 h-5" /></a
@@ -237,7 +311,9 @@ const API_BASE_URL =
           aria-label="Síguenos en LinkedIn"><Linkedin className="w-5 h-5" /></a
         >
         <a
-          href="#"
+          href={X_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           class="text-brand-off-white/60 hover:text-brand-gold transition-colors hover:scale-110 transform"
           aria-label="Síguenos en Twitter"><Twitter className="w-5 h-5" /></a
         >

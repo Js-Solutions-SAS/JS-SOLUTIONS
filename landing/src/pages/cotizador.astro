@@ -6,8 +6,14 @@ const API_BASE_URL =
   import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:3003";
 ---
 
-<Layout title="Cotizador - JS SOLUTIONS">
-  <main class="min-h-screen bg-gray-50 dark:bg-zinc-950 py-16 px-4">
+<Layout
+  title="Cotizador - JS SOLUTIONS"
+  description="Obtén una estimación inicial de alcance y presupuesto para tu proyecto de IA y automatización."
+>
+  <main
+    data-track-section="cotizador_page"
+    class="min-h-screen bg-gray-50 dark:bg-zinc-950 py-16 px-4"
+  >
     <div class="max-w-3xl mx-auto">
       <CotizadorInteractivo client:load apiBaseUrl={API_BASE_URL} />
     </div>

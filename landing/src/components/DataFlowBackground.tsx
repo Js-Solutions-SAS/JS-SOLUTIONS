@@ -5,9 +5,18 @@ const DataFlowBackground = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const animationIdRef = useRef<number>(0);
+  const isRunningRef = useRef(true);
 
   useEffect(() => {
     if (!containerRef.current) return;
+    const shouldReduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const isSmallViewport = window.matchMedia("(max-width: 1024px)").matches;
+
+    if (shouldReduceMotion || isSmallViewport) {
+      return;
+    }
 
     // Scene setup
     const scene = new THREE.Scene();
@@ -150,6 +159,11 @@ const DataFlowBackground = () => {
     // Animation
     let time = 0;
     const animate = () => {
+      if (!isRunningRef.current) {
+        animationIdRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
       time += 0.01;
 
       // Update particles
@@ -211,11 +225,17 @@ const DataFlowBackground = () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
     };
 
+    const handleVisibilityChange = () => {
+      isRunningRef.current = !document.hidden;
+    };
+
     window.addEventListener("resize", handleResize);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       cancelAnimationFrame(animationIdRef.current);
 
       if (rendererRef.current) {

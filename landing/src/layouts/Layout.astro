@@ -5,19 +5,238 @@ import "@fontsource/space-grotesk";
 
 interface Props {
   title: string;
+  description?: string;
 }
 
-const { title } = Astro.props;
+const { title, description } = Astro.props;
+const siteUrl = Astro.site ?? new URL("https://jssolutions.co");
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
+const seoDescription =
+  description ||
+  "JS Solutions - Potencia tu negocio con Inteligencia Artificial, Automatización de Procesos y Agentes AI. Maximizamos tu eficiencia y reducimos costos operativos.";
+const gtmId = import.meta.env.PUBLIC_GTM_ID;
+const gaMeasurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
+const metaPixelId = import.meta.env.PUBLIC_META_PIXEL_ID;
+const clarityProjectId = import.meta.env.PUBLIC_CLARITY_PROJECT_ID;
+
+const gtmScript = gtmId
+  ? `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`
+  : "";
+
+const gaScript = gaMeasurementId
+  ? `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=window.gtag||gtag;gtag('js',new Date());gtag('config','${gaMeasurementId}',{send_page_view:true});`
+  : "";
+
+const metaPixelScript = metaPixelId
+  ? `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${metaPixelId}');fbq('track','PageView');`
+  : "";
+
+const clarityScript = clarityProjectId
+  ? `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src='https://www.clarity.ms/tag/'+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,'clarity','script','${clarityProjectId}');`
+  : "";
+
+const trackingScript = `(() => {
+  const STORAGE_KEY = 'js_tracking_ctx_v1';
+  const SESSION_KEY = 'js_tracking_session_id_v1';
+  const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+  const CLICK_ID_KEYS = ['gclid', 'fbclid', 'msclkid', 'ttclid', 'li_fat_id'];
+  const META_STANDARD_EVENT_MAP = {
+    diagnostic_cta_click: 'Lead',
+    lead_submitted: 'Lead',
+    quote_submitted: 'Lead',
+    quote_approve_click: 'SubmitApplication',
+    whatsapp_click: 'Contact',
+  };
+  const viewedSections = new Set();
+  const reachedDepth = new Set();
+
+  function safeStorageGet(storage, key) {
+    try {
+      return storage.getItem(key);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function safeStorageSet(storage, key, value) {
+    try {
+      storage.setItem(key, value);
+    } catch (_error) {}
+  }
+
+  function parseContext(raw) {
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  function getCorrelationId() {
+    const existing = safeStorageGet(window.sessionStorage, SESSION_KEY);
+    if (existing) return existing;
+    const generated = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : 'cid_' + Math.random().toString(36).slice(2, 12);
+    safeStorageSet(window.sessionStorage, SESSION_KEY, generated);
+    return generated;
+  }
+
+  function getQueryValues(searchParams, keys) {
+    const result = {};
+    keys.forEach((key) => {
+      const value = searchParams.get(key);
+      if (value) {
+        result[key] = value;
+      }
+    });
+    return result;
+  }
+
+  function buildContext() {
+    const existing = parseContext(safeStorageGet(window.localStorage, STORAGE_KEY));
+    const searchParams = new URLSearchParams(window.location.search);
+    const currentPath = window.location.pathname + window.location.search;
+    const currentReferrer = document.referrer || existing.firstReferrer || '';
+    const utmFromUrl = getQueryValues(searchParams, UTM_KEYS);
+    const clickIdsFromUrl = getQueryValues(searchParams, CLICK_ID_KEYS);
+
+    const context = {
+      ...existing,
+      correlationId: getCorrelationId(),
+      firstPath: existing.firstPath || currentPath,
+      firstReferrer: existing.firstReferrer || currentReferrer,
+      lastPath: currentPath,
+      lastReferrer: document.referrer || existing.lastReferrer || '',
+      lastSeenAt: new Date().toISOString(),
+      utm: {
+        ...(existing.utm || {}),
+        ...utmFromUrl,
+      },
+      clickIds: {
+        ...(existing.clickIds || {}),
+        ...clickIdsFromUrl,
+      },
+    };
+
+    safeStorageSet(window.localStorage, STORAGE_KEY, JSON.stringify(context));
+    return context;
+  }
+
+  let context = buildContext();
+
+  function track(eventName, params = {}) {
+    const payload = {
+      event: eventName,
+      page_path: window.location.pathname,
+      page_location: window.location.href,
+      ...params,
+    };
+
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push(payload);
+
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', eventName, params);
+    }
+
+    if (typeof window.fbq === 'function') {
+      const standardEvent = META_STANDARD_EVENT_MAP[eventName];
+      if (standardEvent) {
+        window.fbq('track', standardEvent, params);
+      } else {
+        window.fbq('trackCustom', eventName, params);
+      }
+    }
+  }
+
+  function getLeadPayloadMeta() {
+    context = buildContext();
+    const mergedUtm = {
+      ...(context.utm || {}),
+      ...(context.clickIds || {}),
+      first_path: context.firstPath || '',
+      first_referrer: context.firstReferrer || '',
+      last_path: context.lastPath || '',
+    };
+
+    return {
+      utm: mergedUtm,
+      landingPath: window.location.pathname + window.location.search,
+      referrer: document.referrer || context.firstReferrer || '',
+      correlationId: context.correlationId,
+    };
+  }
+
+  window.__jsTrack = {
+    getContext: () => context,
+    getLeadPayloadMeta,
+    track,
+  };
+
+  window.addEventListener('js_tracking', (incomingEvent) => {
+    const detail = incomingEvent && incomingEvent.detail && typeof incomingEvent.detail === 'object'
+      ? incomingEvent.detail
+      : null;
+    if (!detail) return;
+
+    const eventName = typeof detail.event === 'string' ? detail.event : '';
+    if (!eventName) return;
+
+    const payload = { ...detail };
+    delete payload.event;
+    track(eventName, payload);
+  });
+
+  document.addEventListener('click', (event) => {
+    const target = event.target && event.target.closest ? event.target.closest('[data-track]') : null;
+    if (!target) return;
+    const action = target.getAttribute('data-track');
+    if (!action) return;
+    track(action, {
+      label: target.getAttribute('data-track-label') || target.textContent?.trim() || '',
+      location: target.getAttribute('data-track-location') || '',
+    });
+  });
+
+  const scrollDepthThresholds = [25, 50, 75, 100];
+  document.addEventListener('scroll', () => {
+    const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+    if (scrollable <= 0) return;
+    const depth = Math.round((window.scrollY / scrollable) * 100);
+    scrollDepthThresholds.forEach((threshold) => {
+      if (depth >= threshold && !reachedDepth.has(threshold)) {
+        reachedDepth.add(threshold);
+        track('scroll_depth', { percent: threshold });
+      }
+    });
+  }, { passive: true });
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const sectionName = entry.target.getAttribute('data-track-section');
+        if (!sectionName || viewedSections.has(sectionName)) return;
+        viewedSections.add(sectionName);
+        track('section_view', { section: sectionName });
+      });
+    }, { threshold: 0.45 });
+
+    document.querySelectorAll('[data-track-section]').forEach((node) => observer.observe(node));
+  }
+
+  track('landing_view');
+})();`;
 ---
 
 <!doctype html>
 <html lang="es" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="description"
-      content="JS Solutions - Potencia tu negocio con Inteligencia Artificial, Automatización de Procesos y Agentes AI. Maximizamos tu eficiencia y reducimos costos operativos."
-    />
+    <meta name="description" content={seoDescription} />
     <meta
       name="keywords"
       content="Inteligencia Artificial, Automatización, Optimización de tiempos, Agentes AI, Chatbots, Transformación Digital, Eficiencia Operativa, Software a Medida"
@@ -28,42 +247,78 @@ const { title } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
 
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://jssolutions.co/" />
+    <link rel="canonical" href={canonicalUrl} />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://jssolutions.co/" />
+    <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={title} />
-    <meta
-      property="og:description"
-      content="Potencia tu negocio con Inteligencia Artificial, Automatización de Procesos y Agentes AI. Maximizamos tu eficiencia y reducimos costos operativos."
-    />
+    <meta property="og:description" content={seoDescription} />
     <meta property="og:image" content="https://jssolutions.co/og-image.jpg" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://jssolutions.co/" />
+    <meta property="twitter:url" content={canonicalUrl} />
     <meta property="twitter:title" content={title} />
-    <meta
-      property="twitter:description"
-      content="Potencia tu negocio con Inteligencia Artificial, Automatización de Procesos y Agentes AI. Maximizamos tu eficiencia y reducimos costos operativos."
-    />
+    <meta property="twitter:description" content={seoDescription} />
     <meta
       property="twitter:image"
       content="https://jssolutions.co/og-image.jpg"
     />
+
+    {gtmScript && <script is:inline set:html={gtmScript}></script>}
+    {
+      gaMeasurementId && (
+        <script
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
+        ></script>
+      )
+    }
+    {gaScript && <script is:inline set:html={gaScript}></script>}
+    {metaPixelScript && <script is:inline set:html={metaPixelScript}></script>}
+    {clarityScript && <script is:inline set:html={clarityScript}></script>}
+    <script is:inline set:html={trackingScript}></script>
 
     <ClientRouter />
   </head>
   <body
     class="bg-brand-black text-brand-off-white font-sans antialiased overflow-x-hidden selection:bg-brand-gold selection:text-black"
   >
+    {
+      gtmId && (
+        <noscript>
+          <iframe
+            src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
+            height="0"
+            width="0"
+            style="display:none;visibility:hidden"
+            title="Google Tag Manager"
+          ></iframe>
+        </noscript>
+      )
+    }
+    {
+      metaPixelId && (
+        <noscript>
+          <img
+            height="1"
+            width="1"
+            style="display:none"
+            alt=""
+            src={`https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1`}
+          />
+        </noscript>
+      )
+    }
     <slot />
     <a
       href="https://wa.me/573186110790"
       target="_blank"
       rel="noopener noreferrer"
+      data-track="whatsapp_click"
+      data-track-label="WhatsApp Floating CTA"
+      data-track-location="floating_button"
       class="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-brand-gold text-brand-black shadow-xl hover:scale-110 hover:shadow-brand-gold/50 transition-all duration-300 flex items-center justify-center group"
       aria-label="Contáctanos por WhatsApp"
     >
