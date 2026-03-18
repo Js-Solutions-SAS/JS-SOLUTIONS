@@ -33,7 +33,11 @@ export default function SegmentToggle() {
   const [active, setActive] = useState<"pymes" | "publico">("pymes");
 
   return (
-    <section className="py-24 relative overflow-hidden bg-brand-black">
+    <section
+      id="solutions"
+      data-track-section="solutions"
+      className="py-24 relative overflow-hidden bg-brand-black"
+    >
       {/* Background glow effect */}
       <div
         className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] rounded-full blur-[120px] transition-all duration-1000 opacity-20 ${
@@ -135,6 +139,9 @@ export default function SegmentToggle() {
                     </div>
                     <a
                       href="#contact"
+                      data-track="segment_consulting_cta_click"
+                      data-track-label="Agendar Asesoria"
+                      data-track-location="segment_toggle"
                       className={`inline-flex items-center gap-2 font-bold transition-colors group ${
                         active === "pymes"
                           ? "text-brand-gold hover:text-white"

@@ -55,7 +55,11 @@ const services = [
 
 export default function ServicesBento() {
   return (
-    <section id="services" className="py-24 relative bg-brand-charcoal/30">
+    <section
+      id="services"
+      data-track-section="services"
+      className="py-24 relative bg-brand-charcoal/30"
+    >
       <div className="container mx-auto px-6">
         <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
           <div>

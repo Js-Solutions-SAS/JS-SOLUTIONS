@@ -40,6 +40,10 @@ Variables recomendadas (`landing/.env`):
 
 ```env
 PUBLIC_API_BASE_URL=http://localhost:3003
+PUBLIC_GTM_ID=GTM-XXXXXXX
+PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+PUBLIC_META_PIXEL_ID=123456789012345
+PUBLIC_CLARITY_PROJECT_ID=abcd1234
 ```
 
 ### 2) Portal (`portal`)
