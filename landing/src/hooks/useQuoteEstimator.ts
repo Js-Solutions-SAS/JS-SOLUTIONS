@@ -282,8 +282,10 @@ export function useQuoteEstimator(apiBaseUrl: string) {
       mode: input.mode,
       leadId: leadId || "new",
       correlationId,
+      event_id: `search:${correlationId}`,
       idempotencyKey,
       servicesCount: selectedServices.length,
+      service_interest: selectedServiceNames,
     });
 
     const tracker =

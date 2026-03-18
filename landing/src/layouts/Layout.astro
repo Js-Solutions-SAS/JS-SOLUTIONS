@@ -14,6 +14,12 @@ const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
 const seoDescription =
   description ||
   "JS Solutions - Potencia tu negocio con Inteligencia Artificial, Automatización de Procesos y Agentes AI. Maximizamos tu eficiencia y reducimos costos operativos.";
+const publicApiBaseUrl =
+  import.meta.env.PUBLIC_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? 'https://api.jssolutions.com.co'
+    : 'http://localhost:3003');
+const marketingEventsEndpoint = `${publicApiBaseUrl.replace(/\/$/, '')}/api/v1/public/marketing/events`;
 const gtmId =
   import.meta.env.PUBLIC_GTM_ID ||
   (import.meta.env.PROD ? "GTM-KGSQRGGL" : "");
@@ -40,6 +46,7 @@ const clarityScript = clarityProjectId
   : "";
 
 const trackingScript = `(() => {
+  const MARKETING_EVENTS_ENDPOINT = '${marketingEventsEndpoint}';
   const STORAGE_KEY = 'js_tracking_ctx_v1';
   const SESSION_KEY = 'js_tracking_session_id_v1';
   const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
@@ -152,6 +159,53 @@ const trackingScript = `(() => {
         window.fbq('track', standardEvent, params);
       } else {
         window.fbq('trackCustom', eventName, params);
+      }
+    }
+
+    if (MARKETING_EVENTS_ENDPOINT) {
+      let serverEventName = '';
+      const customData = { origin_event: eventName };
+
+      if (eventName === 'landing_view') {
+        serverEventName = 'ViewContent';
+      } else if (eventName === 'section_view' && params.section === 'contact') {
+        serverEventName = 'FindLocation';
+      } else if (eventName === 'quote_submit_started') {
+        serverEventName = 'Search';
+        customData.search_string = typeof params.service_interest === 'string'
+          ? params.service_interest
+          : '';
+      }
+
+      if (serverEventName) {
+        const eventId = typeof params.event_id === 'string' && params.event_id
+          ? params.event_id
+          : serverEventName.toLowerCase() + ':' + context.correlationId + ':' + Date.now();
+
+        const body = JSON.stringify({
+          eventName: serverEventName,
+          eventId,
+          eventSourceUrl: window.location.href,
+          searchString:
+            typeof customData.search_string === 'string'
+              ? customData.search_string
+              : undefined,
+          customData,
+        });
+
+        if (typeof navigator.sendBeacon === 'function') {
+          const blob = new Blob([body], { type: 'application/json' });
+          navigator.sendBeacon(MARKETING_EVENTS_ENDPOINT, blob);
+        } else {
+          fetch(MARKETING_EVENTS_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body,
+            keepalive: true,
+          }).catch(() => {});
+        }
       }
     }
   }
