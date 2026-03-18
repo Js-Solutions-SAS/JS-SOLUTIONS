@@ -9,7 +9,10 @@ import {
 } from "lucide-react";
 
 const API_BASE_URL =
-  import.meta.env.PUBLIC_API_BASE_URL || "http://localhost:3003";
+  import.meta.env.PUBLIC_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? "https://api.jssolutions.com.co"
+    : "http://localhost:3003");
 const INSTAGRAM_URL =
   import.meta.env.PUBLIC_INSTAGRAM_URL || "https://www.instagram.com/jssolutions.co/";
 const X_URL = import.meta.env.PUBLIC_X_URL || "https://x.com/jssolutions_co";
@@ -161,14 +164,14 @@ const X_URL = import.meta.env.PUBLIC_X_URL || "https://x.com/jssolutions_co";
       </form>
 
       <script define:vars={{ API_BASE_URL }}>
-        const form = document.getElementById("contactForm") as HTMLFormElement;
+        const form = document.getElementById("contactForm");
         const submitButton = document.getElementById(
           "submitButton",
-        ) as HTMLButtonElement;
+        );
         const formFeedback = document.getElementById("formFeedback");
-        const tracker = (window as any).__jsTrack;
+        const tracker = window.__jsTrack;
 
-        const setFeedback = (message: string, variant: "ok" | "error") => {
+        const setFeedback = (message, variant) => {
           if (!formFeedback) return;
           formFeedback.classList.remove(
             "hidden",
