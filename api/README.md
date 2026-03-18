@@ -98,6 +98,7 @@ npm run start:prod
 - `API_INTERNAL_TOKEN=...`
 - `DATABASE_URL=postgres://postgres:***@agencia_js-solutions:5432/agencia?sslmode=disable`
 - `N8N_REQUEST_TIMEOUT_MS=15000`
+- `N8N_GENERATE_QUOTE_TIMEOUT_MS=90000`
 - `N8N_REQUEST_BRIEF_WEBHOOK_URL=...`
 - `N8N_GENERATE_QUOTE_URL=...`
 - `N8N_GENERATE_CONTRACT_URL=...`

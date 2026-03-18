@@ -529,15 +529,51 @@
               "type": "string"
             },
             {
+              "id": "preview-lead-id",
+              "name": "leadId",
+              "value": "={{ $('Validate Quote Request').item.json.leadId }}",
+              "type": "string"
+            },
+            {
+              "id": "preview-client-token",
+              "name": "clientToken",
+              "value": "={{ $('Validate Quote Request').item.json.clientToken }}",
+              "type": "string"
+            },
+            {
+              "id": "preview-quote-id",
+              "name": "quoteDocumentId",
+              "value": "={{ $('Validate Quote Request').item.json.quoteDocumentId }}",
+              "type": "string"
+            },
+            {
               "id": "preview-pdf",
               "name": "quotePdfUrl",
-              "value": "={{ $('Generar PDF').item.json.url }}",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "preview-dashboard",
+              "name": "dashboardUrl",
+              "value": "={{ $('Validate Quote Request').item.json.dashboardUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "preview-status",
+              "name": "status",
+              "value": "preview_ready",
               "type": "string"
             },
             {
               "id": "preview-msg",
               "name": "message",
-              "value": "Preview de cotización generado (sin envío).",
+              "value": "Preview listo. Usa mode=send para generar PDF final y envío.",
+              "type": "string"
+            },
+            {
+              "id": "preview-correlation-id",
+              "name": "correlationId",
+              "value": "={{ $('Validate Quote Request').item.json.correlationId }}",
               "type": "string"
             }
           ]
@@ -570,7 +606,7 @@
       "main": [
         [
           {
-            "node": "Preparar Datos Bot",
+            "node": "IF Preview Mode",
             "type": "main",
             "index": 0
           }
@@ -641,7 +677,7 @@
       "main": [
         [
           {
-            "node": "IF Preview Mode",
+            "node": "Descargar PDF Temporal",
             "type": "main",
             "index": 0
           }
@@ -714,7 +750,7 @@
         ],
         [
           {
-            "node": "Descargar PDF Temporal",
+            "node": "Preparar Datos Bot",
             "type": "main",
             "index": 0
           }

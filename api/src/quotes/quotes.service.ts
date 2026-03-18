@@ -213,6 +213,12 @@ export class QuotesService {
         'N8N_GENERATE_QUOTE_URL no está configurada en api.',
       );
     }
+    const quoteTimeoutMs = Number(
+      this.configService.get<string>(
+        'N8N_GENERATE_QUOTE_TIMEOUT_MS',
+        this.configService.get<string>('N8N_REQUEST_TIMEOUT_MS', '15000'),
+      ),
+    );
 
     const upstream = await this.n8nClientService.postJson({
       url: webhookUrl,
@@ -225,6 +231,10 @@ export class QuotesService {
       },
       correlationId,
       idempotencyKey,
+      timeoutMs:
+        Number.isFinite(quoteTimeoutMs) && quoteTimeoutMs > 0
+          ? quoteTimeoutMs
+          : 15000,
     });
 
     if (!upstream.ok) {
