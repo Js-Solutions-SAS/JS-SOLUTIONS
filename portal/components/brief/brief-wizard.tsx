@@ -1,38 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
+
+import { useBriefWizard } from "./use-brief-wizard";
 
 export default function BriefWizard({ token }: { token: string }) {
-  const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState({
-    objectives: [] as string[],
-    urgency: "media",
-    currentStack: "",
-    designAssets: "none", // none, ideas, figma
-    integrations: [] as string[],
-    additionalNotes: "",
-  });
-
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [errorMessage, setErrorMessage] = useState("");
-
-  const buildClientRequestIds = () => {
-    const seed = `${token}:${Date.now()}`;
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-      const uuid = crypto.randomUUID();
-      return {
-        correlationId: `brief-${uuid}`,
-        idempotencyKey: `submit-brief:${token}:${uuid}`,
-      };
-    }
-
-    return {
-      correlationId: `brief-${seed}`,
-      idempotencyKey: `submit-brief:${seed}`,
-    };
-  };
+  const {
+    step,
+    setStep,
+    formData,
+    setFormData,
+    status,
+    errorMessage,
+    handleToggleObjective,
+    handleToggleIntegration,
+    submitBrief,
+  } = useBriefWizard(token);
 
   const objectivesOptions = [
     { id: "sales", label: "Aumentar Ventas / Leads" },
@@ -47,58 +30,14 @@ export default function BriefWizard({ token }: { token: string }) {
     { id: "erp", label: "ERP / Contabilidad" },
     { id: "sheets", label: "Google Sheets / Airtable" },
   ];
-
-  const handleToggleObj = (id: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      objectives: prev.objectives.includes(id)
-        ? prev.objectives.filter((o) => o !== id)
-        : [...prev.objectives, id],
-    }));
-  };
-
-  const handleToggleInt = (id: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      integrations: prev.integrations.includes(id)
-        ? prev.integrations.filter((i) => i !== id)
-        : [...prev.integrations, id],
-    }));
-  };
-
-  const handleSubmit = async () => {
-    setStatus("loading");
-    setErrorMessage("");
-
-    try {
-      const requestIds = buildClientRequestIds();
-      const response = await fetch("/api/submit-brief", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          technicalBrief: formData,
-          ...requestIds,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Error al enviar el brief");
-      }
-
-      setStatus("success");
-    } catch (error) {
-      console.error(error);
-      setStatus("error");
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Ocurrió un error inesperado al conectar con el servidor.",
-      );
-    }
-  };
+  const designOptions: Array<{
+    id: "none" | "ideas" | "figma";
+    label: string;
+  }> = [
+    { id: "none", label: "Solo Idea" },
+    { id: "ideas", label: "Tengo Referencias" },
+    { id: "figma", label: "Diseño Listo (Figma)" },
+  ];
 
   if (status === "success") {
     return (
@@ -190,7 +129,8 @@ export default function BriefWizard({ token }: { token: string }) {
               {objectivesOptions.map((opt) => (
                 <button
                   key={opt.id}
-                  onClick={() => handleToggleObj(opt.id)}
+                  onClick={() => handleToggleObjective(opt.id)}
+                  aria-pressed={formData.objectives.includes(opt.id)}
                   className={`p-6 rounded-2xl border-2 text-left transition-all ${
                     formData.objectives.includes(opt.id)
                       ? "border-brand-gold bg-brand-gold/10 text-white"
@@ -254,11 +194,7 @@ export default function BriefWizard({ token }: { token: string }) {
                 ¿En qué estado está el diseño?
               </label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {[
-                  { id: "none", label: "Solo Idea" },
-                  { id: "ideas", label: "Tengo Referencias" },
-                  { id: "figma", label: "Diseño Listo (Figma)" },
-                ].map((opt) => (
+                {designOptions.map((opt) => (
                   <button
                     key={opt.id}
                     onClick={() =>
@@ -310,7 +246,8 @@ export default function BriefWizard({ token }: { token: string }) {
               {integrationsOptions.map((opt) => (
                 <button
                   key={opt.id}
-                  onClick={() => handleToggleInt(opt.id)}
+                  onClick={() => handleToggleIntegration(opt.id)}
+                  aria-pressed={formData.integrations.includes(opt.id)}
                   className={`p-5 rounded-2xl border-2 text-left transition-all flex items-center justify-between ${
                     formData.integrations.includes(opt.id)
                       ? "border-brand-gold bg-brand-gold/10 text-white"
@@ -356,7 +293,7 @@ export default function BriefWizard({ token }: { token: string }) {
                 Atrás
               </button>
               <button
-                onClick={handleSubmit}
+                onClick={submitBrief}
                 disabled={status === "loading"}
                 className="px-10 py-5 bg-white text-black font-black uppercase tracking-widest text-xs rounded-2xl hover:scale-105 transition-all shadow-xl shadow-white/10 flex items-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
               >

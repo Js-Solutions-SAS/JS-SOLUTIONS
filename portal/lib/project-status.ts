@@ -69,11 +69,25 @@ function toMilestoneStatus(status: unknown): MilestoneStatus {
 function toDocumentStatus(status: unknown): DocumentStatus {
   const normalized = String(status ?? "").toLowerCase().trim();
 
-  if (["aprobado", "approved", "accepted", "signed"].includes(normalized)) {
+  if (
+    ["aprobado", "approved", "accepted", "signed", "quote_signed", "contract_signed"].includes(
+      normalized,
+    )
+  ) {
     return "Aprobado";
   }
 
-  if (["en revisión", "review", "qa", "pending review"].includes(normalized)) {
+  if (
+    [
+      "en revisión",
+      "review",
+      "qa",
+      "pending review",
+      "in_review",
+      "quote_in_review",
+      "contract_in_review",
+    ].includes(normalized)
+  ) {
     return "En revisión";
   }
 
@@ -91,22 +105,29 @@ function inferPhaseFromOperationalStatus(status: string): string {
     [
       "diagnóstico capturado",
       "diagnostico capturado",
+      "diagnostic_captured",
       "brief enviado",
+      "brief_requested",
       "brief completado",
+      "brief_submitted",
     ].includes(normalized)
   ) {
     return "Descubrimiento";
   }
 
-  if (normalized === "cotización en revisión" || normalized === "cotizacion en revision") {
+  if (
+    normalized === "cotización en revisión" ||
+    normalized === "cotizacion en revision" ||
+    normalized === "quote_in_review"
+  ) {
     return "Cotización";
   }
 
-  if (normalized === "firmado") {
+  if (["firmado", "quote_signed", "signed", "approved"].includes(normalized)) {
     return "Aprobado Comercial";
   }
 
-  if (normalized === "contrato enviado") {
+  if (["contrato enviado", "contract_sent", "contracted"].includes(normalized)) {
     return "Contratación";
   }
 
@@ -116,27 +137,35 @@ function inferPhaseFromOperationalStatus(status: string): string {
 function inferProgressFromOperationalStatus(status: string): number {
   const normalized = status.toLowerCase().trim();
 
-  if (normalized === "diagnóstico capturado" || normalized === "diagnostico capturado") {
+  if (
+    normalized === "diagnóstico capturado" ||
+    normalized === "diagnostico capturado" ||
+    normalized === "diagnostic_captured"
+  ) {
     return 10;
   }
 
-  if (normalized === "brief enviado") {
+  if (normalized === "brief enviado" || normalized === "brief_requested") {
     return 20;
   }
 
-  if (normalized === "brief completado") {
+  if (normalized === "brief completado" || normalized === "brief_submitted") {
     return 30;
   }
 
-  if (normalized === "cotización en revisión" || normalized === "cotizacion en revision") {
+  if (
+    normalized === "cotización en revisión" ||
+    normalized === "cotizacion en revision" ||
+    normalized === "quote_in_review"
+  ) {
     return 35;
   }
 
-  if (normalized === "firmado") {
+  if (["firmado", "quote_signed", "signed", "approved"].includes(normalized)) {
     return 50;
   }
 
-  if (normalized === "contrato enviado") {
+  if (["contrato enviado", "contract_sent", "contracted"].includes(normalized)) {
     return 65;
   }
 
