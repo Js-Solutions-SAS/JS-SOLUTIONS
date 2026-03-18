@@ -27,6 +27,7 @@ Internos (`Authorization: Bearer API_INTERNAL_TOKEN`):
 Públicos:
 
 - `POST /api/v1/public/leads/intake`
+- `POST /api/v1/public/marketing/events`
 - `POST /api/v1/public/briefs/:briefToken/submissions`
 - `POST /api/v1/public/quotes/estimate`
 
@@ -62,6 +63,9 @@ Mínimas para operar:
 - `N8N_GENERATE_CONTRACT_URL=...`
 - `N8N_PAYMENTS_CREATE_WEBHOOK_URL=...`
 - `PORTAL_BASE_URL=https://portal.jssolutions.com.co`
+- `META_CAPI_ENABLED=true`
+- `META_CAPI_PIXEL_ID=<tu_pixel_id>`
+- `META_CAPI_ACCESS_TOKEN=<token_servidor_meta>`
 
 ## Desarrollo local
 
@@ -104,6 +108,10 @@ npm run start:prod
 - `N8N_GENERATE_CONTRACT_URL=...`
 - `N8N_SECRET_TOKEN=...` (si aplica)
 - `PORTAL_BASE_URL=https://portal.jssolutions.com.co`
+- `META_CAPI_ENABLED=true`
+- `META_CAPI_PIXEL_ID=...`
+- `META_CAPI_ACCESS_TOKEN=...`
+- `META_CAPI_TEST_EVENT_CODE=...` (opcional, para pruebas en Events Manager)
 
 ### 4) Exponer públicamente
 
