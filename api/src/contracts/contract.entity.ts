@@ -20,7 +20,7 @@ export class ContractEntity {
   @Column({ name: 'contract_url', type: 'text', nullable: true })
   contractUrl!: string | null;
 
-  @Column({ name: 'contract_status', type: 'text', default: 'En revisión' })
+  @Column({ name: 'contract_status', type: 'text', default: 'in_review' })
   contractStatus!: string;
 
   @Column({

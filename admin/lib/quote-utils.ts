@@ -19,7 +19,7 @@ function mapStatusLabel(value: string): string {
   if (["in_review", "quote_in_review"].includes(normalized)) {
     return "Cotización En Revisión";
   }
-  if (["approved", "signed"].includes(normalized)) {
+  if (["approved", "signed", "quote_signed", "contract_signed"].includes(normalized)) {
     return "Firmado";
   }
   if (["contract_sent", "contracted"].includes(normalized)) {

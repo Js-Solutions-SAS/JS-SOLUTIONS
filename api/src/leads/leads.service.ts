@@ -19,6 +19,7 @@ import { CreateLeadIntakeDto } from './dto/create-lead-intake.dto';
 import { PublicLeadIntakeDto } from './dto/public-lead-intake.dto';
 import { RequestBriefDto } from './dto/request-brief.dto';
 import { LeadEntity } from './lead.entity';
+import { LEAD_STATUS } from './lead-status';
 
 @Injectable()
 export class LeadsService {
@@ -98,9 +99,17 @@ export class LeadsService {
       briefToken,
       name: dto.nombre.trim(),
       company: dto.empresa.trim(),
-      email: dto.email?.trim() || null,
-      service: dto.servicio?.trim() || null,
-      status: dto.estado?.trim() || 'Diagnóstico Capturado',
+      email: dto.email?.trim() || existing?.email || null,
+      phone: dto.phone?.trim() || existing?.phone || null,
+      service: dto.servicio?.trim() || existing?.service || null,
+      source: dto.source?.trim() || existing?.source || null,
+      utmJson:
+        dto.utm && typeof dto.utm === 'object'
+          ? dto.utm
+          : existing?.utmJson || null,
+      landingPath: dto.landingPath?.trim() || existing?.landingPath || null,
+      referrer: dto.referrer?.trim() || existing?.referrer || null,
+      status: dto.estado?.trim() || LEAD_STATUS.DIAGNOSTIC_CAPTURED,
     });
 
     const savedLead = await this.leadsRepository.save(lead);
@@ -137,8 +146,13 @@ export class LeadsService {
       nombre: dto.fullName,
       empresa: dto.companyName,
       email: dto.email,
+      phone: dto.phone,
       servicio: dto.serviceInterest,
-      estado: 'diagnostic_captured',
+      source: dto.source,
+      utm: dto.utm,
+      landingPath: dto.landingPath,
+      referrer: dto.referrer,
+      estado: LEAD_STATUS.DIAGNOSTIC_CAPTURED,
       correlationId: dto.correlationId,
       idempotencyKey:
         dto.idempotencyKey ||
@@ -203,7 +217,7 @@ export class LeadsService {
       lead.briefToken = this.generateBriefToken();
     }
 
-    lead.status = 'Brief Enviado';
+    lead.status = LEAD_STATUS.BRIEF_REQUESTED;
     await this.leadsRepository.save(lead);
 
     const links = this.buildPortalUrls(lead.briefToken);

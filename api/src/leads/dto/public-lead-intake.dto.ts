@@ -47,6 +47,16 @@ export class PublicLeadIntakeDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(200)
+  landingPath?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  referrer?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(160)
   correlationId?: string;
 

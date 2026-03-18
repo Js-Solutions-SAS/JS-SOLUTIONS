@@ -16,6 +16,7 @@ import {
 import { N8nClientService } from '../common/n8n-client.service';
 import { ContractEntity } from '../contracts/contract.entity';
 import { LeadEntity } from '../leads/lead.entity';
+import { LEAD_STATUS } from '../leads/lead-status';
 import { WorkflowEventEntity } from '../workflow-events/workflow-event.entity';
 import { GenerateQuoteDto } from './dto/generate-quote.dto';
 import { ListQuotesDto } from './dto/list-quotes.dto';
@@ -263,7 +264,7 @@ export class QuotesService {
           leadId: lead.id,
           quoteDocumentId,
           quotePdfUrl: quotePdfUrl || null,
-          quoteStatus: 'En revisión',
+          quoteStatus: 'in_review',
           quoteFeedback: dto.feedback || null,
           quoteGeneratedAt: new Date(),
           idempotencyKey,
@@ -271,7 +272,7 @@ export class QuotesService {
         }),
       );
 
-      lead.status = 'Cotización En Revisión';
+      lead.status = LEAD_STATUS.QUOTE_IN_REVIEW;
       await this.leadsRepository.save(lead);
     }
 
@@ -302,25 +303,65 @@ export class QuotesService {
     };
   }
 
-  async publicEstimate(dto: PublicQuoteEstimateDto) {
-    const leadId = generateFallbackId('lead');
+  private sanitizeMetadataObject(
+    input?: Record<string, unknown>,
+  ): Record<string, unknown> | null {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      return null;
+    }
 
-    const lead = await this.leadsRepository.save(
-      this.leadsRepository.create({
-        leadId,
-        briefToken: generateFallbackId('brief'),
-        name: dto.fullName.trim(),
-        company: dto.companyName.trim(),
-        email: dto.email?.trim() || null,
-        service: dto.serviceInterest.trim(),
-        status: 'diagnostic_captured',
-      }),
-    );
+    return input;
+  }
+
+  private async resolveLeadForPublicEstimate(
+    dto: PublicQuoteEstimateDto,
+  ): Promise<LeadEntity | null> {
+    if (dto.leadId?.trim()) {
+      const leadById = await this.leadsRepository.findOne({
+        where: { leadId: dto.leadId.trim() },
+      });
+      if (leadById) {
+        return leadById;
+      }
+    }
+
+    const normalizedEmail = dto.email.trim().toLowerCase();
+    const normalizedCompany = dto.companyName.trim().toLowerCase();
+
+    return this.leadsRepository
+      .createQueryBuilder('lead')
+      .where('LOWER(lead.email) = :email', { email: normalizedEmail })
+      .andWhere('LOWER(lead.company) = :company', { company: normalizedCompany })
+      .andWhere(`lead.updated_at >= NOW() - INTERVAL '24 hours'`)
+      .orderBy('lead.updated_at', 'DESC')
+      .getOne();
+  }
+
+  async publicEstimate(dto: PublicQuoteEstimateDto) {
+    const existingLead = await this.resolveLeadForPublicEstimate(dto);
+    const lead = this.leadsRepository.create({
+      id: existingLead?.id,
+      leadId: existingLead?.leadId || generateFallbackId('lead'),
+      briefToken: existingLead?.briefToken || generateFallbackId('brief'),
+      name: dto.fullName.trim(),
+      company: dto.companyName.trim(),
+      email: dto.email.trim().toLowerCase(),
+      phone: dto.phone?.trim() || existingLead?.phone || null,
+      service: dto.serviceInterest.trim(),
+      source: dto.source?.trim() || existingLead?.source || 'landing_quote_estimator',
+      utmJson: this.sanitizeMetadataObject(dto.utm) || existingLead?.utmJson || null,
+      landingPath: dto.landingPath?.trim() || existingLead?.landingPath || null,
+      referrer: dto.referrer?.trim() || existingLead?.referrer || null,
+      status: LEAD_STATUS.DIAGNOSTIC_CAPTURED,
+      version: existingLead ? existingLead.version + 1 : 1,
+    });
+
+    const savedLead = await this.leadsRepository.save(lead);
 
     const mode = dto.mode || 'preview';
     const generated = await this.generateQuote({
-      leadId: lead.leadId,
-      clientToken: lead.briefToken || generateFallbackId('brief'),
+      leadId: savedLead.leadId,
+      clientToken: savedLead.briefToken || generateFallbackId('brief'),
       transcripcion: dto.transcription,
       feedback: dto.feedback,
       mode,
@@ -330,8 +371,8 @@ export class QuotesService {
 
     return {
       ...generated,
-      leadId: lead.leadId,
-      briefToken: lead.briefToken,
+      leadId: savedLead.leadId,
+      briefToken: savedLead.briefToken,
     };
   }
 }

@@ -1,4 +1,12 @@
-import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import type { Request } from 'express';
 
 import { Public } from '../../auth/public.decorator';
@@ -13,6 +21,14 @@ import { SubmitBriefDto } from './dto/submit-brief.dto';
 @Controller('api/v1/public/briefs')
 export class BriefsController {
   constructor(private readonly briefsService: BriefsService) {}
+
+  @Public()
+  @UseGuards(PublicRateLimitGuard)
+  @Get(':briefToken')
+  getBriefContext(@Param('briefToken') briefToken: string, @Req() req: Request) {
+    const correlationId = getCorrelationId(req, 'public-brief-context');
+    return this.briefsService.getBriefContext(briefToken, correlationId);
+  }
 
   @Public()
   @UseGuards(PublicRateLimitGuard)

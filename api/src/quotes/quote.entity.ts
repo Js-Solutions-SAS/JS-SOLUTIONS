@@ -20,7 +20,7 @@ export class QuoteEntity {
   @Column({ name: 'quote_pdf_url', type: 'text', nullable: true })
   quotePdfUrl!: string | null;
 
-  @Column({ name: 'quote_status', type: 'text', default: 'En revisión' })
+  @Column({ name: 'quote_status', type: 'text', default: 'in_review' })
   quoteStatus!: string;
 
   @Column({ name: 'quote_feedback', type: 'text', nullable: true })

@@ -1,5 +1,7 @@
 import {
+  IsEmail,
   IsIn,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -7,6 +9,11 @@ import {
 } from 'class-validator';
 
 export class PublicQuoteEstimateDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  leadId?: string;
+
   @IsString()
   @MinLength(2)
   @MaxLength(120)
@@ -17,10 +24,14 @@ export class PublicQuoteEstimateDto {
   @MaxLength(160)
   companyName!: string;
 
+  @IsEmail()
+  @MaxLength(160)
+  email!: string;
+
   @IsOptional()
   @IsString()
-  @MaxLength(160)
-  email?: string;
+  @MaxLength(60)
+  phone?: string;
 
   @IsString()
   @MaxLength(220)
@@ -43,6 +54,20 @@ export class PublicQuoteEstimateDto {
   @IsString()
   @MaxLength(120)
   source?: string;
+
+  @IsOptional()
+  @IsObject()
+  utm?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  landingPath?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  referrer?: string;
 
   @IsOptional()
   @IsString()

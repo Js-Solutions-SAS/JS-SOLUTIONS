@@ -8,6 +8,7 @@ import { QueryFailedError, Repository } from 'typeorm';
 
 import { BriefSubmissionEntity } from '../../leads/brief-submission.entity';
 import { LeadEntity } from '../../leads/lead.entity';
+import { LEAD_STATUS } from '../../leads/lead-status';
 import { ProjectEntity } from '../projects/project.entity';
 import { AuditService } from '../shared/audit/audit.service';
 import { okResponse } from '../shared/contracts/api-response';
@@ -24,6 +25,27 @@ export class BriefsService {
     private readonly projectsRepository: Repository<ProjectEntity>,
     private readonly auditService: AuditService,
   ) {}
+
+  async getBriefContext(briefToken: string, correlationId: string) {
+    const lead = await this.leadsRepository.findOne({
+      where: { briefToken },
+    });
+
+    if (!lead) {
+      throw new NotFoundException('Brief token not found.');
+    }
+
+    return okResponse(
+      {
+        briefToken,
+        leadId: lead.leadId,
+        companyName: lead.company,
+        status: lead.status,
+      },
+      correlationId,
+      lead.version,
+    );
+  }
 
   async submitBrief(
     briefToken: string,
@@ -79,7 +101,7 @@ export class BriefsService {
       throw new ConflictException('Unable to persist brief submission.');
     }
 
-    lead.status = 'brief_submitted';
+    lead.status = LEAD_STATUS.BRIEF_SUBMITTED;
     await this.leadsRepository.save(lead);
 
     let project = await this.projectsRepository.findOne({

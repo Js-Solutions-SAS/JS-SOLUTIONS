@@ -18,6 +18,7 @@ import { N8nClientService } from '../common/n8n-client.service';
 import { GenerateContractDto } from './dto/generate-contract.dto';
 import { ContractEntity } from './contract.entity';
 import { LeadEntity } from '../leads/lead.entity';
+import { LEAD_STATUS } from '../leads/lead-status';
 import { WorkflowEventEntity } from '../workflow-events/workflow-event.entity';
 
 @Injectable()
@@ -132,14 +133,14 @@ export class ContractsService {
         leadId: lead.id,
         contractDocumentId,
         contractUrl: contractUrl || null,
-        contractStatus: 'En revisión',
+        contractStatus: 'in_review',
         contractGeneratedAt: new Date(),
         idempotencyKey,
         correlationId,
       }),
     );
 
-    lead.status = 'Contrato Enviado';
+    lead.status = LEAD_STATUS.CONTRACT_SENT;
     await this.leadsRepository.save(lead);
 
     await this.logWorkflowEvent({
