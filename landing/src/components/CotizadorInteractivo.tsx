@@ -1,240 +1,93 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
-const SERVICES = [
-  {
-    id: "autom",
-    name: "Automatización con n8n",
-    prices: { baja: 1200000, media: 3500000, alta: 6500000 },
-  },
-  {
-    id: "software",
-    name: "Desarrollo a Medida (Web/App)",
-    prices: { baja: 3500000, media: 12000000, alta: 25000000 },
-  },
-  {
-    id: "voz",
-    name: "Agentes de Voz con IA",
-    prices: { baja: 1800000, media: 6000000, alta: 12000000 },
-  },
-  {
-    id: "content",
-    name: "Content Factory",
-    prices: { baja: 900000, media: 2500000, alta: 5000000 },
-  },
-];
+import { useQuoteEstimator } from "@/hooks/useQuoteEstimator";
 
 export default function CotizadorInteractivo({
   apiBaseUrl,
 }: {
   apiBaseUrl: string;
 }) {
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [complexity, setComplexity] = useState<"baja" | "media" | "alta">(
-    "media",
-  );
-  const [sector, setSector] = useState<"pyme" | "publico">("pyme");
+  const {
+    SERVICES,
+    selectedServices,
+    complexity,
+    sector,
+    nombre,
+    empresa,
+    email,
+    detalles,
+    status,
+    errorMessage,
+    formMessage,
+    showModal,
+    previewPdfUrl,
+    quoteId,
+    feedback,
+    isCorrecting,
+    estimatedRange,
+    setComplexity,
+    setSector,
+    setNombre,
+    setEmpresa,
+    setEmail,
+    setDetalles,
+    setStatus,
+    setFeedback,
+    setIsCorrecting,
+    handleServiceToggle,
+    handleSubmit,
+    handleAprobar,
+    handleCorregir,
+    closeModal,
+  } = useQuoteEstimator(apiBaseUrl);
 
-  const [nombre, setNombre] = useState("");
-  const [empresa, setEmpresa] = useState("");
-  const [email, setEmail] = useState("");
-  const [detalles, setDetalles] = useState("");
+  const modalRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [errorMessage, setErrorMessage] = useState("");
-
-  // Modal State
-  const [showModal, setShowModal] = useState(false);
-  const [previewPdfUrl, setPreviewPdfUrl] = useState("");
-  const [quoteId, setQuoteId] = useState("");
-  const [feedback, setFeedback] = useState("");
-  const [isCorrecting, setIsCorrecting] = useState(false);
-
-  // Debug timing
-  const [startTime, setStartTime] = useState<number | null>(null);
-
-  const handleServiceToggle = (id: string) => {
-    setSelectedServices((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
-    );
-  };
-
-  const estimatedRange = useMemo(() => {
-    if (selectedServices.length === 0) return { min: 0, max: 0 };
-    let min = 0;
-    let max = 0;
-    selectedServices.forEach((srvId) => {
-      const srv = SERVICES.find((s) => s.id === srvId);
-      if (srv) {
-        if (complexity === "baja") {
-          min += srv.prices.baja;
-          max += srv.prices.media;
-        } else if (complexity === "media") {
-          min += srv.prices.media;
-          max += (srv.prices.media + srv.prices.alta) / 2;
-        } else {
-          min += srv.prices.alta;
-          max += srv.prices.alta * 1.5;
-        }
-      }
-    });
-    if (sector === "publico") {
-      min *= 1.2;
-      max *= 1.3;
-    }
-    return { min, max };
-  }, [selectedServices, complexity, sector]);
-
-  // ELIMINAMOS EL TIMEOUT INTERNO PARA PROBAR CONEXIÓN PURA
-  const handleSubmit = async (
-    e?: React.FormEvent,
-    actionOverride?: string,
-    feedbackText?: string,
-  ) => {
-    if (e) e.preventDefault();
-
-    console.log("🚀 [Cotizador] Click detectado. Iniciando proceso...");
-
-    if (selectedServices.length === 0) {
-      alert("Selecciona al menos un servicio.");
+  useEffect(() => {
+    if (!showModal) {
       return;
     }
 
-    setStatus("loading");
-    setErrorMessage("");
-    const start = Date.now();
-    setStartTime(start);
+    closeButtonRef.current?.focus();
 
-    const selectedServiceNames = selectedServices
-      .map((id) => SERVICES.find((s) => s.id === id)?.name)
-      .join(", ");
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeModal();
+        return;
+      }
 
-    const mode =
-      actionOverride === "aprobar"
-        ? "send"
-        : actionOverride === "corregir"
-          ? "preview"
-          : "preview";
+      if (event.key !== "Tab" || !modalRef.current) {
+        return;
+      }
 
-    const payload = {
-      fullName: nombre,
-      companyName: empresa,
-      email,
-      serviceInterest: selectedServiceNames,
-      source: "landing_quote_estimator",
-      mode,
-      feedback: feedbackText || "",
-      transcription: `
-        SOLICITUD DE COTIZACIÓN - JS SOLUTIONS
-        --------------------------------------
-        CLIENTE: ${nombre}
-        EMPRESA: ${empresa}
-        SECTOR: ${sector.toUpperCase()}
-        SERVICIOS: ${selectedServiceNames}
-        COMPLEJIDAD: ${complexity.toUpperCase()}
-        INVERSIÓN ESTIMADA: $${estimatedRange.min.toLocaleString()} - $${estimatedRange.max.toLocaleString()} COP
-        
-        REQUERIMIENTOS DETALLADOS:
-        ${detalles || "No se proporcionaron detalles adicionales."}
-      `.trim(),
-    };
-
-    const primaryUrl = `${apiBaseUrl.replace(/\/$/, "")}/api/v1/public/quotes/estimate`;
-
-    console.log("📤 [Cotizador] Enviando a API:", primaryUrl);
-
-    try {
-      const response = await fetch(primaryUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      console.log(
-        `📥 [Cotizador] Status: ${response.status} (${Date.now() - start}ms)`,
+      const focusable = Array.from(
+        modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
       );
 
-      if (!response.ok) {
-        throw new Error(
-          `Error ${response.status}: El servidor API no procesó la solicitud.`,
-        );
+      if (focusable.length === 0) {
+        return;
       }
 
-      // Leemos el texto primero para verificar si está vacío
-      const responseText = await response.text();
-      let result = null;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
 
-      if (responseText) {
-        try {
-          result = JSON.parse(responseText);
-          console.log("✨ [Cotizador] Respuesta JSON:", result);
-        } catch (e) {
-          console.warn(
-            "⚠️ [Cotizador] La respuesta no es un JSON válido, pero el status es OK.",
-          );
-        }
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
       }
+    };
 
-      const isPreview = mode === "preview";
-      const urlFromN8n = result?.quotePdfUrl || result?.pdfUrl || result?.driveUrl;
-
-      if (urlFromN8n) {
-        // Transformar link de Drive para que sea visible en iframe (/view -> /preview)
-        let processedUrl = urlFromN8n;
-        if (processedUrl.includes("drive.google.com")) {
-          processedUrl = processedUrl.replace(/\/view(\?.*)?$/, "/preview");
-        }
-
-        setPreviewPdfUrl(processedUrl);
-        setQuoteId(result.id || `JS-${Date.now()}`);
-        setShowModal(true);
-        setStatus("idle");
-      } else if (isPreview) {
-        // Si no hay URL pero es preview, abrimos modal con aviso
-        setPreviewPdfUrl("");
-        setQuoteId(`TEST-${Date.now()}`);
-        setShowModal(true);
-        setStatus("idle");
-      } else {
-        setStatus("success");
-      }
-    } catch (err: any) {
-      const duration = Date.now() - start;
-      console.error(`💥 [Cotizador] Error tras ${duration}ms:`, err);
-
-      setStatus("error");
-
-      if (err.name === "AbortError" || err.message.includes("aborted")) {
-        setErrorMessage(
-          "La conexión fue cerrada prematuramente. Verifica la API y el flujo interno de cotización.",
-        );
-      } else {
-        setErrorMessage(
-          `No se pudo conectar con API (${duration}ms). \n\n` +
-            "Causas posibles:\n" +
-            "1. API no está disponible o sin conexión a n8n.\n" +
-            "2. API_BASE_URL es incorrecta.\n" +
-            "3. El webhook interno de generación no está activo.",
-        );
-      }
-    }
-  };
-
-  const handleAprobar = () => {
-    handleSubmit(undefined, "aprobar");
-    setShowModal(false);
-  };
-
-  const handleCorregir = () => {
-    if (!feedback) return;
-    handleSubmit(undefined, "corregir", feedback);
-    setIsCorrecting(false);
-    setFeedback("");
-    setShowModal(false);
-  };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showModal, closeModal]);
 
   if (status === "success") {
     return (
@@ -272,131 +125,206 @@ export default function CotizadorInteractivo({
         </div>
 
         {status === "error" && (
-          <div className="bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 p-6 rounded-2xl border border-red-200 dark:border-red-900/30 text-[11px] font-bold whitespace-pre-line leading-relaxed">
-            ⚠️ ERROR DE CONEXIÓN
+          <div
+            className="bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 p-6 rounded-2xl border border-red-200 dark:border-red-900/30 text-[11px] font-bold whitespace-pre-line leading-relaxed"
+            role="alert"
+          >
+            ⚠️ ERROR DE CONEXION
             <br />
             {errorMessage}
           </div>
         )}
 
+        {formMessage && status !== "error" && (
+          <div
+            className="bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 p-4 rounded-xl border border-emerald-200/80 dark:border-emerald-900/40 text-xs font-semibold"
+            role="status"
+            aria-live="polite"
+          >
+            {formMessage}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-12">
-          {/* SECTOR */}
           <div className="space-y-4">
             <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-2">
               01 / Entidad
             </h3>
             <div className="flex gap-4 bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded-2xl">
-              {["pyme", "publico"].map((s) => (
+              {["pyme", "publico"].map((value) => (
                 <button
                   type="button"
-                  key={s}
-                  onClick={() => setSector(s as any)}
-                  className={`flex-1 py-4 text-[11px] font-black rounded-xl transition-all ${sector === s ? "bg-white dark:bg-zinc-700 shadow-xl text-zinc-900 dark:text-white" : "text-zinc-400 hover:text-zinc-600"}`}
+                  key={value}
+                  onClick={() => setSector(value as "pyme" | "publico")}
+                  aria-pressed={sector === value}
+                  className={`flex-1 py-4 text-[11px] font-black rounded-xl transition-all ${
+                    sector === value
+                      ? "bg-white dark:bg-zinc-700 shadow-xl text-zinc-900 dark:text-white"
+                      : "text-zinc-400 hover:text-zinc-600"
+                  }`}
                 >
-                  {s.toUpperCase()}
+                  {value.toUpperCase()}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* SERVICIOS */}
           <div className="space-y-4">
             <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-2">
               02 / Soluciones
             </h3>
             <div className="grid grid-cols-1 gap-3">
-              {SERVICES.map((srv) => (
-                <button
-                  type="button"
-                  key={srv.id}
-                  onClick={() => handleServiceToggle(srv.id)}
-                  className={`p-5 rounded-2xl border-2 text-left transition-all flex items-center justify-between ${selectedServices.includes(srv.id) ? "border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-800/50" : "border-transparent bg-zinc-50/50 dark:bg-zinc-900/30 hover:bg-zinc-100"}`}
-                >
-                  <span
-                    className={`font-black text-[11px] uppercase tracking-wider ${selectedServices.includes(srv.id) ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400"}`}
+              {SERVICES.map((service) => {
+                const selected = selectedServices.includes(service.id);
+                return (
+                  <button
+                    type="button"
+                    key={service.id}
+                    onClick={() => handleServiceToggle(service.id)}
+                    aria-pressed={selected}
+                    className={`p-5 rounded-2xl border-2 text-left transition-all flex items-center justify-between ${
+                      selected
+                        ? "border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-800/50"
+                        : "border-transparent bg-zinc-50/50 dark:bg-zinc-900/30 hover:bg-zinc-100"
+                    }`}
                   >
-                    {srv.name}
-                  </span>
-                  <div
-                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${selectedServices.includes(srv.id) ? "bg-zinc-900 dark:bg-zinc-100 border-zinc-900 dark:border-zinc-100" : "border-zinc-100 dark:border-zinc-800"}`}
-                  >
-                    {selectedServices.includes(srv.id) && (
-                      <span className="text-xs font-black text-white dark:text-black">
-                        ✓
-                      </span>
-                    )}
-                  </div>
-                </button>
-              ))}
+                    <span
+                      className={`font-black text-[11px] uppercase tracking-wider ${
+                        selected
+                          ? "text-zinc-900 dark:text-zinc-100"
+                          : "text-zinc-400"
+                      }`}
+                    >
+                      {service.name}
+                    </span>
+                    <div
+                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                        selected
+                          ? "bg-zinc-900 dark:bg-zinc-100 border-zinc-900 dark:border-zinc-100"
+                          : "border-zinc-100 dark:border-zinc-800"
+                      }`}
+                    >
+                      {selected && (
+                        <span className="text-xs font-black text-white dark:text-black">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* ESCALA */}
           <div
-            className={`space-y-4 transition-all ${selectedServices.length === 0 ? "opacity-20 blur-sm pointer-events-none" : "opacity-100"}`}
+            className={`space-y-4 transition-all ${
+              selectedServices.length === 0
+                ? "opacity-20 blur-sm pointer-events-none"
+                : "opacity-100"
+            }`}
           >
             <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-2">
               03 / Escala
             </h3>
             <div className="flex gap-3 bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded-2xl">
-              {["baja", "media", "alta"].map((lvl) => (
+              {["baja", "media", "alta"].map((level) => (
                 <button
                   type="button"
-                  key={lvl}
-                  onClick={() => setComplexity(lvl as any)}
-                  className={`flex-1 py-3 text-[10px] font-black rounded-xl capitalize transition-all ${complexity === lvl ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-2xl" : "text-zinc-400 hover:text-zinc-800"}`}
+                  key={level}
+                  onClick={() => setComplexity(level as "baja" | "media" | "alta")}
+                  aria-pressed={complexity === level}
+                  className={`flex-1 py-3 text-[10px] font-black rounded-xl capitalize transition-all ${
+                    complexity === level
+                      ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-2xl"
+                      : "text-zinc-400 hover:text-zinc-800"
+                  }`}
                 >
-                  {lvl}
+                  {level}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* DATOS */}
           <div
-            className={`space-y-6 transition-all ${selectedServices.length === 0 ? "opacity-20 blur-sm pointer-events-none" : "opacity-100"}`}
+            className={`space-y-6 transition-all ${
+              selectedServices.length === 0
+                ? "opacity-20 blur-sm pointer-events-none"
+                : "opacity-100"
+            }`}
           >
             <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-2">
-              04 / Información
+              04 / Informacion
             </h3>
             <div className="space-y-3">
+              <label htmlFor="quote-full-name" className="sr-only">
+                Nombre completo
+              </label>
               <input
+                id="quote-full-name"
                 type="text"
                 required
                 value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
+                onChange={(event) => setNombre(event.target.value)}
                 className="w-full px-8 py-5 border-2 border-transparent rounded-2xl focus:border-zinc-900 dark:focus:border-zinc-100 outline-none bg-zinc-50/50 dark:bg-zinc-800/30 text-zinc-900 dark:text-white transition-all text-xs font-black uppercase tracking-widest placeholder:text-zinc-300"
                 placeholder="NOMBRE COMPLETO"
+                autoComplete="name"
               />
+
+              <label htmlFor="quote-company" className="sr-only">
+                Empresa
+              </label>
               <input
+                id="quote-company"
                 type="text"
                 required
                 value={empresa}
-                onChange={(e) => setEmpresa(e.target.value)}
+                onChange={(event) => setEmpresa(event.target.value)}
                 className="w-full px-8 py-5 border-2 border-transparent rounded-2xl focus:border-zinc-900 dark:focus:border-zinc-100 outline-none bg-zinc-50/50 dark:bg-zinc-800/30 text-zinc-900 dark:text-white transition-all text-xs font-black uppercase tracking-widest placeholder:text-zinc-300"
                 placeholder="EMPRESA"
+                autoComplete="organization"
               />
+
+              <label htmlFor="quote-email" className="sr-only">
+                Correo electronico
+              </label>
+              <input
+                id="quote-email"
+                type="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="w-full px-8 py-5 border-2 border-transparent rounded-2xl focus:border-zinc-900 dark:focus:border-zinc-100 outline-none bg-zinc-50/50 dark:bg-zinc-800/30 text-zinc-900 dark:text-white transition-all text-xs font-black tracking-widest placeholder:text-zinc-300"
+                placeholder="EMAIL DE CONTACTO"
+                autoComplete="email"
+              />
+
+              <label htmlFor="quote-details" className="sr-only">
+                Necesidad principal
+              </label>
               <textarea
+                id="quote-details"
                 value={detalles}
-                onChange={(e) => setDetalles(e.target.value)}
+                onChange={(event) => setDetalles(event.target.value)}
                 rows={3}
                 className="w-full px-8 py-5 border-2 border-transparent rounded-2xl focus:border-zinc-900 dark:focus:border-zinc-100 outline-none bg-zinc-50/50 dark:bg-zinc-800/30 text-zinc-900 dark:text-white transition-all text-xs font-black tracking-widest resize-none placeholder:text-zinc-300"
-                placeholder="CUÉNTANOS TU NECESIDAD..."
-              ></textarea>
+                placeholder="CUENTANOS TU NECESIDAD..."
+              />
             </div>
           </div>
 
           <div
-            className={`p-10 bg-zinc-950 rounded-[3rem] text-center transition-all ${selectedServices.length === 0 ? "opacity-20 scale-95" : "opacity-100 shadow-2xl translate-y-3"}`}
+            className={`p-10 bg-zinc-950 rounded-[3rem] text-center transition-all ${
+              selectedServices.length === 0
+                ? "opacity-20 scale-95"
+                : "opacity-100 shadow-2xl translate-y-3"
+            }`}
           >
             <div className="text-4xl md:text-5xl font-black text-white mb-10 flex items-center justify-center gap-2 tracking-tighter">
               <span className="text-xl text-zinc-600 font-normal">$</span>
               {estimatedRange.min.toLocaleString()}
               <span className="text-xl text-zinc-600 font-normal">-</span>
               {estimatedRange.max.toLocaleString()}
-              <span className="text-[10px] text-zinc-500 font-black ml-3">
-                COP
-              </span>
+              <span className="text-[10px] text-zinc-500 font-black ml-3">COP</span>
             </div>
 
             <button
@@ -406,38 +334,48 @@ export default function CotizadorInteractivo({
             >
               {status === "loading"
                 ? "CONECTANDO CON IA..."
-                : "GENERAR DIAGNÓSTICO ESTRATÉGICO"}
+                : "GENERAR DIAGNOSTICO ESTRATEGICO"}
             </button>
           </div>
         </form>
       </div>
 
-      {/* MODAL DE PREVIEW */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-8 bg-black/95 backdrop-blur-3xl animate-in fade-in duration-500">
-          <div className="bg-white dark:bg-zinc-950 w-full max-w-6xl h-full max-h-[85vh] rounded-[3.5rem] shadow-2xl flex flex-col overflow-hidden border border-zinc-100 dark:border-zinc-800">
+          <div
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="quote-modal-title"
+            className="bg-white dark:bg-zinc-950 w-full max-w-6xl h-full max-h-[85vh] rounded-[3.5rem] shadow-2xl flex flex-col overflow-hidden border border-zinc-100 dark:border-zinc-800"
+          >
             <div className="px-12 py-10 flex justify-between items-center border-b dark:border-zinc-900">
-              <h3 className="text-3xl font-black text-zinc-900 dark:text-zinc-100 uppercase tracking-tighter italic">
+              <h3
+                id="quote-modal-title"
+                className="text-3xl font-black text-zinc-900 dark:text-zinc-100 uppercase tracking-tighter italic"
+              >
                 Preview
                 <span className="text-zinc-300 dark:text-zinc-700 not-italic ml-2">
                   DOCUMENT
                 </span>
               </h3>
               <button
-                onClick={() => setShowModal(false)}
+                ref={closeButtonRef}
+                onClick={closeModal}
                 className="text-2xl font-light"
+                aria-label="Cerrar previsualizacion"
               >
                 ✕
               </button>
             </div>
-            {/* Content (PDF o Fallback) */}
+
             <div className="flex-1 bg-zinc-100 dark:bg-zinc-950 p-6 md:p-12 relative overflow-hidden">
               <div className="w-full h-full rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-center">
                 {previewPdfUrl ? (
                   <iframe
                     src={previewPdfUrl}
                     className="w-full h-full border-none"
-                    title="Cotización Final"
+                    title="Cotizacion Final"
                   />
                 ) : (
                   <div className="text-center p-10 space-y-6 max-w-md">
@@ -449,37 +387,64 @@ export default function CotizadorInteractivo({
                         Esperando Documento
                       </h4>
                       <p className="text-xs text-zinc-400 font-bold leading-relaxed">
-                        El Webhook respondió exitosamente (200 OK), pero no se
-                        detectó un campo{" "}
-                        <code className="text-zinc-600">pdfUrl</code> en el JSON
-                        de respuesta.
+                        El flujo respondio sin URL de PDF. Revisa la salida del
+                        workflow y vuelve a generar.
                       </p>
-                    </div>
-                    <div className="pt-4 border-t dark:border-zinc-800 text-[10px] text-zinc-500 font-black uppercase tracking-widest text-left space-y-2">
-                      <p className="text-zinc-700 dark:text-zinc-300">
-                        Checklist para n8n:
-                      </p>
-                      <p>1. ¿Usaste un nodo "Respond to Webhook"?</p>
-                      <p>2. ¿El JSON de salida incluye 'pdfUrl'?</p>
-                      <p>3. ¿El flujo terminó de ejecutarse?</p>
                     </div>
                   </div>
                 )}
               </div>
             </div>
-            <div className="px-12 py-10 bg-white dark:bg-zinc-950 border-t dark:border-zinc-900 flex flex-col md:flex-row gap-6">
-              <button
-                onClick={() => setIsCorrecting(true)}
-                className="flex-1 py-5 border-2 border-zinc-100 dark:border-zinc-800 text-zinc-400 font-black rounded-2xl text-[10px] uppercase tracking-widest"
-              >
-                🔄 AJUSTAR
-              </button>
-              <button
-                onClick={handleAprobar}
-                className="flex-[2] py-5 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 text-white font-black rounded-2xl shadow-2xl text-[11px] uppercase tracking-widest italic"
-              >
-                APROBAR PROYECTO →
-              </button>
+
+            <div className="px-12 py-8 bg-white dark:bg-zinc-950 border-t dark:border-zinc-900 space-y-4">
+              <p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold">
+                Quote ID: {quoteId}
+              </p>
+
+              {isCorrecting ? (
+                <div className="space-y-4">
+                  <label htmlFor="quote-feedback" className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                    Ajustes solicitados
+                  </label>
+                  <textarea
+                    id="quote-feedback"
+                    rows={3}
+                    value={feedback}
+                    onChange={(event) => setFeedback(event.target.value)}
+                    className="w-full px-6 py-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-400"
+                    placeholder="Describe cambios de alcance, tiempos o entregables..."
+                  />
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <button
+                      onClick={() => setIsCorrecting(false)}
+                      className="flex-1 py-4 border-2 border-zinc-200 dark:border-zinc-800 text-zinc-500 font-black rounded-2xl text-[10px] uppercase tracking-widest"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleCorregir}
+                      className="flex-[2] py-4 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 text-white font-black rounded-2xl text-[11px] uppercase tracking-widest"
+                    >
+                      Regenerar Preview
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col md:flex-row gap-6">
+                  <button
+                    onClick={() => setIsCorrecting(true)}
+                    className="flex-1 py-5 border-2 border-zinc-100 dark:border-zinc-800 text-zinc-400 font-black rounded-2xl text-[10px] uppercase tracking-widest"
+                  >
+                    AJUSTAR
+                  </button>
+                  <button
+                    onClick={handleAprobar}
+                    className="flex-[2] py-5 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 text-white font-black rounded-2xl shadow-2xl text-[11px] uppercase tracking-widest italic"
+                  >
+                    APROBAR PROYECTO
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
