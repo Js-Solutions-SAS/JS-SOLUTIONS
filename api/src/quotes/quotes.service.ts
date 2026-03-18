@@ -1,6 +1,7 @@
 import {
   BadGatewayException,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -13,7 +14,9 @@ import {
   generateFallbackId,
   generateIdempotencyKey,
 } from '../common/ids';
+import { MetaConversionsApiService } from '../common/meta-conversions-api.service';
 import { N8nClientService } from '../common/n8n-client.service';
+import { PublicRequestContext } from '../common/public-request-context';
 import { ContractEntity } from '../contracts/contract.entity';
 import { LeadEntity } from '../leads/lead.entity';
 import { LEAD_STATUS } from '../leads/lead-status';
@@ -31,6 +34,8 @@ type QuoteListRow = Record<string, unknown>;
 
 @Injectable()
 export class QuotesService {
+  private readonly logger = new Logger(QuotesService.name);
+
   constructor(
     private readonly dataSource: DataSource,
     private readonly configService: ConfigService,
@@ -43,6 +48,7 @@ export class QuotesService {
     private readonly contractsRepository: Repository<ContractEntity>,
     @InjectRepository(WorkflowEventEntity)
     private readonly workflowEventsRepository: Repository<WorkflowEventEntity>,
+    private readonly metaConversionsApiService: MetaConversionsApiService,
   ) {}
 
   private async logWorkflowEvent(input: {
@@ -347,7 +353,19 @@ export class QuotesService {
       .getOne();
   }
 
-  async publicEstimate(dto: PublicQuoteEstimateDto) {
+  async publicEstimate(
+    dto: PublicQuoteEstimateDto,
+    requestContext?: PublicRequestContext,
+  ) {
+    const correlationId =
+      dto.correlationId?.trim() || generateCorrelationId('public-quote');
+    const idempotencyKey =
+      dto.idempotencyKey?.trim() ||
+      generateIdempotencyKey(
+        'public-quote-estimate',
+        `${dto.email}:${dto.companyName}:${dto.serviceInterest}:${dto.mode || 'preview'}`,
+      );
+
     const existingLead = await this.resolveLeadForPublicEstimate(dto);
     const lead = this.leadsRepository.create({
       id: existingLead?.id,
@@ -375,9 +393,52 @@ export class QuotesService {
       transcripcion: dto.transcription,
       feedback: dto.feedback,
       mode,
-      correlationId: dto.correlationId,
-      idempotencyKey: dto.idempotencyKey,
+      correlationId,
+      idempotencyKey,
     });
+
+    void this.metaConversionsApiService
+      .sendEvents([
+        {
+          eventName: 'Search',
+          eventId: `search:${correlationId}`,
+          eventSourceUrl:
+            requestContext?.sourceUrl ||
+            dto.landingPath?.trim() ||
+            undefined,
+          actionSource: 'website',
+          userData: {
+            email: dto.email,
+            phone: dto.phone,
+            externalId: savedLead.leadId,
+            clientIpAddress: requestContext?.clientIpAddress,
+            clientUserAgent: requestContext?.clientUserAgent,
+            fbc: requestContext?.fbc,
+            fbp: requestContext?.fbp,
+          },
+          customData: {
+            source: dto.source?.trim() || 'landing_quote_estimator',
+            search_string: dto.serviceInterest.trim(),
+            mode,
+            correlation_id: correlationId,
+            landing_path: dto.landingPath || '',
+            referrer: dto.referrer || requestContext?.referrer || '',
+          },
+        },
+      ])
+      .catch(async (error) => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`No se pudo enviar evento Search a Meta CAPI: ${errorMessage}`);
+        await this.logWorkflowEvent({
+          workflowName: 'api.public-quote-estimate',
+          eventName: 'meta.search.failed',
+          status: 'warning',
+          leadId: savedLead.leadId,
+          idempotencyKey,
+          correlationId,
+          errorMessage,
+        });
+      });
 
     return {
       ...generated,

@@ -1,6 +1,7 @@
 import {
   BadGatewayException,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -14,8 +15,11 @@ import {
   generateIdempotencyKey,
 } from '../common/ids';
 import { N8nClientService } from '../common/n8n-client.service';
+import { MetaConversionsApiService } from '../common/meta-conversions-api.service';
+import { PublicRequestContext } from '../common/public-request-context';
 import { WorkflowEventEntity } from '../workflow-events/workflow-event.entity';
 import { CreateLeadIntakeDto } from './dto/create-lead-intake.dto';
+import { PublicMarketingEventDto } from './dto/public-marketing-event.dto';
 import { PublicLeadIntakeDto } from './dto/public-lead-intake.dto';
 import { RequestBriefDto } from './dto/request-brief.dto';
 import { LeadEntity } from './lead.entity';
@@ -23,6 +27,8 @@ import { LEAD_STATUS } from './lead-status';
 
 @Injectable()
 export class LeadsService {
+  private readonly logger = new Logger(LeadsService.name);
+
   constructor(
     @InjectRepository(LeadEntity)
     private readonly leadsRepository: Repository<LeadEntity>,
@@ -30,6 +36,7 @@ export class LeadsService {
     private readonly workflowEventsRepository: Repository<WorkflowEventEntity>,
     private readonly configService: ConfigService,
     private readonly n8nClientService: N8nClientService,
+    private readonly metaConversionsApiService: MetaConversionsApiService,
   ) {}
 
   private buildPortalUrls(token: string) {
@@ -77,6 +84,20 @@ export class LeadsService {
         errorMessage: input.errorMessage || null,
       }),
     );
+  }
+
+  private splitFullName(fullName: string): { firstName?: string; lastName?: string } {
+    const normalized = fullName.trim().replace(/\s+/g, ' ');
+    if (!normalized) return {};
+
+    const parts = normalized.split(' ');
+    const firstName = parts.shift();
+    const lastName = parts.length > 0 ? parts.join(' ') : undefined;
+
+    return {
+      firstName,
+      lastName,
+    };
   }
 
   async createIntake(dto: CreateLeadIntakeDto) {
@@ -141,8 +162,20 @@ export class LeadsService {
     };
   }
 
-  async createPublicIntake(dto: PublicLeadIntakeDto) {
-    return this.createIntake({
+  async createPublicIntake(
+    dto: PublicLeadIntakeDto,
+    requestContext?: PublicRequestContext,
+  ) {
+    const correlationId =
+      dto.correlationId?.trim() || generateCorrelationId('public-intake');
+    const idempotencyKey =
+      dto.idempotencyKey ||
+      generateIdempotencyKey(
+        'public-intake',
+        `${dto.email || dto.fullName}:${dto.companyName}:${dto.source}`,
+      );
+
+    const response = await this.createIntake({
       nombre: dto.fullName,
       empresa: dto.companyName,
       email: dto.email,
@@ -153,14 +186,139 @@ export class LeadsService {
       landingPath: dto.landingPath,
       referrer: dto.referrer,
       estado: LEAD_STATUS.DIAGNOSTIC_CAPTURED,
-      correlationId: dto.correlationId,
-      idempotencyKey:
-        dto.idempotencyKey ||
-        generateIdempotencyKey(
-          'public-intake',
-          `${dto.email || dto.fullName}:${dto.companyName}:${dto.source}`,
-        ),
+      correlationId,
+      idempotencyKey,
     });
+
+    const { firstName, lastName } = this.splitFullName(dto.fullName);
+
+    void this.metaConversionsApiService
+      .sendEvents([
+        {
+          eventName: 'Lead',
+          eventId: `lead:${correlationId}`,
+          eventSourceUrl:
+            requestContext?.sourceUrl ||
+            dto.landingPath?.trim() ||
+            undefined,
+          actionSource: 'website',
+          userData: {
+            email: dto.email,
+            phone: dto.phone,
+            firstName,
+            lastName,
+            externalId: response.leadId,
+            clientIpAddress: requestContext?.clientIpAddress,
+            clientUserAgent: requestContext?.clientUserAgent,
+            fbc: requestContext?.fbc,
+            fbp: requestContext?.fbp,
+          },
+          customData: {
+            source: dto.source,
+            service_interest: dto.serviceInterest,
+            landing_path: dto.landingPath || '',
+            referrer: dto.referrer || requestContext?.referrer || '',
+            correlation_id: correlationId,
+          },
+        },
+      ])
+      .catch(async (error) => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`No se pudo enviar evento Lead a Meta CAPI: ${errorMessage}`);
+        await this.logWorkflowEvent({
+          workflowName: 'api.public-intake',
+          eventName: 'meta.lead.failed',
+          status: 'warning',
+          leadId: response.leadId,
+          idempotencyKey,
+          correlationId,
+          errorMessage,
+        });
+      });
+
+    return response;
+  }
+
+  async capturePublicMarketingEvent(
+    dto: PublicMarketingEventDto,
+    requestContext?: PublicRequestContext,
+  ) {
+    const correlationId = generateCorrelationId('public-marketing-event');
+    const eventId =
+      dto.eventId?.trim() || `${dto.eventName.toLowerCase()}:${correlationId}`;
+
+    try {
+      await this.metaConversionsApiService.sendEvents([
+        {
+          eventName: dto.eventName,
+          eventId,
+          eventSourceUrl: dto.eventSourceUrl?.trim() || requestContext?.sourceUrl,
+          actionSource: 'website',
+          userData: {
+            email: dto.email,
+            phone: dto.phone,
+            gender: dto.gender,
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            city: dto.city,
+            zip: dto.zip,
+            country: dto.country,
+            externalId: dto.externalId,
+            clientIpAddress: requestContext?.clientIpAddress,
+            clientUserAgent: requestContext?.clientUserAgent,
+            fbc: requestContext?.fbc,
+            fbp: requestContext?.fbp,
+          },
+          customData: {
+            ...(dto.customData || {}),
+            search_string: dto.searchString || '',
+            source: 'landing',
+            correlation_id: correlationId,
+          },
+        },
+      ]);
+
+      await this.logWorkflowEvent({
+        workflowName: 'api.public-marketing-events',
+        eventName: 'meta.event.sent',
+        status: 'success',
+        correlationId,
+        payloadJson: {
+          eventName: dto.eventName,
+          eventId,
+        },
+      });
+
+      return {
+        success: true,
+        eventId,
+        correlationId,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `No se pudo enviar evento ${dto.eventName} a Meta CAPI: ${errorMessage}`,
+      );
+
+      await this.logWorkflowEvent({
+        workflowName: 'api.public-marketing-events',
+        eventName: 'meta.event.failed',
+        status: 'warning',
+        correlationId,
+        errorMessage,
+        payloadJson: {
+          eventName: dto.eventName,
+          eventId,
+        },
+      });
+
+      return {
+        success: false,
+        eventId,
+        correlationId,
+        message: 'No se pudo enviar el evento a Meta CAPI.',
+      };
+    }
   }
 
   async requestBrief(dto: RequestBriefDto) {
