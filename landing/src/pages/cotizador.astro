@@ -15,8 +15,9 @@ const API_BASE_URL =
 >
   <main
     data-track-section="cotizador_page"
-    class="min-h-screen bg-gray-50 dark:bg-zinc-950 py-16 px-4"
+    class="relative min-h-screen bg-brand-black py-16 px-4 overflow-hidden"
   >
+    <div class="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[780px] h-[360px] bg-brand-gold/10 blur-[120px] rounded-full"></div>
     <div class="max-w-3xl mx-auto">
       <CotizadorInteractivo client:load apiBaseUrl={API_BASE_URL} />
     </div>
