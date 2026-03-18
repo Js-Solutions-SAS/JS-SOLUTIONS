@@ -14,8 +14,12 @@ const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
 const seoDescription =
   description ||
   "JS Solutions - Potencia tu negocio con Inteligencia Artificial, Automatización de Procesos y Agentes AI. Maximizamos tu eficiencia y reducimos costos operativos.";
-const gtmId = import.meta.env.PUBLIC_GTM_ID;
-const gaMeasurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
+const gtmId =
+  import.meta.env.PUBLIC_GTM_ID ||
+  (import.meta.env.PROD ? "GTM-KGSQRGGL" : "");
+const gaMeasurementId =
+  import.meta.env.PUBLIC_GA_MEASUREMENT_ID ||
+  (import.meta.env.PROD ? "G-Q742W0YTB5" : "");
 const metaPixelId = import.meta.env.PUBLIC_META_PIXEL_ID;
 const clarityProjectId = import.meta.env.PUBLIC_CLARITY_PROJECT_ID;
 
