@@ -16,6 +16,38 @@ interface N8nRequestResult {
   errorMessage?: string;
 }
 
+function getHostLabel(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
+function describeFetchCause(error: Error): string {
+  const cause = (
+    error as Error & {
+      cause?: unknown;
+    }
+  ).cause;
+
+  if (!cause || typeof cause !== 'object') {
+    return '';
+  }
+
+  const record = cause as Record<string, unknown>;
+  const parts = [
+    typeof record.code === 'string' ? `code=${record.code}` : '',
+    typeof record.errno === 'string' ? `errno=${record.errno}` : '',
+    typeof record.syscall === 'string' ? `syscall=${record.syscall}` : '',
+    typeof record.hostname === 'string' ? `host=${record.hostname}` : '',
+    typeof record.address === 'string' ? `address=${record.address}` : '',
+    typeof record.port === 'number' ? `port=${record.port}` : '',
+  ].filter(Boolean);
+
+  return parts.join(', ');
+}
+
 function safeJsonParse(value: string): unknown {
   if (!value) return {};
 
@@ -90,9 +122,9 @@ export class N8nClientService {
     } catch (error) {
       const errorMessage =
         error instanceof Error && error.name === 'AbortError'
-          ? `Tiempo de espera agotado tras ${timeoutMs}ms al conectar con n8n.`
+          ? `Tiempo de espera agotado tras ${timeoutMs}ms al conectar con n8n (${getHostLabel(input.url)}).`
           : error instanceof Error
-            ? error.message
+            ? `No fue posible conectar con n8n (${getHostLabel(input.url)}): ${error.message}${describeFetchCause(error) ? ` [${describeFetchCause(error)}]` : ''}`
             : 'Error de red inesperado';
 
       return {

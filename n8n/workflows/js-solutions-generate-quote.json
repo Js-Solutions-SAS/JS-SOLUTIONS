@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $json.body ?? $json;\nconst fallbackId = body.id ?? '';\nconst leadId = body.leadId ?? (fallbackId ? `lead-${fallbackId}` : '');\nconst clientToken = body.clientToken ?? body.token ?? body.Brief_Token ?? fallbackId ?? '';\nconst transcripcion = body.transcripcion ?? '';\nconst rawDatosCliente = body.datos_cliente ?? '';\nconst datosCliente = typeof rawDatosCliente === 'string'\n  ? rawDatosCliente\n  : [rawDatosCliente?.nombre, rawDatosCliente?.empresa, rawDatosCliente?.email]\n      .map((value) => String(value ?? '').trim())\n      .filter(Boolean)\n      .join(' | ');\nconst datosProveedor = body.datos_proveedor ?? 'JS Solutions';\nconst feedback = body.feedback ?? '';\nconst mode = body.mode === 'preview' ? 'preview' : 'send';\nconst idempotencyKey = body.idempotencyKey ?? '';\nconst correlationId = body.correlationId ?? `generate-quote-${Date.now()}`;\nconst emailCandidates = [\n  typeof body.email === 'string' ? body.email.trim() : '',\n  typeof rawDatosCliente === 'object' && rawDatosCliente\n    ? String(rawDatosCliente.email ?? '').trim()\n    : '',\n  datosCliente.split('|').map((item) => item.trim()).find((item) => item.includes('@')) || '',\n];\nconst email = emailCandidates.find(Boolean) || '';\n\nif (!leadId || !clientToken || !transcripcion) {\n  throw new Error('leadId, clientToken and transcripcion are required');\n}\n\nreturn [{\n  json: {\n    leadId,\n    clientToken,\n    transcripcion,\n    datos_cliente: datosCliente,\n    datos_proveedor: datosProveedor,\n    feedback,\n    email,\n    mode,\n    idempotencyKey,\n    correlationId,\n    dashboardUrl: `https://portal.jssolutions.com.co/dashboard?token=${clientToken}`,\n    quoteDocumentId: `quote-${leadId}`,\n    generatedAt: new Date().toISOString()\n  }\n}];"
+        "jsCode": "const body = $json.body ?? $json;\nconst fallbackId = body.id ?? '';\nconst leadId = body.leadId ?? (fallbackId ? `lead-${fallbackId}` : '');\nconst clientToken = body.clientToken ?? body.token ?? body.Brief_Token ?? fallbackId ?? '';\nconst transcripcion = body.transcripcion ?? '';\nconst rawDatosCliente = body.datos_cliente ?? body.datosCliente ?? body.cliente ?? '';\n\nconst normalize = (value) => String(value ?? '').trim();\n\nconst extractClientName = (raw) => {\n  if (raw && typeof raw === 'object') {\n    const candidates = [\n      raw.nombre,\n      raw.name,\n      raw.empresa,\n      raw.company,\n      raw.razon_social,\n      raw.razonSocial,\n      raw.cliente,\n    ]\n      .map(normalize)\n      .filter(Boolean);\n\n    if (candidates.length) return candidates[0];\n  }\n\n  const text = normalize(raw);\n  if (!text) return '';\n\n  const labelled = text.match(/(?:^|[\\n|,;])\\s*(?:nombre(?: del cliente)?|cliente|empresa|raz[oó]n social)\\s*[:=-]\\s*([^\\n|,;]+)/i);\n  if (labelled?.[1]) return normalize(labelled[1]);\n\n  const ignored = /@|tel[eé]fono|celular|correo|email|whatsapp|nit|id\\b/i;\n  const segments = text\n    .split(/[\\n|,;]+/)\n    .map((segment) => segment.trim())\n    .filter(Boolean);\n\n  const selected = segments.find((segment) => !ignored.test(segment));\n  return selected ? selected.replace(/^(nombre|cliente|empresa)\\s*[:=-]\\s*/i, '').trim() : '';\n};\n\nconst nombreCliente = extractClientName(rawDatosCliente) || 'Cliente';\nconst datosCliente =\n  typeof rawDatosCliente === 'string'\n    ? rawDatosCliente\n    : [rawDatosCliente?.nombre, rawDatosCliente?.empresa, rawDatosCliente?.email]\n        .map((value) => String(value ?? '').trim())\n        .filter(Boolean)\n        .join(' | ');\n\n// Blindaje de marca: siempre JS SOLUTIONS\nconst datosProveedor = 'JS SOLUTIONS';\nconst feedback = body.feedback ?? '';\nconst mode = body.mode === 'preview' ? 'preview' : 'send';\nconst idempotencyKey = body.idempotencyKey ?? '';\nconst correlationId = body.correlationId ?? `generate-quote-${Date.now()}`;\n\nconst emailCandidates = [\n  typeof body.email === 'string' ? body.email.trim() : '',\n  typeof rawDatosCliente === 'object' && rawDatosCliente\n    ? String(rawDatosCliente.email ?? '').trim()\n    : '',\n  datosCliente.split('|').map((item) => item.trim()).find((item) => item.includes('@')) || '',\n];\nconst email = emailCandidates.find(Boolean) || '';\n\nif (!leadId || !clientToken || !transcripcion) {\n  throw new Error('leadId, clientToken and transcripcion are required');\n}\n\nreturn [{\n  json: {\n    leadId,\n    clientToken,\n    transcripcion,\n    nombre_cliente: nombreCliente,\n    datos_cliente: datosCliente,\n    datos_proveedor: datosProveedor,\n    feedback,\n    email,\n    mode,\n    idempotencyKey,\n    correlationId,\n    dashboardUrl: `https://portal.jssolutions.com.co/dashboard?token=${clientToken}`,\n    quoteDocumentId: `quote-${leadId}`,\n    generatedAt: new Date().toISOString()\n  }\n}];"
       },
       "id": "1d1ad184-92de-4f74-ab0d-2013f71b887f",
       "name": "Validate Quote Request",
@@ -39,6 +39,12 @@
               "id": "transcripcion",
               "name": "transcripcion",
               "value": "={{ $('Validate Quote Request').item.json.transcripcion }}",
+              "type": "string"
+            },
+            {
+              "id": "nombre_cliente",
+              "name": "nombre_cliente",
+              "value": "={{ $('Validate Quote Request').item.json.nombre_cliente }}",
               "type": "string"
             },
             {
@@ -95,9 +101,9 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Crea una cotización en formato markdown.\\n\\nTranscripción del diagnóstico:\\n{{ $json.transcripcion }}\\n\\nDatos del cliente:\\n{{ $json.datos_cliente }}\\n\\nDatos del proveedor:\\n{{ $json.datos_proveedor }}\\n\\nFEEDBACK DE CORRECCIÓN (Importante):\\n{{ $json.feedback ? $json.feedback : 'N/A' }}\\n\\nFecha de elaboración (usar exacta, no recalcular):\\n{{ $json.fecha_elaboracion }}",
+        "text": "=Crea una cotización en formato markdown.\\n\\nNombre del cliente (usar exactamente este nombre en portada y en el documento):\\n{{ $json.nombre_cliente }}\\n\\nTranscripción del diagnóstico:\\n{{ $json.transcripcion }}\\n\\nDatos del cliente:\\n{{ $json.datos_cliente }}\\n\\nDatos del proveedor (marca obligatoria):\\n{{ $json.datos_proveedor }}\\n\\nFEEDBACK DE CORRECCIÓN (Importante):\\n{{ $json.feedback ? $json.feedback : 'N/A' }}\\n\\nFecha de elaboración (usar exacta, no recalcular):\\n{{ $json.fecha_elaboracion }}",
         "options": {
-          "systemMessage": "=Eres el Director de Tecnología y Ventas de JS SOLUTIONS. Genera una cotización técnica y comercial clara, ejecutiva, con diagnóstico, alcance, propuesta económica, cronograma, garantía y soporte."
+          "systemMessage": "=Eres el Director de Tecnología y Ventas de JS SOLUTIONS. Genera una cotización técnica y comercial ejecutiva en español, clara y accionable. Reglas: 1) Nunca menciones otra marca distinta a JS SOLUTIONS. 2) En portada debe aparecer el nombre del cliente exactamente como fue entregado. 3) Estructura mínima: portada, diagnóstico, alcance/solución, stack, inversión, cronograma, garantía y soporte."
         }
       },
       "id": "b1e1d21d-8cbc-4d65-8dc4-7c90b562ac8e",
@@ -112,9 +118,9 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Convierte esta cotización Markdown a HTML profesional.\\n\\nFecha de elaboración: {{ $('Preparar Datos Bot').item.json.fecha_elaboracion }}\\nDatos del cliente: {{ $('Preparar Datos Bot').item.json.datos_cliente }}\\nDatos proveedor: {{ $('Preparar Datos Bot').item.json.datos_proveedor }}\\n\\nCotización Markdown:\\n{{ $json.output }}",
+        "text": "=Convierte esta cotización Markdown a HTML profesional para PDF.\\n\\nNombre del cliente (usar exacto en portada): {{ $('Preparar Datos Bot').item.json.nombre_cliente }}\\nFecha de elaboración: {{ $('Preparar Datos Bot').item.json.fecha_elaboracion }}\\nDatos del cliente: {{ $('Preparar Datos Bot').item.json.datos_cliente }}\\nDatos proveedor: {{ $('Preparar Datos Bot').item.json.datos_proveedor }}\\n\\nCotización Markdown:\\n{{ $json.output }}",
         "options": {
-          "systemMessage": "=Responde únicamente con HTML completo listo para PDF, con estilo ejecutivo corporativo, colores negro/dorado y formato A4."
+          "systemMessage": "=Responde únicamente con HTML completo listo para PDF A4, estilo corporativo JS SOLUTIONS (negro/dorado). Reglas obligatorias de impresión: 1) Nunca menciones Focus ni otra marca. 2) Portada en primera hoja con nombre del cliente visible. 3) Cada sección principal debe iniciar en nueva página (usa <section class='page-section'> o break-before/page-break-before). 4) Evita cortes dentro de tarjetas, tablas y bloques de inversión (break-inside/page-break-inside: avoid). 5) Footer fijo en todas las páginas excepto portada, sin solapar contenido."
         }
       },
       "id": "e24722be-9085-40bf-8f98-a27e7858cf37",
@@ -128,7 +134,7 @@
     },
     {
       "parameters": {
-        "jsCode": "let html = $json.output ?? '';\nhtml = html.replace(/^```html\\s*/i, '');\nhtml = html.replace(/^```\\s*/i, '');\nhtml = html.replace(/```\\s*$/i, '');\nhtml = html.replace(/^\\s*html\\s*\\n/i, '');\nhtml = html.trim();\nreturn [{ output: html }];"
+        "jsCode": "let html = $json.output ?? '';\nhtml = html.replace(/^```html\\s*/i, '');\nhtml = html.replace(/^```\\s*/i, '');\nhtml = html.replace(/```\\s*$/i, '');\nhtml = html.replace(/^\\s*html\\s*\\n/i, '');\nhtml = html.trim();\n\nif (!html) {\n  return [{ output: '' }];\n}\n\nconst guardStyle = `\n<style id=\"js-solutions-print-guard\">\n  @page { size: A4; margin: 15mm 12mm 18mm 12mm; }\n  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }\n  body { padding-bottom: 16mm; }\n  h2, .page-section { break-before: page; page-break-before: always; }\n  .cover h2, .portada h2, .cover .section-title, .portada .section-title { break-before: auto !important; page-break-before: auto !important; }\n  section, .card, .service-card, .investment-block, .payment-block, .table-wrap, table { break-inside: avoid; page-break-inside: avoid; }\n  footer, .footer { position: fixed; left: 0; right: 0; bottom: 0; }\n</style>\n`.trim();\n\nif (!/js-solutions-print-guard/i.test(html)) {\n  if (/<\\/head>/i.test(html)) {\n    html = html.replace(/<\\/head>/i, `${guardStyle}\\n</head>`);\n  } else {\n    html = `${guardStyle}\\n${html}`;\n  }\n}\n\nreturn [{ output: html }];"
       },
       "id": "c34c5738-e64a-4559-9f6b-09ea2cecb8fd",
       "name": "Limpiar HTML",
