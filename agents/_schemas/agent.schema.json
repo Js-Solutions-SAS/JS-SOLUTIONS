@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jssolutions.co/schemas/agent.schema.json",
+  "title": "Agent Frontmatter Schema",
+  "type": "object",
+  "required": [
+    "id",
+    "domain",
+    "role",
+    "mission",
+    "inputs",
+    "outputs",
+    "workflow",
+    "quality_gates",
+    "dos",
+    "donts",
+    "handoff",
+    "kpis",
+    "escalation",
+    "prompt_starters"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 3 },
+    "domain": { "type": "string", "minLength": 2 },
+    "role": { "type": "string", "minLength": 2 },
+    "mission": { "type": "string", "minLength": 10 },
+    "inputs": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "outputs": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "workflow": { "type": "array", "items": { "type": "string" }, "minItems": 3 },
+    "quality_gates": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "dos": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "donts": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "handoff": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "kpis": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "escalation": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "prompt_starters": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+  },
+  "additionalProperties": true
+}
