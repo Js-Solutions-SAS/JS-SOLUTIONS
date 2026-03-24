@@ -12,9 +12,13 @@
     "vercel-build": "next build",
     "start": "NEXT_DIST_DIR=.next-build next start",
     "lint": "next lint",
-    "clean:cache": "rm -rf .next .next-dev .next-build node_modules/.cache"
+    "clean:cache": "rm -rf .next .next-dev .next-build node_modules/.cache",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@xstate/react": "^5.0.5",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
@@ -29,18 +33,26 @@
     "react-dom": "^18",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
+    "web-vitals": "^5.1.0",
+    "xstate": "^5.24.0",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.27",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
+    "jsdom": "^26.1.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }
