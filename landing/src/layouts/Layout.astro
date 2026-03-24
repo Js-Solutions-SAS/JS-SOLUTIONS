@@ -2,6 +2,7 @@
 import { ClientRouter } from "astro:transitions";
 import "@fontsource/inter";
 import "@fontsource/space-grotesk";
+import PerformanceBudgetWatcher from "@/components/PerformanceBudgetWatcher";
 
 interface Props {
   title: string;
@@ -14,12 +15,7 @@ const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
 const seoDescription =
   description ||
   "JS Solutions - Potencia tu negocio con Inteligencia Artificial, Automatización de Procesos y Agentes AI. Maximizamos tu eficiencia y reducimos costos operativos.";
-const publicApiBaseUrl =
-  import.meta.env.PUBLIC_API_BASE_URL ||
-  (import.meta.env.PROD
-    ? 'https://api.jssolutions.com.co'
-    : 'http://localhost:3003');
-const marketingEventsEndpoint = `${publicApiBaseUrl.replace(/\/$/, '')}/api/v1/public/marketing/events`;
+const marketingEventsEndpoint = "/api/public/marketing/events";
 const gtmId =
   import.meta.env.PUBLIC_GTM_ID ||
   (import.meta.env.PROD ? "GTM-KGSQRGGL" : "");
@@ -343,6 +339,7 @@ const trackingScript = `(() => {
   <body
     class="bg-brand-black text-brand-off-white font-sans antialiased overflow-x-hidden selection:bg-brand-gold selection:text-black"
   >
+    <PerformanceBudgetWatcher client:load />
     {
       gtmId && (
         <noscript>

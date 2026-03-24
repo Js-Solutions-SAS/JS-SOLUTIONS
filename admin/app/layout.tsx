@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 
 import { AdminShell } from "@/components/organisms/layout/admin-shell";
+import { PerformanceBudgetWatcher } from "@/components/features/performance-budget-watcher";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-brand-black font-[family-name:var(--font-geist-sans)] antialiased selection:bg-brand-gold selection:text-black`}
       >
+        <PerformanceBudgetWatcher />
         <AdminShell>{children}</AdminShell>
       </body>
     </html>
