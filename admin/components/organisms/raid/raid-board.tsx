@@ -1,12 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { AlertTriangle, Link2, ShieldCheck, Siren, Target } from "lucide-react";
 
 import { Badge } from "@/components/atoms/badge";
 import { Button } from "@/components/atoms/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/molecules/card";
 import { Select } from "@/components/atoms/select";
+import {
+  RaidProvider,
+  useRaidDispatch,
+  useRaidState,
+} from "@/domain/raid/hooks/use-raid-context";
 import { isCriticalOpen, isRaidStatus, isRaidType } from "@/lib/raid-utils";
 import type {
   RaidItem,
@@ -52,10 +57,17 @@ function formatDate(date?: string): string {
 }
 
 export function RaidBoard({ items, metrics, summaries }: RaidBoardProps) {
-  const [projectFilter, setProjectFilter] = useState("Todos");
-  const [typeFilter, setTypeFilter] = useState("Todos");
-  const [statusFilter, setStatusFilter] = useState("Todos");
-  const [ownerFilter, setOwnerFilter] = useState("Todos");
+  return (
+    <RaidProvider>
+      <RaidBoardContent items={items} metrics={metrics} summaries={summaries} />
+    </RaidProvider>
+  );
+}
+
+function RaidBoardContent({ items, metrics, summaries }: RaidBoardProps) {
+  const state = useRaidState();
+  const send = useRaidDispatch();
+  const { projectFilter, typeFilter, statusFilter, ownerFilter } = state;
 
   const projects = useMemo(() => {
     const values = new Set(items.map((item) => item.projectName));
@@ -202,7 +214,15 @@ export function RaidBoard({ items, metrics, summaries }: RaidBoardProps) {
           <CardHeader className="space-y-4">
             <CardTitle className="text-white">RAID Log Detallado</CardTitle>
             <div className="grid gap-3 md:grid-cols-2">
-              <Select value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)}>
+              <Select
+                value={projectFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_PROJECT_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 {projects.map((option) => (
                   <option key={option} value={option} className="bg-brand-charcoal text-white">
                     Proyecto: {option}
@@ -210,7 +230,15 @@ export function RaidBoard({ items, metrics, summaries }: RaidBoardProps) {
                 ))}
               </Select>
 
-              <Select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)}>
+              <Select
+                value={ownerFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_OWNER_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 {owners.map((option) => (
                   <option key={option} value={option} className="bg-brand-charcoal text-white">
                     Owner: {option}
@@ -218,7 +246,15 @@ export function RaidBoard({ items, metrics, summaries }: RaidBoardProps) {
                 ))}
               </Select>
 
-              <Select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+              <Select
+                value={typeFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_TYPE_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 <option value="Todos" className="bg-brand-charcoal text-white">
                   Tipo: Todos
                 </option>
@@ -236,7 +272,15 @@ export function RaidBoard({ items, metrics, summaries }: RaidBoardProps) {
                 </option>
               </Select>
 
-              <Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <Select
+                value={statusFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_STATUS_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 <option value="Todos" className="bg-brand-charcoal text-white">
                   Estado: Todos
                 </option>

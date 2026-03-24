@@ -1,12 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ArrowUpRight, BookOpen, FileText, Search, Video } from "lucide-react";
 
 import { Badge } from "@/components/atoms/badge";
 import { Card, CardContent } from "@/components/molecules/card";
 import { Input } from "@/components/atoms/input";
 import { Select } from "@/components/atoms/select";
+import {
+  SopsProvider,
+  useSopsDispatch,
+  useSopsState,
+} from "@/domain/sops/hooks/use-sops-context";
 import type { SOP } from "@/lib/types";
 
 interface SopsBentoClientProps {
@@ -23,8 +28,17 @@ function getResourceIcon(resourceType: string) {
 }
 
 export function SopsBentoClient({ initialSops }: SopsBentoClientProps) {
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("Todas");
+  return (
+    <SopsProvider>
+      <SopsBentoClientContent initialSops={initialSops} />
+    </SopsProvider>
+  );
+}
+
+function SopsBentoClientContent({ initialSops }: SopsBentoClientProps) {
+  const state = useSopsState();
+  const send = useSopsDispatch();
+  const { search, category } = state;
 
   const categories = useMemo(() => {
     const values = new Set(initialSops.map((sop) => sop.category || "General"));
@@ -52,7 +66,12 @@ export function SopsBentoClient({ initialSops }: SopsBentoClientProps) {
           <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-brand-off-white/45" />
           <Input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) =>
+              send({
+                type: "SET_SEARCH",
+                value: event.target.value,
+              })
+            }
             placeholder="Buscar SOP o proceso"
             className="pl-9"
           />
@@ -60,7 +79,12 @@ export function SopsBentoClient({ initialSops }: SopsBentoClientProps) {
 
         <Select
           value={category}
-          onChange={(event) => setCategory(event.target.value)}
+          onChange={(event) =>
+            send({
+              type: "SET_CATEGORY",
+              value: event.target.value,
+            })
+          }
           className="w-full sm:w-72"
         >
           {categories.map((option) => (

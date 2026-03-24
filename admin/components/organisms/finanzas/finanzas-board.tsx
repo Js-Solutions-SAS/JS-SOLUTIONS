@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   AlertTriangle,
   Calculator,
@@ -22,6 +22,11 @@ import {
 } from "@/components/molecules/dialog";
 import { Input } from "@/components/atoms/input";
 import { Select } from "@/components/atoms/select";
+import {
+  FinanzasProvider,
+  useFinanzasDispatch,
+  useFinanzasState,
+} from "@/domain/finanzas/hooks/use-finanzas-context";
 import {
   budgetVariance,
   executionPct,
@@ -102,10 +107,21 @@ function varianceClass(value: number): string {
 }
 
 export function FinanzasBoard({ entries, metrics, summaries }: FinanzasBoardProps) {
-  const [clientTypeFilter, setClientTypeFilter] = useState("Todos");
-  const [billingFilter, setBillingFilter] = useState("Todos");
-  const [search, setSearch] = useState("");
-  const [selectedEntry, setSelectedEntry] = useState<OperationalFinanceEntry | null>(null);
+  return (
+    <FinanzasProvider>
+      <FinanzasBoardContent entries={entries} metrics={metrics} summaries={summaries} />
+    </FinanzasProvider>
+  );
+}
+
+function FinanzasBoardContent({ entries, metrics, summaries }: FinanzasBoardProps) {
+  const state = useFinanzasState();
+  const send = useFinanzasDispatch();
+  const { clientTypeFilter, billingFilter, search, selectedEntryId } = state;
+  const selectedEntry = useMemo(
+    () => entries.find((entry) => entry.id === selectedEntryId) || null,
+    [entries, selectedEntryId],
+  );
 
   const filtered = useMemo(() => {
     return entries
@@ -263,12 +279,25 @@ export function FinanzasBoard({ entries, metrics, summaries }: FinanzasBoardProp
             <div className="grid gap-3 md:grid-cols-2">
               <Input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) =>
+                  send({
+                    type: "SET_SEARCH",
+                    value: event.target.value,
+                  })
+                }
                 placeholder="Buscar proyecto, cliente, owner o industria"
                 className="md:col-span-2"
               />
 
-              <Select value={clientTypeFilter} onChange={(event) => setClientTypeFilter(event.target.value)}>
+              <Select
+                value={clientTypeFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_CLIENT_TYPE_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 <option value="Todos" className="bg-brand-charcoal text-white">
                   Tipo de Cliente: Todos
                 </option>
@@ -279,7 +308,15 @@ export function FinanzasBoard({ entries, metrics, summaries }: FinanzasBoardProp
                 ))}
               </Select>
 
-              <Select value={billingFilter} onChange={(event) => setBillingFilter(event.target.value)}>
+              <Select
+                value={billingFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_BILLING_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 <option value="Todos" className="bg-brand-charcoal text-white">
                   Facturación: Todos
                 </option>
@@ -316,7 +353,12 @@ export function FinanzasBoard({ entries, metrics, summaries }: FinanzasBoardProp
                       <tr
                         key={entry.id}
                         className="cursor-pointer hover:bg-white/5"
-                        onClick={() => setSelectedEntry(entry)}
+                        onClick={() =>
+                          send({
+                            type: "SET_SELECTED_ENTRY_ID",
+                            value: entry.id,
+                          })
+                        }
                       >
                         <td className="px-4 py-3">
                           <p className="font-semibold text-white">{entry.projectName}</p>
@@ -348,7 +390,16 @@ export function FinanzasBoard({ entries, metrics, summaries }: FinanzasBoardProp
                         </td>
                         <td className="px-4 py-3 text-xs text-brand-off-white/80">{formatDate(entry.updatedAt)}</td>
                         <td className="px-4 py-3 text-right">
-                          <Button variant="outline" size="sm" onClick={() => setSelectedEntry(entry)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              send({
+                                type: "SET_SELECTED_ENTRY_ID",
+                                value: entry.id,
+                              })
+                            }
+                          >
                             Ver
                           </Button>
                         </td>
@@ -368,7 +419,16 @@ export function FinanzasBoard({ entries, metrics, summaries }: FinanzasBoardProp
         </Card>
       </section>
 
-      <Dialog open={Boolean(selectedEntry)} onOpenChange={(open) => !open && setSelectedEntry(null)}>
+      <Dialog
+        open={Boolean(selectedEntry)}
+        onOpenChange={(open) =>
+          !open &&
+          send({
+            type: "SET_SELECTED_ENTRY_ID",
+            value: null,
+          })
+        }
+      >
         <DialogContent>
           {selectedEntry && (
             <>

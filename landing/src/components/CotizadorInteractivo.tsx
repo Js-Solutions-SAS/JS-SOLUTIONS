@@ -35,6 +35,7 @@ export default function CotizadorInteractivo({
     empresa,
     email,
     detalles,
+    website,
     status,
     errorMessage,
     formMessage,
@@ -50,6 +51,7 @@ export default function CotizadorInteractivo({
     setEmpresa,
     setEmail,
     setDetalles,
+    setWebsite,
     setStatus,
     setFeedback,
     setIsCorrecting,
@@ -221,6 +223,17 @@ export default function CotizadorInteractivo({
           onSubmit={handleSubmit}
           className={`space-y-12 transition-opacity ${status === "loading" ? "opacity-95" : "opacity-100"}`}
         >
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            className="hidden"
+            value={website}
+            onChange={(event) => setWebsite(event.target.value)}
+          />
+
           <div className="space-y-4">
             <h3 className="text-[10px] font-black text-brand-gold/70 uppercase tracking-widest pl-2">
               01 / Entidad

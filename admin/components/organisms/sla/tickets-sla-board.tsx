@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   AlertTriangle,
   Clock3,
@@ -21,6 +21,11 @@ import {
 } from "@/components/molecules/dialog";
 import { Input } from "@/components/atoms/input";
 import { Select } from "@/components/atoms/select";
+import {
+  SlaProvider,
+  useSlaDispatch,
+  useSlaState,
+} from "@/domain/sla/hooks/use-sla-context";
 import {
   elapsedHours,
   isTicketClientType,
@@ -137,11 +142,21 @@ function priorityScore(priority: TicketPriority): number {
 }
 
 export function TicketsSLABoard({ entries, metrics, summaries }: TicketsSLABoardProps) {
-  const [clientTypeFilter, setClientTypeFilter] = useState("Todos");
-  const [statusFilter, setStatusFilter] = useState("Todos");
-  const [priorityFilter, setPriorityFilter] = useState("Todos");
-  const [search, setSearch] = useState("");
-  const [selectedItem, setSelectedItem] = useState<TicketSLAEntry | null>(null);
+  return (
+    <SlaProvider>
+      <TicketsSLABoardContent entries={entries} metrics={metrics} summaries={summaries} />
+    </SlaProvider>
+  );
+}
+
+function TicketsSLABoardContent({ entries, metrics, summaries }: TicketsSLABoardProps) {
+  const state = useSlaState();
+  const send = useSlaDispatch();
+  const { clientTypeFilter, statusFilter, priorityFilter, search, selectedItemId } = state;
+  const selectedItem = useMemo(
+    () => entries.find((entry) => entry.id === selectedItemId) || null,
+    [entries, selectedItemId],
+  );
 
   const filtered = useMemo(() => {
     return entries
@@ -294,12 +309,25 @@ export function TicketsSLABoard({ entries, metrics, summaries }: TicketsSLABoard
             <div className="grid gap-3 md:grid-cols-2">
               <Input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) =>
+                  send({
+                    type: "SET_SEARCH",
+                    value: event.target.value,
+                  })
+                }
                 placeholder="Buscar ticket, proyecto, cliente o responsable"
                 className="md:col-span-2"
               />
 
-              <Select value={clientTypeFilter} onChange={(event) => setClientTypeFilter(event.target.value)}>
+              <Select
+                value={clientTypeFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_CLIENT_TYPE_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 <option value="Todos" className="bg-brand-charcoal text-white">
                   Tipo de Cliente: Todos
                 </option>
@@ -310,7 +338,15 @@ export function TicketsSLABoard({ entries, metrics, summaries }: TicketsSLABoard
                 ))}
               </Select>
 
-              <Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <Select
+                value={statusFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_STATUS_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 <option value="Todos" className="bg-brand-charcoal text-white">
                   Estado: Todos
                 </option>
@@ -321,7 +357,15 @@ export function TicketsSLABoard({ entries, metrics, summaries }: TicketsSLABoard
                 ))}
               </Select>
 
-              <Select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
+              <Select
+                value={priorityFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_PRIORITY_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 <option value="Todos" className="bg-brand-charcoal text-white">
                   Prioridad: Todas
                 </option>
@@ -359,7 +403,12 @@ export function TicketsSLABoard({ entries, metrics, summaries }: TicketsSLABoard
                       <tr
                         key={entry.id}
                         className="cursor-pointer hover:bg-white/5"
-                        onClick={() => setSelectedItem(entry)}
+                        onClick={() =>
+                          send({
+                            type: "SET_SELECTED_ITEM_ID",
+                            value: entry.id,
+                          })
+                        }
                       >
                         <td className="px-4 py-3">
                           <p className="font-semibold text-white">{entry.ticketId}</p>
@@ -392,7 +441,16 @@ export function TicketsSLABoard({ entries, metrics, summaries }: TicketsSLABoard
                           </p>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <Button variant="outline" size="sm" onClick={() => setSelectedItem(entry)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              send({
+                                type: "SET_SELECTED_ITEM_ID",
+                                value: entry.id,
+                              })
+                            }
+                          >
                             Ver
                           </Button>
                         </td>
@@ -412,7 +470,16 @@ export function TicketsSLABoard({ entries, metrics, summaries }: TicketsSLABoard
         </Card>
       </section>
 
-      <Dialog open={Boolean(selectedItem)} onOpenChange={(open) => !open && setSelectedItem(null)}>
+      <Dialog
+        open={Boolean(selectedItem)}
+        onOpenChange={(open) =>
+          !open &&
+          send({
+            type: "SET_SELECTED_ITEM_ID",
+            value: null,
+          })
+        }
+      >
         <DialogContent>
           {selectedItem && (
             <>

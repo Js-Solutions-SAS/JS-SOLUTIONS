@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   Building2,
   Copy,
@@ -34,9 +34,14 @@ import { QuotesMetricsCards } from "@/components/organisms/cotizaciones/quotes-m
 import { Badge } from "@/components/atoms/badge";
 import { Button } from "@/components/atoms/button";
 import { Card, CardContent } from "@/components/molecules/card";
+import {
+  CotizacionesProvider,
+  useCotizacionesDispatch,
+  useCotizacionesState,
+  type QuoteOperation,
+} from "@/domain/cotizaciones/hooks/use-cotizaciones-context";
 import { parseAmount, statusTone } from "@/lib/quote-utils";
 import type { Quote, QuotesFeedSource } from "@/lib/types";
-import { useCotizacionesStore, type QuoteOperation } from "@/stores/cotizaciones-store";
 
 import { buildBriefSummary, getStatusLabel } from "./quotes-table-helpers";
 
@@ -59,7 +64,7 @@ function createRequestId(): string {
 }
 
 function isOperationLoading(
-  opsByQuoteId: ReturnType<typeof useCotizacionesStore.getState>["opsByQuoteId"],
+  opsByQuoteId: Record<string, Record<QuoteOperation, { loading: boolean; error?: string }>>,
   quoteId: string,
   operation: QuoteOperation,
 ) {
@@ -72,25 +77,52 @@ export function QuotesTable({
   sourceMessage,
   createEnabled,
 }: QuotesTableProps) {
-  const quotes = useCotizacionesStore((state) => state.quotes);
-  const search = useCotizacionesStore((state) => state.search);
-  const industry = useCotizacionesStore((state) => state.industry);
-  const sorting = useCotizacionesStore((state) => state.sorting);
-  const selectedQuoteId = useCotizacionesStore((state) => state.selectedQuoteId);
-  const feedbackByQuoteId = useCotizacionesStore((state) => state.feedbackByQuoteId);
-  const opsByQuoteId = useCotizacionesStore((state) => state.opsByQuoteId);
-  const initializeFromQuotes = useCotizacionesStore((state) => state.initializeFromQuotes);
-  const setSearch = useCotizacionesStore((state) => state.setSearch);
-  const setIndustry = useCotizacionesStore((state) => state.setIndustry);
-  const setSorting = useCotizacionesStore((state) => state.setSorting);
-  const setSelectedQuoteId = useCotizacionesStore((state) => state.setSelectedQuoteId);
-  const setQuoteFeedback = useCotizacionesStore((state) => state.setQuoteFeedback);
-  const patchQuote = useCotizacionesStore((state) => state.patchQuote);
-  const setOperationStatus = useCotizacionesStore((state) => state.setOperationStatus);
+  return (
+    <CotizacionesProvider initialQuotes={initialQuotes}>
+      <QuotesTableContent
+        source={source}
+        sourceMessage={sourceMessage}
+        createEnabled={createEnabled}
+      />
+    </CotizacionesProvider>
+  );
+}
+
+function QuotesTableContent({
+  source,
+  sourceMessage,
+  createEnabled,
+}: Omit<QuotesTableProps, "initialQuotes">) {
+  const state = useCotizacionesState();
+  const send = useCotizacionesDispatch();
+  const latestStateRef = useRef(state);
 
   useEffect(() => {
-    initializeFromQuotes(initialQuotes);
-  }, [initializeFromQuotes, initialQuotes]);
+    latestStateRef.current = state;
+  }, [state]);
+
+  const quotes = state.quotes;
+  const search = state.search;
+  const industry = state.industry;
+  const sorting = state.sorting;
+  const selectedQuoteId = state.selectedQuoteId;
+  const feedbackByQuoteId = state.feedbackByQuoteId;
+  const opsByQuoteId = state.opsByQuoteId;
+
+  const setSearch = (value: string) => send({ type: "SET_SEARCH", value });
+  const setIndustry = (value: string) => send({ type: "SET_INDUSTRY", value });
+  const setSorting = (value: SortingState) => send({ type: "SET_SORTING", value });
+  const setSelectedQuoteId = (value: string | null) =>
+    send({ type: "SET_SELECTED_QUOTE_ID", value });
+  const setQuoteFeedback = (quoteId: string, feedback: string) =>
+    send({ type: "SET_QUOTE_FEEDBACK", quoteId, feedback });
+  const patchQuote = (quoteId: string, patch: Partial<Quote>) =>
+    send({ type: "PATCH_QUOTE", quoteId, patch });
+  const setOperationStatus = (
+    quoteId: string,
+    operation: QuoteOperation,
+    status: { loading: boolean; error?: string },
+  ) => send({ type: "SET_OPERATION_STATUS", quoteId, operation, status });
 
   const industries = useMemo(() => {
     const unique = new Set(quotes.map((quote) => quote.industria || "General"));
@@ -133,7 +165,7 @@ export function QuotesTable({
   const handleOpenBrief = (quote: Quote) => {
     setSelectedQuoteId(quote.id);
 
-    const currentFeedback = useCotizacionesStore.getState().feedbackByQuoteId[quote.id];
+    const currentFeedback = latestStateRef.current.feedbackByQuoteId[quote.id];
     if (!currentFeedback && quote.quoteLastFeedback) {
       setQuoteFeedback(quote.id, quote.quoteLastFeedback);
     }
@@ -144,7 +176,7 @@ export function QuotesTable({
     operation: QuoteOperation,
     callback: () => Promise<void>,
   ) => {
-    if (isOperationLoading(useCotizacionesStore.getState().opsByQuoteId, quoteId, operation)) {
+    if (isOperationLoading(latestStateRef.current.opsByQuoteId, quoteId, operation)) {
       return;
     }
 
@@ -227,7 +259,7 @@ export function QuotesTable({
 
   const handleGenerateQuote = async (quote: Quote) => {
     await executeOperation(quote.id, "generateQuote", async () => {
-      const feedback = useCotizacionesStore.getState().feedbackByQuoteId[quote.id] || "";
+      const feedback = latestStateRef.current.feedbackByQuoteId[quote.id] || "";
       const result = await generateQuoteAction({
         leadId: quote.id,
         nombre: quote.nombre,
@@ -268,7 +300,7 @@ export function QuotesTable({
 
   const handlePreviewQuote = async (quote: Quote) => {
     await executeOperation(quote.id, "previewQuote", async () => {
-      const feedback = useCotizacionesStore.getState().feedbackByQuoteId[quote.id] || "";
+      const feedback = latestStateRef.current.feedbackByQuoteId[quote.id] || "";
       const result = await previewQuoteAction({
         leadId: quote.id,
         nombre: quote.nombre,

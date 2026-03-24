@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useTransition } from "react";
 import { CheckCheck, CircleAlert, ClipboardCheck, ShieldAlert, Timer } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +23,15 @@ import {
   isApprovalStage,
   isApprovalStatus,
 } from "@/lib/approval-utils";
+import {
+  createWorkerRequestId,
+  useWorkerActor,
+} from "@/domain/core/workers/use-worker-actor";
+import {
+  AprobacionesProvider,
+  useAprobacionesDispatch,
+  useAprobacionesState,
+} from "@/domain/aprobaciones/hooks/use-aprobaciones-context";
 import type { ApprovalItem, ApprovalStage, ApprovalStatus } from "@/lib/types";
 
 interface AprobacionesBoardProps {
@@ -93,49 +102,141 @@ function stageDescription(stage: ApprovalStage): string {
 }
 
 export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
-  const [items, setItems] = useState(initialItems);
-  const [projectFilter, setProjectFilter] = useState("Todos");
-  const [stageFilter, setStageFilter] = useState("Todos");
-  const [statusFilter, setStatusFilter] = useState("Todos");
-  const [search, setSearch] = useState("");
-  const [runningId, setRunningId] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<ApprovalItem | null>(null);
+  return (
+    <AprobacionesProvider initialItems={initialItems}>
+      <AprobacionesBoardContent />
+    </AprobacionesProvider>
+  );
+}
+
+function AprobacionesBoardContent() {
+  const state = useAprobacionesState();
+  const send = useAprobacionesDispatch();
+  const {
+    items,
+    workerFilteredItems,
+    projectFilter,
+    stageFilter,
+    statusFilter,
+    search,
+    runningId,
+    selectedItemId,
+  } = state;
+  const selectedItem = useMemo(
+    () => items.find((item) => item.id === selectedItemId) || null,
+    [items, selectedItemId],
+  );
   const [isPending, startTransition] = useTransition();
+  const latestRequestIdRef = useRef<string | null>(null);
+  const shouldUseWorker = items.length >= 40;
+
+  const { postMessage } = useWorkerActor<
+    {
+      action: "filter_sort";
+      items: ApprovalItem[];
+      query: string;
+      fields: string[];
+      filters: Record<string, string | undefined>;
+    },
+    ApprovalItem[]
+  >({
+    workerFactory: () =>
+      new Worker(
+        new URL("../../../domain/core/workers/analytics.worker.ts", import.meta.url),
+      ),
+    onMessage: (message) => {
+      if (
+        !latestRequestIdRef.current ||
+        message.requestId !== latestRequestIdRef.current
+      ) {
+        return;
+      }
+
+      if ("payload" in message && Array.isArray(message.payload)) {
+        send({
+          type: "SET_WORKER_FILTERED_ITEMS",
+          items: message.payload as ApprovalItem[],
+        });
+      }
+    },
+  });
 
   const projects = useMemo(() => {
     const values = new Set(items.map((item) => item.projectName));
     return ["Todos", ...Array.from(values).sort((a, b) => a.localeCompare(b))];
   }, [items]);
 
-  const filtered = useMemo(() => {
-    return items
-      .filter((item) => {
-        const byProject = projectFilter === "Todos" || item.projectName === projectFilter;
-        const byStage =
-          stageFilter === "Todos" || (isApprovalStage(stageFilter) && item.stage === stageFilter);
-        const byStatus =
-          statusFilter === "Todos" || (isApprovalStatus(statusFilter) && item.status === statusFilter);
-        const query = search.toLowerCase().trim();
-        const bySearch =
-          !query ||
-          `${item.projectName} ${item.clientName} ${item.title} ${item.owner}`
-            .toLowerCase()
-            .includes(query);
+  const syncFiltered = useMemo(() => {
+    return items.filter((item) => {
+      const byProject = projectFilter === "Todos" || item.projectName === projectFilter;
+      const byStage =
+        stageFilter === "Todos" || (isApprovalStage(stageFilter) && item.stage === stageFilter);
+      const byStatus =
+        statusFilter === "Todos" || (isApprovalStatus(statusFilter) && item.status === statusFilter);
+      const query = search.toLowerCase().trim();
+      const bySearch =
+        !query ||
+        `${item.projectName} ${item.clientName} ${item.title} ${item.owner}`
+          .toLowerCase()
+          .includes(query);
 
-        return byProject && byStage && byStatus && bySearch;
-      })
-      .sort((a, b) => {
-        if (Number(isApprovalOverdue(b)) !== Number(isApprovalOverdue(a))) {
-          return Number(isApprovalOverdue(b)) - Number(isApprovalOverdue(a));
-        }
-        if (a.dueDate && b.dueDate) {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        }
-        if (!a.dueDate && b.dueDate) return 1;
-        if (a.dueDate && !b.dueDate) return -1;
-        return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime();
-      });
+      return byProject && byStage && byStatus && bySearch;
+    });
   }, [items, projectFilter, search, stageFilter, statusFilter]);
+
+  useEffect(() => {
+    if (!shouldUseWorker) {
+      send({
+        type: "SET_WORKER_FILTERED_ITEMS",
+        items: syncFiltered,
+      });
+      return;
+    }
+
+    const requestId = createWorkerRequestId("aprobaciones-filter");
+    latestRequestIdRef.current = requestId;
+    postMessage({
+      type: "REQUEST_FILTER_SORT",
+      requestId,
+      payload: {
+        action: "filter_sort",
+        items,
+        query: search,
+        fields: ["projectName", "clientName", "title", "owner"],
+        filters: {
+          projectName: projectFilter === "Todos" ? undefined : projectFilter,
+          stage: stageFilter === "Todos" ? undefined : stageFilter,
+          status: statusFilter === "Todos" ? undefined : statusFilter,
+        },
+      },
+    });
+  }, [
+    items,
+    postMessage,
+    send,
+    projectFilter,
+    search,
+    shouldUseWorker,
+    stageFilter,
+    statusFilter,
+    syncFiltered,
+  ]);
+
+  const filtered = useMemo(() => {
+    const source = shouldUseWorker ? workerFilteredItems : syncFiltered;
+
+    return [...source].sort((a, b) => {
+      if (Number(isApprovalOverdue(b)) !== Number(isApprovalOverdue(a))) {
+        return Number(isApprovalOverdue(b)) - Number(isApprovalOverdue(a));
+      }
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      if (!a.dueDate && b.dueDate) return 1;
+      if (a.dueDate && !b.dueDate) return -1;
+      return new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime();
+    });
+  }, [shouldUseWorker, workerFilteredItems, syncFiltered]);
 
   const metrics = useMemo(() => {
     return {
@@ -160,7 +261,10 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
   }, [items]);
 
   const handleApprove = (item: ApprovalItem) => {
-    setRunningId(item.id);
+    send({
+      type: "SET_RUNNING_ID",
+      value: item.id,
+    });
     startTransition(async () => {
       const result = await approveCheckpointAction({
         approvalId: item.id,
@@ -170,19 +274,24 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
 
       if (!result.ok) {
         toast.error("Error de conexión", { description: result.message });
-        setRunningId(null);
+        send({
+          type: "SET_RUNNING_ID",
+          value: null,
+        });
         return;
       }
 
-      setItems((prev) =>
-        prev.map((entry) =>
-          entry.id === item.id
-            ? { ...entry, status: "Approved", approvedAt: new Date().toISOString() }
-            : entry,
-        ),
-      );
+      send({
+        type: "MARK_APPROVED",
+        approvalId: item.id,
+        status: "Approved",
+        approvedAt: new Date().toISOString(),
+      });
       toast.success("Punto de control aprobado", { description: result.message });
-      setRunningId(null);
+      send({
+        type: "SET_RUNNING_ID",
+        value: null,
+      });
     });
   };
 
@@ -286,12 +395,25 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
             <div className="grid gap-3 md:grid-cols-2">
               <Input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) =>
+                  send({
+                    type: "SET_SEARCH",
+                    value: event.target.value,
+                  })
+                }
                 placeholder="Buscar proyecto, cliente, owner o checkpoint"
                 className="md:col-span-2"
               />
 
-              <Select value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)}>
+              <Select
+                value={projectFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_PROJECT_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 {projects.map((option) => (
                   <option key={option} value={option} className="bg-brand-charcoal text-white">
                     Proyecto: {option}
@@ -299,7 +421,15 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
                 ))}
               </Select>
 
-              <Select value={stageFilter} onChange={(event) => setStageFilter(event.target.value)}>
+              <Select
+                value={stageFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_STAGE_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 <option value="Todos" className="bg-brand-charcoal text-white">
                   Etapa: Todas
                 </option>
@@ -310,7 +440,15 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
                 ))}
               </Select>
 
-              <Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <Select
+                value={statusFilter}
+                onChange={(event) =>
+                  send({
+                    type: "SET_STATUS_FILTER",
+                    value: event.target.value,
+                  })
+                }
+              >
                 <option value="Todos" className="bg-brand-charcoal text-white">
                   Estado: Todos
                 </option>
@@ -346,7 +484,12 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
                       <tr
                         key={item.id}
                         className="cursor-pointer hover:bg-white/5"
-                        onClick={() => setSelectedItem(item)}
+                        onClick={() =>
+                          send({
+                            type: "SET_SELECTED_ITEM_ID",
+                            value: item.id,
+                          })
+                        }
                       >
                         <td className="px-4 py-3">
                           <p className="font-semibold text-white">{item.projectName}</p>
@@ -379,7 +522,16 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="inline-flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={() => setSelectedItem(item)}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                send({
+                                  type: "SET_SELECTED_ITEM_ID",
+                                  value: item.id,
+                                })
+                              }
+                            >
                               Ver
                             </Button>
                             {canApprove ? (
@@ -425,7 +577,16 @@ export function AprobacionesBoard({ initialItems }: AprobacionesBoardProps) {
         </Card>
       )}
 
-      <Dialog open={Boolean(selectedItem)} onOpenChange={(open) => !open && setSelectedItem(null)}>
+      <Dialog
+        open={Boolean(selectedItem)}
+        onOpenChange={(open) =>
+          !open &&
+          send({
+            type: "SET_SELECTED_ITEM_ID",
+            value: null,
+          })
+        }
+      >
         <DialogContent>
           {selectedItem && (
             <>

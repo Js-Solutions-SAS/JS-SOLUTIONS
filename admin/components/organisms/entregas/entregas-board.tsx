@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   AlertTriangle,
   CalendarDays,
@@ -23,21 +23,18 @@ import {
 } from "@/components/molecules/dialog";
 import { Input } from "@/components/atoms/input";
 import { Select } from "@/components/atoms/select";
+import {
+  EntregasProvider,
+  type DeliveryTask,
+  useEntregasDispatch,
+  useEntregasState,
+} from "@/domain/entregas/hooks/use-entregas-context";
 import { daysUntil, isMilestoneDone, milestoneRiskLevel } from "@/lib/milestone-utils";
 import type { DeliveryMetrics, Milestone } from "@/lib/types";
 
 interface EntregasBoardProps {
   milestones: Milestone[];
   metrics: DeliveryMetrics;
-}
-
-interface DeliveryTask {
-  id: string;
-  title: string;
-  assignee: string;
-  dueDate?: string;
-  notes?: string;
-  createdAt: string;
 }
 
 const WEEK_DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -84,17 +81,29 @@ function riskLabel(risk: "high" | "medium" | "low" | "none"): string {
 }
 
 export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
-  const [monthCursor, setMonthCursor] = useState(() => new Date());
-  const [industry, setIndustry] = useState("Todas");
-  const [status, setStatus] = useState("Todos");
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [modalDate, setModalDate] = useState<string | null>(null);
-  const [taskMilestoneId, setTaskMilestoneId] = useState("");
-  const [taskTitle, setTaskTitle] = useState("");
-  const [taskAssignee, setTaskAssignee] = useState("");
-  const [taskDueDate, setTaskDueDate] = useState("");
-  const [taskNotes, setTaskNotes] = useState("");
-  const [tasksByMilestone, setTasksByMilestone] = useState<Record<string, DeliveryTask[]>>({});
+  return (
+    <EntregasProvider>
+      <EntregasBoardContent milestones={milestones} metrics={metrics} />
+    </EntregasProvider>
+  );
+}
+
+function EntregasBoardContent({ milestones, metrics }: EntregasBoardProps) {
+  const state = useEntregasState();
+  const send = useEntregasDispatch();
+  const {
+    monthCursor,
+    industry,
+    status,
+    selectedDate,
+    modalDate,
+    taskMilestoneId,
+    taskTitle,
+    taskAssignee,
+    taskDueDate,
+    taskNotes,
+    tasksByMilestone,
+  } = state;
 
   const industries = useMemo(() => {
     const values = new Set(milestones.map((milestone) => milestone.industry || "General"));
@@ -184,17 +193,35 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
   }, [filtered]);
 
   const openDayModal = (dayKey: string, dayMilestones: Milestone[], preferredMilestoneId?: string) => {
-    setSelectedDate(dayKey);
-    setModalDate(dayKey);
+    send({
+      type: "SET_SELECTED_DATE",
+      value: dayKey,
+    });
+    send({
+      type: "SET_MODAL_DATE",
+      value: dayKey,
+    });
 
     if (dayMilestones.length > 0) {
       const selected =
         dayMilestones.find((milestone) => milestone.id === preferredMilestoneId) || dayMilestones[0];
-      setTaskMilestoneId(selected.id);
-      setTaskDueDate(selected.dueDate.slice(0, 10));
+      send({
+        type: "SET_TASK_MILESTONE_ID",
+        value: selected.id,
+      });
+      send({
+        type: "SET_TASK_DUE_DATE",
+        value: selected.dueDate.slice(0, 10),
+      });
     } else {
-      setTaskMilestoneId("");
-      setTaskDueDate("");
+      send({
+        type: "SET_TASK_MILESTONE_ID",
+        value: "",
+      });
+      send({
+        type: "SET_TASK_DUE_DATE",
+        value: "",
+      });
     }
   };
 
@@ -215,14 +242,14 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
       createdAt: new Date().toISOString(),
     };
 
-    setTasksByMilestone((previous) => ({
-      ...previous,
-      [selectedModalMilestone.id]: [newTask, ...(previous[selectedModalMilestone.id] || [])],
-    }));
-
-    setTaskTitle("");
-    setTaskAssignee("");
-    setTaskNotes("");
+    send({
+      type: "ADD_TASK",
+      milestoneId: selectedModalMilestone.id,
+      task: newTask,
+    });
+    send({
+      type: "RESET_TASK_FORM",
+    });
     toast.success("Tarea asignada", {
       description: `Tarea vinculada a ${selectedModalMilestone.title}.`,
     });
@@ -290,7 +317,9 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    setMonthCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+                    send({
+                      type: "GO_PREV_MONTH",
+                    })
                   }
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -302,7 +331,9 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    setMonthCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+                    send({
+                      type: "GO_NEXT_MONTH",
+                    })
                   }
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -311,7 +342,15 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <Select value={industry} onChange={(event) => setIndustry(event.target.value)}>
+              <Select
+                value={industry}
+                onChange={(event) =>
+                  send({
+                    type: "SET_INDUSTRY",
+                    value: event.target.value,
+                  })
+                }
+              >
                 {industries.map((option) => (
                   <option key={option} value={option} className="bg-brand-charcoal text-white">
                     Industria: {option}
@@ -319,7 +358,15 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
                 ))}
               </Select>
 
-              <Select value={status} onChange={(event) => setStatus(event.target.value)}>
+              <Select
+                value={status}
+                onChange={(event) =>
+                  send({
+                    type: "SET_STATUS",
+                    value: event.target.value,
+                  })
+                }
+              >
                 {statuses.map((option) => (
                   <option key={option} value={option} className="bg-brand-charcoal text-white">
                     Estado: {option === "Todos" ? "Todos" : statusLabel(option)}
@@ -464,7 +511,16 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
         </Card>
       </section>
 
-      <Dialog open={Boolean(modalDate)} onOpenChange={(open) => !open && setModalDate(null)}>
+      <Dialog
+        open={Boolean(modalDate)}
+        onOpenChange={(open) =>
+          !open &&
+          send({
+            type: "SET_MODAL_DATE",
+            value: null,
+          })
+        }
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Detalle de Entrega y Asignación de Tareas</DialogTitle>
@@ -489,9 +545,17 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
                     value={taskMilestoneId || modalMilestones[0].id}
                     onChange={(event) => {
                       const nextId = event.target.value;
-                      setTaskMilestoneId(nextId);
+                      send({
+                        type: "SET_TASK_MILESTONE_ID",
+                        value: nextId,
+                      });
                       const hit = modalMilestones.find((milestone) => milestone.id === nextId);
-                      if (hit?.dueDate) setTaskDueDate(hit.dueDate.slice(0, 10));
+                      if (hit?.dueDate) {
+                        send({
+                          type: "SET_TASK_DUE_DATE",
+                          value: hit.dueDate.slice(0, 10),
+                        });
+                      }
                     }}
                   >
                     {modalMilestones.map((milestone) => (
@@ -521,25 +585,45 @@ export function EntregasBoard({ milestones, metrics }: EntregasBoardProps) {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Input
                       value={taskTitle}
-                      onChange={(event) => setTaskTitle(event.target.value)}
+                      onChange={(event) =>
+                        send({
+                          type: "SET_TASK_TITLE",
+                          value: event.target.value,
+                        })
+                      }
                       placeholder="Título de la tarea"
                     />
                     <Input
                       value={taskAssignee}
-                      onChange={(event) => setTaskAssignee(event.target.value)}
+                      onChange={(event) =>
+                        send({
+                          type: "SET_TASK_ASSIGNEE",
+                          value: event.target.value,
+                        })
+                      }
                       placeholder="Responsable"
                     />
                     <Input
                       type="date"
                       value={taskDueDate}
-                      onChange={(event) => setTaskDueDate(event.target.value)}
+                      onChange={(event) =>
+                        send({
+                          type: "SET_TASK_DUE_DATE",
+                          value: event.target.value,
+                        })
+                      }
                     />
                     <Button onClick={assignTask}>Asignar Tarea</Button>
                   </div>
 
                   <textarea
                     value={taskNotes}
-                    onChange={(event) => setTaskNotes(event.target.value)}
+                    onChange={(event) =>
+                      send({
+                        type: "SET_TASK_NOTES",
+                        value: event.target.value,
+                      })
+                    }
                     placeholder="Notas de la tarea (opcional)"
                     className="min-h-20 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-brand-off-white/45 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold/20"
                   />

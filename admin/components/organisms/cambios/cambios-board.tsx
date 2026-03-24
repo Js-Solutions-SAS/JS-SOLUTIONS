@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useTransition } from "react";
 import { CalendarRange, Coins, GitCompareArrows } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,6 +24,15 @@ import {
   isChangeRequestType,
   scheduleImpactDays,
 } from "@/lib/change-request-utils";
+import {
+  createWorkerRequestId,
+  useWorkerActor,
+} from "@/domain/core/workers/use-worker-actor";
+import {
+  CambiosProvider,
+  useCambiosDispatch,
+  useCambiosState,
+} from "@/domain/cambios/hooks/use-cambios-context";
 import type { ChangeRequest, ChangeRequestStatus, ChangeRequestType } from "@/lib/types";
 
 interface CambiosBoardProps {
@@ -97,45 +106,137 @@ function impactClass(value: number): string {
 }
 
 export function CambiosBoard({ initialItems }: CambiosBoardProps) {
-  const [items, setItems] = useState(initialItems);
-  const [projectFilter, setProjectFilter] = useState("Todos");
-  const [statusFilter, setStatusFilter] = useState("Todos");
-  const [typeFilter, setTypeFilter] = useState("Todos");
-  const [search, setSearch] = useState("");
-  const [selectedItem, setSelectedItem] = useState<ChangeRequest | null>(null);
-  const [runningId, setRunningId] = useState<string | null>(null);
+  return (
+    <CambiosProvider initialItems={initialItems}>
+      <CambiosBoardContent />
+    </CambiosProvider>
+  );
+}
+
+function CambiosBoardContent() {
+  const state = useCambiosState();
+  const send = useCambiosDispatch();
+  const {
+    items,
+    workerFilteredItems,
+    projectFilter,
+    statusFilter,
+    typeFilter,
+    search,
+    selectedItemId,
+    runningId,
+  } = state;
+  const selectedItem = useMemo(
+    () => items.find((item) => item.id === selectedItemId) || null,
+    [items, selectedItemId],
+  );
   const [isPending, startTransition] = useTransition();
+  const latestRequestIdRef = useRef<string | null>(null);
+  const shouldUseWorker = items.length >= 40;
+
+  const { postMessage } = useWorkerActor<
+    {
+      action: "filter_sort";
+      items: ChangeRequest[];
+      query: string;
+      fields: string[];
+      filters: Record<string, string | undefined>;
+    },
+    ChangeRequest[]
+  >({
+    workerFactory: () =>
+      new Worker(
+        new URL("../../../domain/core/workers/analytics.worker.ts", import.meta.url),
+      ),
+    onMessage: (message) => {
+      if (
+        !latestRequestIdRef.current ||
+        message.requestId !== latestRequestIdRef.current
+      ) {
+        return;
+      }
+
+      if ("payload" in message && Array.isArray(message.payload)) {
+        send({
+          type: "SET_WORKER_FILTERED_ITEMS",
+          items: message.payload as ChangeRequest[],
+        });
+      }
+    },
+  });
 
   const projects = useMemo(() => {
     const values = new Set(items.map((item) => item.projectName));
     return ["Todos", ...Array.from(values).sort((a, b) => a.localeCompare(b))];
   }, [items]);
 
-  const filtered = useMemo(() => {
-    return items
-      .filter((item) => {
-        const byProject = projectFilter === "Todos" || item.projectName === projectFilter;
-        const byStatus =
-          statusFilter === "Todos" ||
-          (isChangeRequestStatus(statusFilter) && item.status === statusFilter);
-        const byType =
-          typeFilter === "Todos" ||
-          (isChangeRequestType(typeFilter) && item.type === typeFilter);
-        const query = search.toLowerCase().trim();
-        const bySearch =
-          !query ||
-          `${item.projectName} ${item.clientName} ${item.title} ${item.owner}`
-            .toLowerCase()
-            .includes(query);
+  const syncFiltered = useMemo(() => {
+    return items.filter((item) => {
+      const byProject = projectFilter === "Todos" || item.projectName === projectFilter;
+      const byStatus =
+        statusFilter === "Todos" ||
+        (isChangeRequestStatus(statusFilter) && item.status === statusFilter);
+      const byType =
+        typeFilter === "Todos" ||
+        (isChangeRequestType(typeFilter) && item.type === typeFilter);
+      const query = search.toLowerCase().trim();
+      const bySearch =
+        !query ||
+        `${item.projectName} ${item.clientName} ${item.title} ${item.owner}`
+          .toLowerCase()
+          .includes(query);
 
-        return byProject && byStatus && byType && bySearch;
-      })
-      .sort((a, b) => {
-        const impactA = costImpact(a) + Math.max(scheduleImpactDays(a), 0) * 100;
-        const impactB = costImpact(b) + Math.max(scheduleImpactDays(b), 0) * 100;
-        return impactB - impactA;
-      });
+      return byProject && byStatus && byType && bySearch;
+    });
   }, [items, projectFilter, search, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    if (!shouldUseWorker) {
+      send({
+        type: "SET_WORKER_FILTERED_ITEMS",
+        items: syncFiltered,
+      });
+      return;
+    }
+
+    const requestId = createWorkerRequestId("cambios-filter");
+    latestRequestIdRef.current = requestId;
+    postMessage({
+      type: "REQUEST_FILTER_SORT",
+      requestId,
+      payload: {
+        action: "filter_sort",
+        items,
+        query: search,
+        fields: ["projectName", "clientName", "title", "owner"],
+        filters: {
+          projectName: projectFilter === "Todos" ? undefined : projectFilter,
+          status: statusFilter === "Todos" ? undefined : statusFilter,
+          type: typeFilter === "Todos" ? undefined : typeFilter,
+        },
+      },
+    });
+  }, [
+    items,
+    postMessage,
+    send,
+    projectFilter,
+    search,
+    shouldUseWorker,
+    statusFilter,
+    syncFiltered,
+    typeFilter,
+  ]);
+
+  const filtered = useMemo(() => {
+    const source = shouldUseWorker ? workerFilteredItems : syncFiltered;
+
+    return [...source].sort((a, b) => {
+      const impactA = costImpact(a) + Math.max(scheduleImpactDays(a), 0) * 100;
+      const impactB = costImpact(b) + Math.max(scheduleImpactDays(b), 0) * 100;
+      return impactB - impactA;
+    });
+  }, [shouldUseWorker, workerFilteredItems, syncFiltered]);
 
   const metrics = useMemo(() => {
     const totalCostImpact = items.reduce((accumulator, item) => accumulator + costImpact(item), 0);
@@ -161,7 +262,10 @@ export function CambiosBoard({ initialItems }: CambiosBoardProps) {
     request: ChangeRequest,
     decision: "approve" | "reject",
   ) => {
-    setRunningId(request.id);
+    send({
+      type: "SET_RUNNING_ID",
+      value: request.id,
+    });
 
     startTransition(async () => {
       const result = await reviewChangeRequestAction({
@@ -172,25 +276,26 @@ export function CambiosBoard({ initialItems }: CambiosBoardProps) {
 
       if (!result.ok) {
         toast.error("Error de conexión", { description: result.message });
-        setRunningId(null);
+        send({
+          type: "SET_RUNNING_ID",
+          value: null,
+        });
         return;
       }
 
-      setItems((previous) =>
-        previous.map((item) =>
-          item.id === request.id
-            ? {
-                ...item,
-                status: decision === "approve" ? "Approved" : "Rejected",
-              }
-            : item,
-        ),
-      );
+      send({
+        type: "MARK_DECISION",
+        changeRequestId: request.id,
+        status: decision === "approve" ? "Approved" : "Rejected",
+      });
 
       toast.success(decision === "approve" ? "Cambio aprobado" : "Cambio rechazado", {
         description: result.message,
       });
-      setRunningId(null);
+      send({
+        type: "SET_RUNNING_ID",
+        value: null,
+      });
     });
   };
 
@@ -273,12 +378,25 @@ export function CambiosBoard({ initialItems }: CambiosBoardProps) {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Input
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) =>
+                send({
+                  type: "SET_SEARCH",
+                  value: event.target.value,
+                })
+              }
               placeholder="Buscar proyecto, cliente, owner o solicitud"
               className="xl:col-span-2"
             />
 
-            <Select value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)}>
+            <Select
+              value={projectFilter}
+              onChange={(event) =>
+                send({
+                  type: "SET_PROJECT_FILTER",
+                  value: event.target.value,
+                })
+              }
+            >
               {projects.map((option) => (
                 <option key={option} value={option} className="bg-brand-charcoal text-white">
                   Proyecto: {option}
@@ -286,7 +404,15 @@ export function CambiosBoard({ initialItems }: CambiosBoardProps) {
               ))}
             </Select>
 
-            <Select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+            <Select
+              value={typeFilter}
+              onChange={(event) =>
+                send({
+                  type: "SET_TYPE_FILTER",
+                  value: event.target.value,
+                })
+              }
+            >
               <option value="Todos" className="bg-brand-charcoal text-white">
                 Tipo: Todos
               </option>
@@ -297,7 +423,15 @@ export function CambiosBoard({ initialItems }: CambiosBoardProps) {
               ))}
             </Select>
 
-            <Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <Select
+              value={statusFilter}
+              onChange={(event) =>
+                send({
+                  type: "SET_STATUS_FILTER",
+                  value: event.target.value,
+                })
+              }
+            >
               <option value="Todos" className="bg-brand-charcoal text-white">
                 Estado: Todos
               </option>
@@ -334,7 +468,12 @@ export function CambiosBoard({ initialItems }: CambiosBoardProps) {
                     <tr
                       key={item.id}
                       className="cursor-pointer hover:bg-white/5"
-                      onClick={() => setSelectedItem(item)}
+                      onClick={() =>
+                        send({
+                          type: "SET_SELECTED_ITEM_ID",
+                          value: item.id,
+                        })
+                      }
                     >
                       <td className="px-4 py-3">
                         <p className="font-semibold text-white">{item.projectName}</p>
@@ -362,7 +501,16 @@ export function CambiosBoard({ initialItems }: CambiosBoardProps) {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => setSelectedItem(item)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              send({
+                                type: "SET_SELECTED_ITEM_ID",
+                                value: item.id,
+                              })
+                            }
+                          >
                             Ver
                           </Button>
                           {isActionable ? (
@@ -411,7 +559,16 @@ export function CambiosBoard({ initialItems }: CambiosBoardProps) {
         </CardContent>
       </Card>
 
-      <Dialog open={Boolean(selectedItem)} onOpenChange={(open) => !open && setSelectedItem(null)}>
+      <Dialog
+        open={Boolean(selectedItem)}
+        onOpenChange={(open) =>
+          !open &&
+          send({
+            type: "SET_SELECTED_ITEM_ID",
+            value: null,
+          })
+        }
+      >
         <DialogContent>
           {selectedItem && (
             <>

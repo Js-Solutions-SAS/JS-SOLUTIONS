@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Gauge, Mail, ShieldAlert, Users2 } from "lucide-react";
 
 import { Badge } from "@/components/atoms/badge";
@@ -14,6 +14,11 @@ import {
   DialogTitle,
 } from "@/components/molecules/dialog";
 import { Select } from "@/components/atoms/select";
+import {
+  CapacidadProvider,
+  useCapacidadDispatch,
+  useCapacidadState,
+} from "@/domain/capacidad/hooks/use-capacidad-context";
 import { utilizationBand, utilizationPercent } from "@/lib/capacity-utils";
 import type { CapacityMetrics, TeamCapacityEntry } from "@/lib/types";
 
@@ -44,9 +49,21 @@ function barColor(entry: TeamCapacityEntry): string {
 }
 
 export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
-  const [roleFilter, setRoleFilter] = useState("Todos");
-  const [bandFilter, setBandFilter] = useState("Todos");
-  const [selectedEntry, setSelectedEntry] = useState<TeamCapacityEntry | null>(null);
+  return (
+    <CapacidadProvider>
+      <CapacityBoardContent entries={entries} metrics={metrics} />
+    </CapacidadProvider>
+  );
+}
+
+function CapacityBoardContent({ entries, metrics }: CapacityBoardProps) {
+  const state = useCapacidadState();
+  const send = useCapacidadDispatch();
+  const { roleFilter, bandFilter, selectedEntryId } = state;
+  const selectedEntry = useMemo(
+    () => entries.find((entry) => entry.id === selectedEntryId) || null,
+    [entries, selectedEntryId],
+  );
 
   const roles = useMemo(() => {
     const values = new Set(entries.map((entry) => entry.role || "Sin rol"));
@@ -131,7 +148,15 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
       <Card>
         <CardHeader className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
+            <Select
+              value={roleFilter}
+              onChange={(event) =>
+                send({
+                  type: "SET_ROLE_FILTER",
+                  value: event.target.value,
+                })
+              }
+            >
               {roles.map((option) => (
                 <option key={option} value={option} className="bg-brand-charcoal text-white">
                   Rol: {option}
@@ -139,7 +164,15 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
               ))}
             </Select>
 
-            <Select value={bandFilter} onChange={(event) => setBandFilter(event.target.value)}>
+            <Select
+              value={bandFilter}
+              onChange={(event) =>
+                send({
+                  type: "SET_BAND_FILTER",
+                  value: event.target.value,
+                })
+              }
+            >
               <option value="Todos" className="bg-brand-charcoal text-white">
                 Estado: Todos
               </option>
@@ -178,7 +211,12 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
                     <tr
                       key={entry.id}
                       className="cursor-pointer hover:bg-white/5"
-                      onClick={() => setSelectedEntry(entry)}
+                      onClick={() =>
+                        send({
+                          type: "SET_SELECTED_ENTRY_ID",
+                          value: entry.id,
+                        })
+                      }
                     >
                       <td className="px-4 py-3 text-white">
                         <p className="font-semibold">{entry.personName}</p>
@@ -235,7 +273,16 @@ export function CapacityBoard({ entries, metrics }: CapacityBoardProps) {
         </CardContent>
       </Card>
 
-      <Dialog open={Boolean(selectedEntry)} onOpenChange={(open) => !open && setSelectedEntry(null)}>
+      <Dialog
+        open={Boolean(selectedEntry)}
+        onOpenChange={(open) =>
+          !open &&
+          send({
+            type: "SET_SELECTED_ENTRY_ID",
+            value: null,
+          })
+        }
+      >
         <DialogContent>
           {selectedEntry && (
             <>

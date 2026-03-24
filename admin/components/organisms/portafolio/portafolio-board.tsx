@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   AlertTriangle,
   Building2,
@@ -23,6 +23,11 @@ import {
 } from "@/components/molecules/dialog";
 import { Input } from "@/components/atoms/input";
 import { Select } from "@/components/atoms/select";
+import {
+  PortafolioProvider,
+  usePortafolioDispatch,
+  usePortafolioState,
+} from "@/domain/portafolio/hooks/use-portafolio-context";
 import {
   healthBand,
   healthScore,
@@ -90,10 +95,21 @@ function progressClass(value: number): string {
 }
 
 export function PortafolioBoard({ entries, metrics }: PortafolioBoardProps) {
-  const [industryFilter, setIndustryFilter] = useState("Todas");
-  const [healthFilter, setHealthFilter] = useState("Todas");
-  const [search, setSearch] = useState("");
-  const [selectedEntry, setSelectedEntry] = useState<ExecutivePortfolioEntry | null>(null);
+  return (
+    <PortafolioProvider>
+      <PortafolioBoardContent entries={entries} metrics={metrics} />
+    </PortafolioProvider>
+  );
+}
+
+function PortafolioBoardContent({ entries, metrics }: PortafolioBoardProps) {
+  const state = usePortafolioState();
+  const send = usePortafolioDispatch();
+  const { industryFilter, healthFilter, search, selectedEntryId } = state;
+  const selectedEntry = useMemo(
+    () => entries.find((entry) => entry.id === selectedEntryId) || null,
+    [entries, selectedEntryId],
+  );
 
   const filtered = useMemo(() => {
     return entries
@@ -216,12 +232,25 @@ export function PortafolioBoard({ entries, metrics }: PortafolioBoardProps) {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Input
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) =>
+                send({
+                  type: "SET_SEARCH",
+                  value: event.target.value,
+                })
+              }
               placeholder="Buscar industria o responsable"
               className="xl:col-span-2"
             />
 
-            <Select value={industryFilter} onChange={(event) => setIndustryFilter(event.target.value)}>
+            <Select
+              value={industryFilter}
+              onChange={(event) =>
+                send({
+                  type: "SET_INDUSTRY_FILTER",
+                  value: event.target.value,
+                })
+              }
+            >
               <option value="Todas" className="bg-brand-charcoal text-white">
                 Industria: Todas
               </option>
@@ -232,7 +261,15 @@ export function PortafolioBoard({ entries, metrics }: PortafolioBoardProps) {
               ))}
             </Select>
 
-            <Select value={healthFilter} onChange={(event) => setHealthFilter(event.target.value)}>
+            <Select
+              value={healthFilter}
+              onChange={(event) =>
+                send({
+                  type: "SET_HEALTH_FILTER",
+                  value: event.target.value,
+                })
+              }
+            >
               <option value="Todas" className="bg-brand-charcoal text-white">
                 Salud: Todas
               </option>
@@ -274,7 +311,12 @@ export function PortafolioBoard({ entries, metrics }: PortafolioBoardProps) {
                     <tr
                       key={entry.id}
                       className="cursor-pointer hover:bg-white/5"
-                      onClick={() => setSelectedEntry(entry)}
+                      onClick={() =>
+                        send({
+                          type: "SET_SELECTED_ENTRY_ID",
+                          value: entry.id,
+                        })
+                      }
                     >
                       <td className="px-4 py-3">
                         <p className="font-semibold text-white">{industryLabel(entry.industry)}</p>
@@ -308,7 +350,16 @@ export function PortafolioBoard({ entries, metrics }: PortafolioBoardProps) {
                         <p>RAID abierto: {entry.openRaidItems}</p>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button variant="outline" size="sm" onClick={() => setSelectedEntry(entry)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            send({
+                              type: "SET_SELECTED_ENTRY_ID",
+                              value: entry.id,
+                            })
+                          }
+                        >
                           Ver
                         </Button>
                       </td>
@@ -327,7 +378,16 @@ export function PortafolioBoard({ entries, metrics }: PortafolioBoardProps) {
         </CardContent>
       </Card>
 
-      <Dialog open={Boolean(selectedEntry)} onOpenChange={(open) => !open && setSelectedEntry(null)}>
+      <Dialog
+        open={Boolean(selectedEntry)}
+        onOpenChange={(open) =>
+          !open &&
+          send({
+            type: "SET_SELECTED_ENTRY_ID",
+            value: null,
+          })
+        }
+      >
         <DialogContent>
           {selectedEntry && (
             <>
