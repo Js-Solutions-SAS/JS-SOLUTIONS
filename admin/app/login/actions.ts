@@ -43,6 +43,7 @@ export async function loginAction(
 
   const username = String(formData.get("username") || "").trim();
   const password = String(formData.get("password") || "");
+  const honeypot = String(formData.get("website") || "").trim();
   const csrfToken = String(formData.get("csrfToken") || "");
   const remember = String(formData.get("remember") || "") === "on";
   const redirectPath = sanitizeRedirectPath(
@@ -71,6 +72,11 @@ export async function loginAction(
         rateLimit.retryAfterSeconds / 60,
       )} minuto(s) antes de reintentar.`,
     };
+  }
+
+  if (honeypot) {
+    await fixedDelay();
+    return { error: GENERIC_LOGIN_ERROR };
   }
 
   if (!isCredentialInputValid(username, password)) {
