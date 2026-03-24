@@ -1,217 +1,58 @@
 # Admin Context
 
-## Mission
+## Mision
 
-`admin` is the Operations Cockpit of JS Solutions.
+`admin` es el cockpit operativo interno de JS Solutions. Debe permitir operar ventas, entrega, aprobaciones, cambios, SLA y finanzas para 50+ clientes sin estado oculto ni flujos fragüiles.
 
-Its purpose is to let the internal team operate sales, delivery, approvals,
-change control, SLA, finance and portfolio health for 50+ active clients
-without fragmentation, hidden state or spreadsheet-only workflows.
+## Stack y arquitectura objetivo
 
-## Production Goal
+- Next.js 14.
+- Dominios desacoplados con estructura uniforme: `domain/<modulo>/{model,machine,services,events,ui,hooks}`.
+- Estado con XState v5 y transiciones explicitas por evento.
+- Context splitting (`StateContext` y `DispatchContext`) para reducir re-renders.
+- Bus de eventos dual (`CustomEvent` + Pub/Sub) con contrato tipado y versionado.
 
-In 20 days this module must support a team that can manage 50+ concurrent
-clients with confidence, speed and traceability.
+## Reglas no negociables
 
-This is an operations product, not a dashboard demo.
+- Ningun modulo critico puede depender de mocks en produccion.
+- Toda mutacion debe reflejar estado operativo y feedback accionable.
+- Todas las acciones deben ser trazables (`correlationId`).
+- Ninguna ruta critica se despliega sin tests y build en verde.
 
-## Role In The System
+## Modulos core
 
-- consumes admin contracts from `api`
-- exposes a controlled internal UI for operators
-- triggers business actions that persist through `api`
-- displays workflow results and operational risk in one place
-
-`admin` should not be the source of truth.
-
-## Current Reality
-
-The current implementation already provides:
-
-- login and session handling
-- operations dashboard
-- views for:
-  - `cotizaciones`
-  - `entregas`
-  - `capacidad`
-  - `aprobaciones`
-  - `cambios`
-  - `sla`
-  - `portafolio`
-  - `finanzas`
-  - `raid`
-  - `sops`
-- `cotizaciones` already integrated with `api`
-- the rest already define UI contracts through BFF routes
-
-The main weakness today:
-
-- most non-quote modules still rely on direct n8n reads or fallback mock data
-
-## Target State
-
-`admin` must become a thin but powerful operations client over canonical API
-contracts.
-
-Target rule:
-
-- reads from `api`
-- writes to `api`
-- async automations happen through `api` -> `n8n`
-- no critical module runs on mock data in production
-
-## Core Modules
-
-### Quotes
-
-Must manage:
-
-- lead intake
-- brief status
-- quote review
-- commercial approval
-- contract initiation
-- first payment visibility
-
-### Deliveries
-
-Must manage:
-
-- active projects
-- milestones
-- due dates
-- owners
-- risk windows
-
-### Capacity
-
-Must manage:
-
-- allocation by person
-- allocation by role
-- weekly load
-- over-capacity flags
-- rebalance suggestions
-
-### Approvals
-
-Must manage:
-
-- checkpoints per stage
-- pending approvers
-- due dates
-- audit trail
-
-### Change Requests
-
-Must manage:
-
-- scope changes
-- cost impact
-- date impact
-- decision trail
-
-### Tickets And SLA
-
-Must manage:
-
-- support queue
-- response SLA
-- resolution SLA
-- breach visibility
-
-### RAID
-
-Must manage:
-
-- risks
-- assumptions
-- issues
-- dependencies
-- critical open items
-
-### Finance
-
-Must manage:
-
-- budget
-- executed
-- invoiced
-- pending billing
-- margin pressure
-
-### Portfolio
-
-Must manage:
-
-- health by vertical
-- project risk concentration
-- governance pressure
-- executive summary
-
-## Non Negotiable Rules
-
-- no critical module powered by mocks in production
-- every mutation must return actionable status feedback
-- every table/filter card must map to canonical API fields
-- permissions must be explicit by role
-- operator actions must leave an audit trail
-
-## UX Standard
-
-This module must feel like a high-end internal operating system:
-
-- fast load on real data
-- clear status hierarchy
-- strong empty/error/loading states
-- dense but readable tables
-- one-click operational actions where safe
-
-## Production Metrics
-
-The team should be able to:
-
-- see portfolio and delivery health in less than 3 clicks
-- process approvals and changes in under 1 minute
-- detect breached SLA, overdue milestones and financial risk immediately
-- operate all critical flows without opening raw n8n workflows
-
-## Immediate 20 Day Priorities
-
-### Priority 1
-
-Keep `cotizaciones` stable and fully tied to `api`.
-
-### Priority 2
-
-Replace mock/fallback data for:
-
-- `entregas`
+- `cotizaciones`
 - `aprobaciones`
 - `cambios`
+- `entregas`
 - `sla`
 - `finanzas`
+- `raid`
+- `capacidad`
+- `portafolio`
+- `sops`
 
-### Priority 3
+## Governance agregado (Senior+)
 
-Normalize filters, statuses and metrics so every page speaks the same business
-language.
+1. Testing automatizado
+- Unit tests de FSM/reducers/event bus/workers.
+- Integracion por modulo y E2E criticos.
 
-### Priority 4
+2. Performance budgets por ruta
+- Medicion web-vitals en cliente.
+- Alertas server-side con endpoint `POST /api/admin/performance-alerts`.
 
-Add operator-grade safeguards:
+3. Versionado y deprecacion
+- Contratos internos de evento con version.
+- Ventana de compatibilidad y sunset explicito.
 
-- clearer error handling
-- action confirmations where needed
-- audit/event visibility
-- role restrictions
+4. Seguridad frontend
+- CSP/headers duros.
+- Honeypot en login + validacion server-side.
 
-## Definition Of Done
+## Documentacion de referencia
 
-This module is ready for the 50-client phase when:
-
-- operators can run the daily business from this UI
-- critical pages do not depend on mock data
-- all major actions persist through `api`
-- operational risk is visible in real time
-- the team can manage concurrent projects without spreadsheet shadow systems
+- `../docs/testing-policy.md`
+- `../docs/performance-budgets-and-alerts.md`
+- `../docs/frontend-versioning-and-deprecation.md`
+- `../docs/frontend-security-policy.md`

@@ -1,13 +1,13 @@
 # JS Solutions Workspace
 
-Repositorio monorepo con 4 aplicaciones:
+Monorepo con 4 aplicaciones:
 
 - `landing`: sitio comercial y cotizador (Astro + React)
 - `portal`: portal de cliente para seguimiento de proyectos (Next.js)
-- `admin`: panel interno operativo (Next.js)
+- `admin`: panel interno operativo (Next.js 14)
 - `api`: backend interno/orquestador de cotizaciones (NestJS + Postgres + n8n)
 
-## Estructura del repositorio
+## Estructura
 
 ```text
 .
@@ -15,7 +15,9 @@ Repositorio monorepo con 4 aplicaciones:
 ├── portal/
 ├── admin/
 ├── api/
-├── n8n/
+├── agents/
+├── docs/
+├── scripts/
 └── BLUEPRINT_SAAS_POR_MODULO.md
 ```
 
@@ -44,6 +46,7 @@ PUBLIC_GTM_ID=GTM-XXXXXXX
 PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 PUBLIC_META_PIXEL_ID=123456789012345
 PUBLIC_CLARITY_PROJECT_ID=abcd1234
+PERFORMANCE_ALERT_WEBHOOK_URL=
 ```
 
 ### 2) Portal (`portal`)
@@ -67,7 +70,7 @@ N8N_REQUEST_TIMEOUT_MS=15000
 
 ### 3) Admin (`admin`)
 
-`/cotizaciones` ya no consume n8n directamente: ahora usa `api` para listado, intake, solicitud de brief, generacion de cotizacion y contrato.
+`/cotizaciones` consume API interna (`api`) para listado, intake, solicitud de brief, generacion de cotizacion y contrato.
 
 ```bash
 cd admin
@@ -83,6 +86,7 @@ Variables recomendadas (`admin/.env.local`):
 API_BASE_URL=http://localhost:3003
 API_INTERNAL_TOKEN=token_compartido_admin_api
 API_REQUEST_TIMEOUT_MS=15000
+PERFORMANCE_ALERT_WEBHOOK_URL=
 
 N8N_SOPS_WEBHOOK_URL=https://tu-n8n/webhook/sops
 N8N_CAPACITY_WEBHOOK_URL=https://tu-n8n/webhook/admin-capacidad
@@ -136,14 +140,40 @@ INTERNAL_REQUIRE_HMAC_FOR_INTERNAL=true
 ./start.sh
 ```
 
-## Build de produccion
+## Calidad y pruebas
 
-En cada app:
+### Landing
 
 ```bash
+cd landing
+npm run test
+npm run test:coverage
 npm run build
-npm run start
 ```
+
+### Admin
+
+```bash
+cd admin
+npm run test
+npm run test:coverage
+npm run build
+```
+
+## Gobernanza frontend Senior+
+
+Documentacion formal en `docs/`:
+
+- `docs/testing-policy.md`
+- `docs/performance-budgets-and-alerts.md`
+- `docs/frontend-versioning-and-deprecation.md`
+- `docs/frontend-security-policy.md`
+
+## Kit reutilizable de agentes
+
+- Carpeta base: `agents/`
+- Exportacion: `scripts/export-agents-kit.sh <version>`
+- Salidas: `.artifacts/agents-kit-v<version>.tar.gz` y `.artifacts/agents-kit-v<version>.zip`
 
 ## Archivos de apoyo n8n / SQL
 

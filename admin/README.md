@@ -16,17 +16,12 @@ Panel interno (Next.js 14 + Tailwind) para operacion de JS Solutions.
 - `/sops` SOPs
 - `/cotizaciones` Flujo operativo de briefs, cotizaciones y contratos
 
-## Arquitectura de componentes
+## Arquitectura
 
-`admin/components` fue migrado a Atomic Design:
-
-- `atoms/`
-- `molecules/`
-- `organisms/`
-- `templates/`
-- `features/`
-
-Las vistas de dominio (incluyendo `cotizaciones`) viven bajo `organisms/`.
+- Componentes en Atomic Design (`atoms`, `molecules`, `organisms`, `templates`, `features`).
+- Dominios con estructura uniforme: `domain/<modulo>/{model,machine,services,events,ui,hooks}`.
+- Estado de dominio en XState v5 + patrones de contexto dividido (`StateContext` / `DispatchContext`).
+- Bus de eventos dual (CustomEvent + Pub/Sub) con contrato tipado y versionado.
 
 ## Integracion de cotizaciones
 
@@ -40,6 +35,39 @@ Operaciones conectadas a API:
 - previsualizar/enviar cotizacion: `POST /api/v1/quotes/generate`
 - generar contrato: `POST /api/v1/contracts/generate`
 
+## Performance budgets y alertas
+
+- Presupuestos por ruta: `admin/lib/performance/budgets.ts`.
+- Watcher runtime: `admin/components/features/performance-budget-watcher.tsx`.
+- Ingest endpoint: `POST /api/admin/performance-alerts`.
+
+Variable opcional:
+
+```env
+PERFORMANCE_ALERT_WEBHOOK_URL=https://tu-observabilidad/webhook/frontend-performance
+```
+
+## Seguridad frontend
+
+- Headers de seguridad y CSP en `next.config.mjs`.
+- Honeypot en login (`website`) validado server-side en `app/login/actions.ts`.
+- Sin bloqueos de UX por telemetria/fallos no criticos.
+
+## Testing automatizado
+
+```bash
+npm run test
+npm run test:watch
+npm run test:coverage
+```
+
+Cobertura minima recomendada:
+
+- FSM de modulos criticos
+- Event bus tipado
+- Reducers invertidos
+- Worker logic
+
 ## Variables de entorno (`admin/.env.local`)
 
 ```env
@@ -47,8 +75,9 @@ Operaciones conectadas a API:
 API_BASE_URL=https://api.jssolutions.com.co
 API_INTERNAL_TOKEN=<shared_secret>
 API_REQUEST_TIMEOUT_MS=15000
+PERFORMANCE_ALERT_WEBHOOK_URL=
 
-# Integraciones n8n para otros modulos operativos
+# Integraciones n8n para modulos operativos
 N8N_SOPS_WEBHOOK_URL=https://<your-n8n>/webhook/sops
 N8N_MILESTONES_WEBHOOK_URL=https://<your-n8n>/webhook/admin-entregas
 N8N_CAPACITY_WEBHOOK_URL=https://<your-n8n>/webhook/admin-capacity
