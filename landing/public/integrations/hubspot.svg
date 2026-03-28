@@ -1,0 +1,7 @@
+<svg width="160" height="56" viewBox="0 0 160 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="158" height="54" rx="16" fill="#0F1012" stroke="#2F2A1A"/>
+  <circle cx="27" cy="28" r="11" fill="#D4AF37"/>
+  <text x="27" y="32" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="9" font-weight="800" fill="#0A0A0A">HS</text>
+  <text x="47" y="24" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700" fill="#F7F3E8">HubSpot</text>
+  <text x="47" y="37" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="600" fill="#A7A7A7">CRM</text>
+</svg>

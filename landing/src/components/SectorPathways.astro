@@ -1,0 +1,81 @@
+---
+import { sectorConfigs } from "@/data/sector-content";
+---
+
+<section
+  id="soluciones"
+  data-track-section="home_pathways"
+  class="relative border-b border-white/10 bg-brand-black py-20 md:py-24"
+>
+  <div class="mx-auto max-w-7xl px-6">
+    <div class="grid gap-8 md:grid-cols-[0.78fr_1.22fr] md:items-end">
+      <div class="max-w-md">
+        <p class="text-[11px] font-black uppercase tracking-[0.32em] text-brand-gold/80">
+          Rutas especializadas
+        </p>
+        <h2 class="mt-4 text-balance text-4xl font-bold leading-tight text-white md:text-5xl">
+          Dos demos, dos mensajes, dos embudos de conversion.
+        </h2>
+      </div>
+      <p class="max-w-2xl text-base leading-relaxed text-brand-off-white/72 md:justify-self-end md:text-lg">
+        La home ya no intenta explicar todo. Su trabajo es dejar claro que hay
+        una solucion afinada para cada realidad operativa y dirigir al visitante
+        a la landing correcta.
+      </p>
+    </div>
+
+    <div class="mt-14 grid gap-8 lg:grid-cols-2">
+      {
+        Object.values(sectorConfigs).map((sector) => (
+          <article class="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-8 transition-colors duration-300 hover:border-brand-gold/40">
+            <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-gold/60 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+            <div class="flex items-start justify-between gap-6">
+              <div>
+                <p class="text-[11px] font-black uppercase tracking-[0.28em] text-brand-gold/70">
+                  {sector.heroEyebrow}
+                </p>
+                <h3 class="mt-4 max-w-xl text-3xl font-bold leading-tight text-white">
+                  {sector.homeLabel}
+                </h3>
+              </div>
+              <span class="rounded-full border border-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-brand-off-white/55">
+                Demo incluida
+              </span>
+            </div>
+
+            <p class="mt-5 max-w-2xl text-base leading-relaxed text-brand-off-white/74">
+              {sector.selectorSummary}
+            </p>
+
+            <div class="mt-7 border-t border-white/10 pt-6">
+              <p class="text-sm font-semibold text-white">{sector.selectorAudience}</p>
+              <ul class="mt-4 grid gap-3 text-sm leading-relaxed text-brand-off-white/72">
+                {sector.selectorOutcomes.map((outcome) => (
+                  <li class="flex gap-3">
+                    <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-gold"></span>
+                    <span>{outcome}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div class="mt-9 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6">
+              <span class="max-w-sm text-xs uppercase tracking-[0.24em] text-brand-off-white/42">
+                Promesa especifica + demo + siguiente paso claro
+              </span>
+              <a
+                href={sector.route}
+                data-track="sector_selector_click"
+                data-track-label={`Entrar a ${sector.navLabel}`}
+                data-track-location="home_pathways"
+                class="inline-flex items-center gap-3 rounded-full bg-gold-gradient px-6 py-3 text-sm font-black uppercase tracking-[0.16em] text-black transition-transform duration-300 hover:scale-[1.02]"
+              >
+                Abrir {sector.navLabel}
+              </a>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>

@@ -1,0 +1,281 @@
+---
+import SectorDemo from "@/components/SectorDemo";
+import TechAuthority from "@/components/TechAuthority.astro";
+import { createWhatsAppHref } from "@/lib/whatsapp";
+import type { SectorContent } from "@/data/sector-content";
+
+interface Props {
+  sector: SectorContent;
+}
+
+const { sector } = Astro.props;
+
+const heroWhatsappHref = createWhatsAppHref(sector.heroWhatsappMessage);
+const finalWhatsappHref = createWhatsAppHref(sector.demoCtaMessage);
+---
+
+<section
+  data-track-section={`${sector.key}_hero`}
+  class="relative overflow-hidden border-b border-white/10 bg-brand-black pt-28"
+>
+  <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(212,175,55,0.16),transparent_34%),radial-gradient(circle_at_84%_22%,rgba(96,165,250,0.14),transparent_28%)]"></div>
+  <div class="relative mx-auto max-w-7xl px-6 pb-20">
+    <div class="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+      <div class="max-w-xl">
+        <p class="text-[11px] font-black uppercase tracking-[0.34em] text-brand-gold/80">
+          {sector.heroEyebrow}
+        </p>
+        <h1 class="mt-5 text-balance text-4xl font-bold leading-[1.02] text-white md:text-6xl">
+          {sector.heroTitle}
+        </h1>
+        <p class="mt-6 text-lg leading-relaxed text-brand-off-white/76">
+          {sector.heroDescription}
+        </p>
+
+        <ul class="mt-8 space-y-3">
+          {
+            sector.heroHighlights.map((highlight) => (
+              <li class="flex gap-3 text-sm leading-relaxed text-brand-off-white/72">
+                <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-gold"></span>
+                <span>{highlight}</span>
+              </li>
+            ))
+          }
+        </ul>
+
+        <div class="mt-10 flex flex-col gap-4 sm:flex-row">
+          <a
+            href={heroWhatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-track="sector_whatsapp_click"
+            data-track-label={sector.heroCtaLabel}
+            data-track-location={`${sector.key}_hero`}
+            class="inline-flex items-center justify-center rounded-full bg-gold-gradient px-7 py-4 text-center text-sm font-black uppercase tracking-[0.16em] text-black transition-transform duration-300 hover:scale-[1.02]"
+          >
+            {sector.heroCtaLabel}
+          </a>
+          <a
+            href="#demo"
+            class="inline-flex items-center justify-center rounded-full border border-white/15 px-7 py-4 text-sm font-black uppercase tracking-[0.16em] text-white transition-colors duration-300 hover:border-brand-gold/60 hover:text-brand-gold"
+          >
+            {sector.heroSecondaryLabel}
+          </a>
+        </div>
+
+        <div class="mt-10 grid gap-4 border-t border-white/10 pt-6 sm:grid-cols-3">
+          {
+            sector.proofPoints.map((proof) => (
+              <div>
+                <p class="text-sm font-bold text-white">{proof.title}</p>
+                <p class="mt-2 text-sm leading-relaxed text-brand-off-white/60">
+                  {proof.description}
+                </p>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+      <div id="demo" class="lg:pl-2 xl:pl-4">
+        <SectorDemo
+          client:visible
+          sector={sector.key}
+          name={sector.demoName}
+          description={sector.demoDescription}
+          ctaLabel={sector.demoCtaLabel}
+          ctaMessage={sector.demoCtaMessage}
+          steps={sector.demoSteps}
+        />
+      </div>
+    </div>
+  </div>
+</section>
+
+<section
+  data-track-section={`${sector.key}_offer`}
+  class="border-b border-white/10 bg-brand-black py-20"
+>
+  <div class="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[0.78fr_1.22fr]">
+    <div class="max-w-md">
+      <p class="text-[11px] font-black uppercase tracking-[0.34em] text-brand-gold/78">
+        {sector.packageEyebrow}
+      </p>
+      <h2 class="mt-4 text-balance text-4xl font-bold leading-tight text-white md:text-5xl">
+        {sector.packageName}
+      </h2>
+      <p class="mt-5 text-base leading-relaxed text-brand-off-white/72 md:text-lg">
+        {sector.packageSummary}
+      </p>
+    </div>
+
+    <div class="grid gap-10">
+      <div class="grid gap-5 md:grid-cols-2">
+        {sector.packageIncluded.map((item) => (
+          <div class="border-t border-white/10 pt-4">
+            <p class="text-base font-semibold leading-snug text-white">{item}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="border-t border-white/10 pt-8">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p class="text-[11px] font-black uppercase tracking-[0.3em] text-brand-gold/76">
+              Add-ons visibles
+            </p>
+            <p class="mt-3 max-w-2xl text-sm leading-relaxed text-brand-off-white/66">
+              La oferta principal resuelve el nucleo. Los add-ons aparecen como
+              extensiones utiles, no como catalogo infinito de servicios.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-5 flex flex-wrap gap-3">
+          {
+            sector.addOns.map((addOn) => (
+              <a
+                href={createWhatsAppHref(
+                  `${sector.demoCtaMessage} Tambien me interesa el add-on: ${addOn}.`,
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-track="addon_interest_click"
+                data-track-label={addOn}
+                data-track-location={`${sector.key}_addons`}
+                class="rounded-full border border-white/12 px-4 py-3 text-sm font-semibold text-brand-off-white/78 transition-colors duration-300 hover:border-brand-gold/50 hover:text-white"
+              >
+                {addOn}
+              </a>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section
+  data-track-section={`${sector.key}_methodology`}
+  class="border-b border-white/10 bg-brand-charcoal/45 py-20"
+>
+  <div class="mx-auto max-w-7xl px-6">
+    <div class="grid gap-10 lg:grid-cols-[0.75fr_1.25fr]">
+      <div class="max-w-md">
+        <p class="text-[11px] font-black uppercase tracking-[0.34em] text-brand-gold/78">
+          Metodologia
+        </p>
+        <h2 class="mt-4 text-balance text-4xl font-bold leading-tight text-white md:text-5xl">
+          Diagnostico, flujo, pruebas y ajuste.
+        </h2>
+        <p class="mt-5 text-base leading-relaxed text-brand-off-white/70 md:text-lg">
+          La metodologia es parte del producto: define la velocidad de salida y
+          baja el riesgo de lanzar algo que no le sirva a la operacion real.
+        </p>
+      </div>
+
+      <div class="grid gap-6">
+        {
+          sector.methodology.map((step, index) => (
+            <article class="grid gap-4 border-t border-white/10 pt-5 md:grid-cols-[72px_1fr] md:items-start">
+              <div class="text-3xl font-bold text-brand-gold/64">
+                {(index + 1).toString().padStart(2, "0")}
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">{step.title}</h3>
+                <p class="mt-3 max-w-2xl text-sm leading-relaxed text-brand-off-white/68">
+                  {step.description}
+                </p>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<section
+  data-track-section={`${sector.key}_technical`}
+  class="border-b border-white/10 bg-brand-black py-20"
+>
+  <div class="mx-auto max-w-7xl px-6">
+    <div class="grid gap-12 lg:grid-cols-[0.88fr_1.12fr]">
+      <div>
+        <p class="text-[11px] font-black uppercase tracking-[0.34em] text-brand-gold/78">
+          {sector.technicalEyebrow}
+        </p>
+        <h2 class="mt-4 text-balance text-4xl font-bold leading-tight text-white md:text-5xl">
+          {sector.technicalTitle}
+        </h2>
+        <p class="mt-5 text-base leading-relaxed text-brand-off-white/70 md:text-lg">
+          {sector.technicalDescription}
+        </p>
+
+        <div class="mt-10 grid gap-5">
+          {
+            sector.technicalPillars.map((pillar) => (
+              <article class="border-t border-white/10 pt-5">
+                <h3 class="text-lg font-bold text-white">{pillar.title}</h3>
+                <p class="mt-3 text-sm leading-relaxed text-brand-off-white/66">
+                  {pillar.description}
+                </p>
+              </article>
+            ))
+          }
+        </div>
+      </div>
+
+      <div class="grid gap-5 self-start">
+        {sector.faqs.map((faq) => (
+          <article class="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6">
+            <h3 class="text-lg font-bold leading-snug text-white">
+              {faq.question}
+            </h3>
+            <p class="mt-4 text-sm leading-relaxed text-brand-off-white/68">
+              {faq.answer}
+            </p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<TechAuthority
+  title="Integraciones y compatibilidad para aterrizar rapido"
+  description="La tecnologia se muestra como infraestructura util: integra canales, documentos, voz, automatizacion y CRM sin convertir la landing en una nube de buzzwords."
+  signals={sector.authoritySignals}
+/>
+
+<section
+  data-track-section={`${sector.key}_final_cta`}
+  class="bg-brand-black py-20"
+>
+  <div class="mx-auto max-w-5xl px-6">
+    <div class="rounded-[2.25rem] border border-brand-gold/20 bg-[linear-gradient(135deg,rgba(212,175,55,0.16),rgba(255,255,255,0.04))] px-8 py-10 md:px-12 md:py-14">
+      <p class="text-[11px] font-black uppercase tracking-[0.34em] text-brand-gold/80">
+        Siguiente paso
+      </p>
+      <h2 class="mt-4 max-w-3xl text-balance text-3xl font-bold leading-tight text-white md:text-5xl">
+        {sector.finalCtaTitle}
+      </h2>
+      <p class="mt-5 max-w-2xl text-base leading-relaxed text-brand-off-white/74 md:text-lg">
+        {sector.finalCtaBody}
+      </p>
+      <div class="mt-8">
+        <a
+          href={finalWhatsappHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-track="sector_whatsapp_click"
+          data-track-label={sector.finalCtaLabel}
+          data-track-location={`${sector.key}_final_cta`}
+          class="inline-flex items-center justify-center rounded-full bg-gold-gradient px-7 py-4 text-sm font-black uppercase tracking-[0.16em] text-black transition-transform duration-300 hover:scale-[1.02]"
+        >
+          {sector.finalCtaLabel}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

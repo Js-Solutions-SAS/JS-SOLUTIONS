@@ -1,0 +1,30 @@
+---
+import Footer from "@/components/Footer.astro";
+import Navbar from "@/components/Navbar.astro";
+import SectorLanding from "@/components/SectorLanding.astro";
+import { sectorConfigs } from "@/data/sector-content";
+import Layout from "@/layouts/Layout.astro";
+
+const sector = sectorConfigs.sector_publico;
+---
+
+<Layout
+  title={sector.seoTitle}
+  description={sector.seoDescription}
+  keywords={sector.seoKeywords}
+  floatingWhatsappMessage={sector.demoCtaMessage}
+  floatingWhatsappLabel="WhatsApp Sector Publico"
+>
+  <Navbar
+    activePath={sector.route}
+    ctaHref={sector.route}
+    ctaLabel="Ver Demo Publica"
+    ctaTrack="sector_selector_click"
+    ctaTrackLabel="Ver Demo Publica"
+    ctaTrackLocation="navbar"
+  />
+  <main class="relative overflow-hidden bg-brand-black">
+    <SectorLanding sector={sector} />
+  </main>
+  <Footer />
+</Layout>

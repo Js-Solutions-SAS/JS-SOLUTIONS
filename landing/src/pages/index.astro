@@ -1,21 +1,22 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Navbar from "../components/Navbar.astro";
-import Hero from "../components/Hero";
-import ServicesBento from "../components/ServicesBento";
-import SegmentToggle from "../components/SegmentToggle";
 import Footer from "../components/Footer.astro";
+import HomeHero from "../components/HomeHero.astro";
+import Navbar from "../components/Navbar.astro";
+import SectorPathways from "../components/SectorPathways.astro";
+import TechAuthority from "../components/TechAuthority.astro";
 ---
 
-<Layout title="JS Solutions | Inteligencia Artificial & Automatización">
+<Layout
+  title="JS Solutions | Dos Demos para Dos Operaciones"
+  description="JS Solutions reorganiza su propuesta en dos rutas claras: automatizacion comercial para PyMES y atencion ciudadana asistida para sector publico."
+  keywords="automatizacion comercial, atencion ciudadana con IA, agente de WhatsApp para ventas, asistente virtual sector publico, demos de automatizacion"
+>
   <Navbar />
-  <main class="relative bg-brand-black w-full overflow-hidden">
-    <Hero client:load />
-
-    <div class="relative z-10 w-full">
-      <ServicesBento client:visible />
-      <SegmentToggle client:visible />
-    </div>
+  <main class="relative overflow-hidden bg-brand-black">
+    <HomeHero />
+    <SectorPathways />
+    <TechAuthority />
   </main>
   <Footer />
 </Layout>
