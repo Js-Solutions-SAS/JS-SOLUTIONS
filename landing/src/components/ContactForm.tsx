@@ -1,4 +1,4 @@
-import { type FormEvent } from "react";
+import { type FormEvent, useEffect, useRef } from "react";
 import { useMachine } from "@xstate/react";
 import { assign, createMachine, fromPromise } from "xstate";
 
@@ -260,8 +260,27 @@ export const contactFormMachine = createMachine(
 
 export default function ContactForm() {
   const [state, send] = useMachine(contactFormMachine);
+  const hasTrackedThankYouRef = useRef(false);
 
   const isLoading = state.matches("submitting");
+  const isSuccess = state.matches("success");
+
+  useEffect(() => {
+    if (!isSuccess || typeof window === "undefined") {
+      hasTrackedThankYouRef.current = false;
+      return;
+    }
+
+    if (hasTrackedThankYouRef.current) {
+      return;
+    }
+
+    hasTrackedThankYouRef.current = true;
+    track("lead_thankyou_view", {
+      form_id: "contact_form",
+      funnel_step: "thank_you_modal",
+    });
+  }, [isSuccess]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -269,134 +288,195 @@ export default function ContactForm() {
   };
 
   return (
-    <form
-      id="contactForm"
-      className="space-y-6 bg-white/5 p-8 md:p-10 rounded-3xl border border-white/10 backdrop-blur-sm shadow-2xl relative"
-      onFocus={() => send({ type: "START" })}
-      onSubmit={handleSubmit}
-    >
-      <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent rounded-3xl pointer-events-none" />
+    <div className="relative">
+      <form
+        id="contactForm"
+        className="space-y-6 bg-white/5 p-8 md:p-10 rounded-3xl border border-white/10 backdrop-blur-sm shadow-2xl relative"
+        onFocus={() => send({ type: "START" })}
+        onSubmit={handleSubmit}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent rounded-3xl pointer-events-none" />
 
-      <input
-        type="text"
-        name="website"
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-        className="hidden"
-        value={state.context.website}
-        onChange={(event) =>
-          send({
-            type: "SET_WEBSITE",
-            value: event.target.value,
-          })
-        }
-      />
+        <input
+          type="text"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          className="hidden"
+          value={state.context.website}
+          onChange={(event) =>
+            send({
+              type: "SET_WEBSITE",
+              value: event.target.value,
+            })
+          }
+        />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+          <div className="space-y-2">
+            <label
+              htmlFor="name"
+              className="text-xs font-bold text-brand-gold uppercase tracking-wider ml-2"
+            >
+              Nombre
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              required
+              placeholder="Tu Nombre"
+              value={state.context.name}
+              onChange={(event) => send({ type: "SET_NAME", value: event.target.value })}
+              className="w-full bg-brand-black/50 border border-white/10 rounded-xl px-5 py-4 text-white focus:border-brand-gold/50 focus:ring-1 focus:ring-brand-gold/50 focus:outline-none transition-all placeholder:text-white/20"
+            />
+          </div>
+          <div className="space-y-2">
+            <label
+              htmlFor="email"
+              className="text-xs font-bold text-brand-gold uppercase tracking-wider ml-2"
+            >
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              placeholder="correo@empresa.com"
+              value={state.context.email}
+              onChange={(event) => send({ type: "SET_EMAIL", value: event.target.value })}
+              className="w-full bg-brand-black/50 border border-white/10 rounded-xl px-5 py-4 text-white focus:border-brand-gold/50 focus:ring-1 focus:ring-brand-gold/50 focus:outline-none transition-all placeholder:text-white/20"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2 relative z-10">
           <label
-            htmlFor="name"
+            htmlFor="company"
             className="text-xs font-bold text-brand-gold uppercase tracking-wider ml-2"
           >
-            Nombre
+            Empresa
           </label>
           <input
             type="text"
-            id="name"
-            name="name"
-            required
-            placeholder="Tu Nombre"
-            value={state.context.name}
-            onChange={(event) => send({ type: "SET_NAME", value: event.target.value })}
+            id="company"
+            name="company"
+            placeholder="Nombre de tu organización"
+            value={state.context.company}
+            onChange={(event) => send({ type: "SET_COMPANY", value: event.target.value })}
             className="w-full bg-brand-black/50 border border-white/10 rounded-xl px-5 py-4 text-white focus:border-brand-gold/50 focus:ring-1 focus:ring-brand-gold/50 focus:outline-none transition-all placeholder:text-white/20"
           />
         </div>
-        <div className="space-y-2">
+
+        <div className="space-y-2 relative z-10">
           <label
-            htmlFor="email"
+            htmlFor="message"
             className="text-xs font-bold text-brand-gold uppercase tracking-wider ml-2"
           >
-            Email
+            Mensaje
           </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
+          <textarea
+            id="message"
+            name="message"
+            rows={4}
             required
-            placeholder="correo@empresa.com"
-            value={state.context.email}
-            onChange={(event) => send({ type: "SET_EMAIL", value: event.target.value })}
-            className="w-full bg-brand-black/50 border border-white/10 rounded-xl px-5 py-4 text-white focus:border-brand-gold/50 focus:ring-1 focus:ring-brand-gold/50 focus:outline-none transition-all placeholder:text-white/20"
+            placeholder="¿Qué proceso te gustaría automatizar?"
+            value={state.context.message}
+            onChange={(event) => send({ type: "SET_MESSAGE", value: event.target.value })}
+            className="w-full bg-brand-black/50 border border-white/10 rounded-xl px-5 py-4 text-white focus:border-brand-gold/50 focus:ring-1 focus:ring-brand-gold/50 focus:outline-none transition-all resize-none placeholder:text-white/20"
           />
         </div>
-      </div>
 
-      <div className="space-y-2 relative z-10">
-        <label
-          htmlFor="company"
-          className="text-xs font-bold text-brand-gold uppercase tracking-wider ml-2"
+        <button
+          type="submit"
+          id="submitButton"
+          data-track="lead_submit_click"
+          data-track-label="Contact Form Submit"
+          data-track-location="contact_form"
+          disabled={isLoading}
+          className="relative z-10 w-full bg-gold-gradient text-black font-bold py-4 rounded-xl hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Empresa
-        </label>
-        <input
-          type="text"
-          id="company"
-          name="company"
-          placeholder="Nombre de tu organización"
-          value={state.context.company}
-          onChange={(event) => send({ type: "SET_COMPANY", value: event.target.value })}
-          className="w-full bg-brand-black/50 border border-white/10 rounded-xl px-5 py-4 text-white focus:border-brand-gold/50 focus:ring-1 focus:ring-brand-gold/50 focus:outline-none transition-all placeholder:text-white/20"
-        />
-      </div>
-
-      <div className="space-y-2 relative z-10">
-        <label
-          htmlFor="message"
-          className="text-xs font-bold text-brand-gold uppercase tracking-wider ml-2"
-        >
-          Mensaje
-        </label>
-        <textarea
-          id="message"
-          name="message"
-          rows={4}
-          required
-          placeholder="¿Qué proceso te gustaría automatizar?"
-          value={state.context.message}
-          onChange={(event) => send({ type: "SET_MESSAGE", value: event.target.value })}
-          className="w-full bg-brand-black/50 border border-white/10 rounded-xl px-5 py-4 text-white focus:border-brand-gold/50 focus:ring-1 focus:ring-brand-gold/50 focus:outline-none transition-all resize-none placeholder:text-white/20"
-        />
-      </div>
-
-      <button
-        type="submit"
-        id="submitButton"
-        data-track="lead_submit_click"
-        data-track-label="Contact Form Submit"
-        data-track-location="contact_form"
-        disabled={isLoading}
-        className="relative z-10 w-full bg-gold-gradient text-black font-bold py-4 rounded-xl hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isLoading ? "Enviando..." : "Solicitar Diagnóstico Gratuito"}
-      </button>
-      <p className="relative z-10 text-xs text-brand-off-white/60">
-        Respuesta en menos de 24 horas habiles. No compartimos tus datos con terceros.
-      </p>
-
-      {state.context.feedbackMessage ? (
-        <p
-          id="formFeedback"
-          className={`relative z-10 text-sm rounded-xl px-4 py-3 ${
-            state.context.feedbackType === "ok"
-              ? "bg-emerald-500/15 text-emerald-200 border border-emerald-300/20"
-              : "bg-red-500/15 text-red-200 border border-red-300/20"
-          }`}
-          aria-live="polite"
-        >
-          {state.context.feedbackMessage}
+          {isLoading ? "Enviando..." : "Solicitar Diagnóstico Gratuito"}
+        </button>
+        <p className="relative z-10 text-xs text-brand-off-white/60">
+          Respuesta en menos de 24 horas habiles. No compartimos tus datos con terceros.
         </p>
+
+        {state.context.feedbackMessage ? (
+          <p
+            id="formFeedback"
+            className={`relative z-10 text-sm rounded-xl px-4 py-3 ${
+              state.context.feedbackType === "ok"
+                ? "bg-emerald-500/15 text-emerald-200 border border-emerald-300/20"
+                : "bg-red-500/15 text-red-200 border border-red-300/20"
+            }`}
+            aria-live="polite"
+          >
+            {state.context.feedbackMessage}
+          </p>
+        ) : null}
+      </form>
+
+      {isSuccess ? (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl bg-brand-black/84 backdrop-blur-sm p-5"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="contact-thankyou-title"
+        >
+          <div className="w-full max-w-lg rounded-2xl border border-brand-gold/35 bg-brand-charcoal/96 p-6 md:p-8 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
+            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-brand-gold/82">
+              Solicitud registrada
+            </p>
+            <h3
+              id="contact-thankyou-title"
+              className="mt-3 text-3xl font-bold leading-tight text-white"
+            >
+              Gracias por tu interes.
+            </h3>
+            <p className="mt-3 text-sm md:text-base leading-relaxed text-brand-off-white/80">
+              Tu informacion fue enviada correctamente. Te contactaremos para revisar viabilidad,
+              alcance y proximo paso.
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <a
+                href="https://wa.me/573186110790"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-track="whatsapp_purchase_intent_click"
+                data-track-label="WhatsApp Contact Form Thank You"
+                data-track-location="contact_form_modal"
+                className="inline-flex items-center justify-center rounded-full bg-gold-gradient px-5 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-black"
+              >
+                Hablar por WhatsApp
+              </a>
+              <a
+                href="/cotizador"
+                data-track="thankyou_cotizador_click"
+                data-track-label="Contact Form Modal Cotizador"
+                data-track-location="contact_form_modal"
+                className="inline-flex items-center justify-center rounded-full border border-white/20 px-5 py-3 text-center text-sm font-bold text-white hover:border-brand-gold/60 hover:text-brand-gold transition-colors"
+              >
+                Ir al cotizador
+              </a>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => send({ type: "RESET" })}
+              data-track="thankyou_close_click"
+              data-track-label="Close Thank You Modal"
+              data-track-location="contact_form_modal"
+              className="mt-5 w-full rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-brand-off-white/85 hover:border-white/35 transition-colors"
+            >
+              Volver al formulario
+            </button>
+          </div>
+        </div>
       ) : null}
-    </form>
+    </div>
   );
 }
