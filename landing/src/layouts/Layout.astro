@@ -3,18 +3,42 @@ import { ClientRouter } from "astro:transitions";
 import "@fontsource/inter";
 import "@fontsource/space-grotesk";
 import PerformanceBudgetWatcher from "@/components/PerformanceBudgetWatcher";
+import {
+  createWhatsAppHref,
+  getDefaultWhatsAppLabel,
+  getDefaultWhatsAppMessage,
+} from "@/lib/whatsapp";
 
 interface Props {
   title: string;
   description?: string;
+  keywords?: string;
+  floatingWhatsappMessage?: string;
+  floatingWhatsappLabel?: string;
+  hideFloatingWhatsapp?: boolean;
 }
 
-const { title, description } = Astro.props;
+const {
+  title,
+  description,
+  keywords,
+  floatingWhatsappMessage,
+  floatingWhatsappLabel,
+  hideFloatingWhatsapp = false,
+} = Astro.props;
 const siteUrl = Astro.site ?? new URL("https://jssolutions.co");
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
 const seoDescription =
   description ||
-  "JS Solutions - Potencia tu negocio con Inteligencia Artificial, Automatización de Procesos y Agentes AI. Maximizamos tu eficiencia y reducimos costos operativos.";
+  "JS Solutions - Potencia tu negocio con Inteligencia Artificial, Automatizacion de Procesos y Agentes AI. Maximizamos tu eficiencia y reducimos costos operativos.";
+const seoKeywords =
+  keywords ||
+  "Inteligencia Artificial, Automatizacion, Optimizacion de tiempos, Agentes AI, Chatbots, Transformacion Digital, Eficiencia Operativa, Software a Medida";
+const resolvedFloatingMessage =
+  floatingWhatsappMessage || getDefaultWhatsAppMessage(Astro.url.pathname);
+const resolvedFloatingLabel =
+  floatingWhatsappLabel || getDefaultWhatsAppLabel(Astro.url.pathname);
+const floatingWhatsappHref = createWhatsAppHref(resolvedFloatingMessage);
 const marketingEventsEndpoint = "/api/public/marketing/events";
 const gtmId =
   import.meta.env.PUBLIC_GTM_ID ||
@@ -50,9 +74,13 @@ const trackingScript = `(() => {
   const META_STANDARD_EVENT_MAP = {
     diagnostic_cta_click: 'Lead',
     lead_submitted: 'Lead',
+    lead_thankyou_view: 'Lead',
     quote_submitted: 'Lead',
     quote_approve_click: 'SubmitApplication',
+    whatsapp_purchase_intent_click: 'Contact',
     whatsapp_click: 'Contact',
+    sector_whatsapp_click: 'Contact',
+    demo_cta_click: 'Contact',
   };
   const viewedSections = new Set();
   const reachedDepth = new Set();
@@ -171,6 +199,17 @@ const trackingScript = `(() => {
         customData.search_string = typeof params.service_interest === 'string'
           ? params.service_interest
           : '';
+      } else if (
+        eventName === 'whatsapp_purchase_intent_click' ||
+        eventName === 'whatsapp_click' ||
+        eventName === 'sector_whatsapp_click' ||
+        eventName === 'demo_cta_click'
+      ) {
+        serverEventName = 'Contact';
+        customData.cta_location = typeof params.location === 'string' ? params.location : '';
+        customData.cta_label = typeof params.label === 'string' ? params.label : '';
+        customData.whatsapp_url = typeof params.href === 'string' ? params.href : '';
+        customData.sector = typeof params.sector === 'string' ? params.sector : '';
       }
 
       if (serverEventName) {
@@ -252,6 +291,7 @@ const trackingScript = `(() => {
     track(action, {
       label: target.getAttribute('data-track-label') || target.textContent?.trim() || '',
       location: target.getAttribute('data-track-location') || '',
+      href: target.getAttribute('href') || '',
     });
   });
 
@@ -282,7 +322,15 @@ const trackingScript = `(() => {
     document.querySelectorAll('[data-track-section]').forEach((node) => observer.observe(node));
   }
 
+  const normalizedPath = window.location.pathname.replace(/\\/+$/, '') || '/';
   track('landing_view');
+
+  if (normalizedPath === '/pymes') {
+    track('sector_route_view', { sector: 'pymes', demo_type: 'Demo PyMES' });
+  } else if (normalizedPath === '/sector-publico') {
+    track('sector_route_view', { sector: 'sector_publico', demo_type: 'Demo Sector Publico' });
+  }
+
 })();`;
 ---
 
@@ -291,10 +339,7 @@ const trackingScript = `(() => {
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={seoDescription} />
-    <meta
-      name="keywords"
-      content="Inteligencia Artificial, Automatización, Optimización de tiempos, Agentes AI, Chatbots, Transformación Digital, Eficiencia Operativa, Software a Medida"
-    />
+    <meta name="keywords" content={seoKeywords} />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="sitemap" href="/sitemap-index.xml" />
@@ -303,14 +348,12 @@ const trackingScript = `(() => {
 
     <link rel="canonical" href={canonicalUrl} />
 
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={seoDescription} />
     <meta property="og:image" content="https://jssolutions.co/og-image.jpg" />
 
-    <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content={canonicalUrl} />
     <meta property="twitter:title" content={title} />
@@ -367,20 +410,24 @@ const trackingScript = `(() => {
       )
     }
     <slot />
-    <a
-      href="https://wa.me/573186110790"
-      target="_blank"
-      rel="noopener noreferrer"
-      data-track="whatsapp_click"
-      data-track-label="WhatsApp Floating CTA"
-      data-track-location="floating_button"
-      class="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-brand-gold text-brand-black shadow-xl hover:scale-110 hover:shadow-brand-gold/50 transition-all duration-300 flex items-center justify-center group"
-      aria-label="Contáctanos por WhatsApp"
-    >
-      <svg viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7">
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.488-1.761-1.663-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
-      </svg>
-    </a>
+    {
+      !hideFloatingWhatsapp && (
+        <a
+          href={floatingWhatsappHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-track="sector_whatsapp_click"
+          data-track-label={resolvedFloatingLabel}
+          data-track-location="floating_button"
+          class="fixed bottom-6 right-6 z-50 flex items-center justify-center rounded-full bg-brand-gold p-4 text-brand-black shadow-xl transition-transform duration-300 hover:scale-110 hover:shadow-brand-gold/50"
+          aria-label="Contáctanos por WhatsApp"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.488-1.761-1.663-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+          </svg>
+        </a>
+      )
+    }
   </body>
 </html>
 
@@ -389,9 +436,16 @@ const trackingScript = `(() => {
     --accent: 212, 175, 55;
     --accent-light: 197, 160, 40;
   }
+
   html {
     background: #0a0a0a;
+    color-scheme: dark;
   }
+
+  body {
+    -webkit-tap-highlight-color: rgba(212, 175, 55, 0.22);
+  }
+
   h1,
   h2,
   h3,
@@ -401,16 +455,23 @@ const trackingScript = `(() => {
     font-family: "Space Grotesk", sans-serif;
   }
 
+  [id] {
+    scroll-margin-top: 6.5rem;
+  }
+
   ::-webkit-scrollbar {
     width: 8px;
   }
+
   ::-webkit-scrollbar-track {
     background: #0a0a0a;
   }
+
   ::-webkit-scrollbar-thumb {
     background: #333;
     border-radius: 4px;
   }
+
   ::-webkit-scrollbar-thumb:hover {
     background: #d4af37;
   }
