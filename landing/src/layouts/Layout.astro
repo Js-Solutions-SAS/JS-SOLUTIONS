@@ -26,7 +26,7 @@ const {
   floatingWhatsappLabel,
   hideFloatingWhatsapp = false,
 } = Astro.props;
-const siteUrl = Astro.site ?? new URL("https://jssolutions.co");
+const siteUrl = Astro.site ?? new URL("https://www.jssolutions.com.co");
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
 const seoDescription =
   description ||
@@ -352,7 +352,7 @@ const trackingScript = `(() => {
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={seoDescription} />
-    <meta property="og:image" content="https://jssolutions.co/og-image.jpg" />
+    <meta property="og:image" content="https://www.jssolutions.com.co/og-image.jpg" />
 
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content={canonicalUrl} />
@@ -360,7 +360,7 @@ const trackingScript = `(() => {
     <meta property="twitter:description" content={seoDescription} />
     <meta
       property="twitter:image"
-      content="https://jssolutions.co/og-image.jpg"
+      content="https://www.jssolutions.com.co/og-image.jpg"
     />
 
     {gtmScript && <script is:inline set:html={gtmScript}></script>}
