@@ -81,32 +81,42 @@ export const integrationBadges: IntegrationBadge[] = [
   {
     name: "WhatsApp Business",
     href: "https://business.whatsapp.com",
-    logo: "/integrations/whatsapp.svg",
+    logo: "/whatsapp-business-bg.svg",
   },
   {
     name: "HubSpot CRM",
     href: "https://www.hubspot.com/products/crm",
-    logo: "/integrations/hubspot.svg",
+    logo: "/hubspot-1.svg",
   },
   {
     name: "n8n",
     href: "https://n8n.io",
-    logo: "/integrations/n8n.svg",
+    logo: "/n8n-color.svg",
   },
   {
     name: "OpenAI",
     href: "https://openai.com",
-    logo: "/integrations/openai.svg",
+    logo: "/openai-2.svg",
   },
   {
     name: "Google Cloud",
     href: "https://cloud.google.com",
-    logo: "/integrations/google-cloud.svg",
+    logo: "/google-cloud-1.svg",
   },
   {
     name: "Vozy",
     href: "https://vozy.co",
     logo: "/integrations/vozy.svg",
+  },
+  {
+    name: "Claude",
+    href: "https://claude.ai",
+    logo: "/claude-color.svg",
+  },
+  {
+    name: "ElevenLabs",
+    href: "https://elevenlabs.io",
+    logo: "/elevenlabs-logo-white.svg",
   },
 ];
 

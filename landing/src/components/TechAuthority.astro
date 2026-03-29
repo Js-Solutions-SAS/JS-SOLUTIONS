@@ -38,36 +38,81 @@ const {
       </p>
     </div>
 
-    <ul class="mt-12 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-      {
-        integrationBadges.map((tool) => (
-          <li>
-            <a
-              href={tool.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-track="authority_tool_click"
-              data-track-label={tool.name}
-              data-track-location="tech_authority"
-              class="group flex items-center gap-3 rounded-[1.35rem] border border-white/10 bg-brand-black/65 px-4 py-3 transition-colors duration-300 hover:border-brand-gold/40"
-            >
-              <img
-                src={tool.logo}
-                alt={`Logo ${tool.name}`}
-                width="96"
-                height="34"
-                loading="lazy"
-                decoding="async"
-                class="h-8 w-20 shrink-0 object-contain"
-              />
-              <span class="text-xs font-semibold leading-tight text-brand-off-white/78 transition-colors duration-300 group-hover:text-white">
-                {tool.name}
-              </span>
-            </a>
-          </li>
-        ))
-      }
-    </ul>
+    <div class="mt-12" data-logo-carousel>
+      <div class="relative">
+        <div class="pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-12 bg-gradient-to-r from-brand-charcoal/90 to-transparent md:block">
+        </div>
+        <div class="pointer-events-none absolute inset-y-0 right-0 z-10 hidden w-12 bg-gradient-to-l from-brand-charcoal/90 to-transparent md:block">
+        </div>
+
+        <ul
+          data-logo-track
+          class="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2"
+          aria-label="Integraciones compatibles"
+        >
+          {
+            integrationBadges.map((tool) => (
+              <li class="min-w-[12.5rem] shrink-0 snap-start md:min-w-[14rem]" data-carousel-card>
+                <a
+                  href={tool.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-track="authority_tool_click"
+                  data-track-label={tool.name}
+                  data-track-location="tech_authority"
+                  class="group flex h-full items-center gap-3 rounded-[1.35rem] border border-white/10 bg-brand-black/65 px-4 py-3 transition-colors duration-300 hover:border-brand-gold/40"
+                >
+                  <span class="flex h-9 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white/[0.04] p-1">
+                    <img
+                      src={tool.logo}
+                      alt={`Logo ${tool.name}`}
+                      width="96"
+                      height="34"
+                      loading="lazy"
+                      decoding="async"
+                      class="h-full w-full object-contain"
+                    />
+                  </span>
+                  <span class="text-xs font-semibold leading-tight text-brand-off-white/78 transition-colors duration-300 group-hover:text-white">
+                    {tool.name}
+                  </span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-brand-off-white/58">
+          IA, CRM, voz, nube y automatizacion en una sola operacion
+        </p>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Ver integracion anterior"
+            data-carousel-prev
+            data-track="authority_carousel_click"
+            data-track-label="Anterior"
+            data-track-location="tech_authority"
+            class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-brand-black/70 text-brand-off-white/70 transition-colors duration-300 hover:border-brand-gold/45 hover:text-white"
+          >
+            <span aria-hidden="true">&larr;</span>
+          </button>
+          <button
+            type="button"
+            aria-label="Ver siguiente integracion"
+            data-carousel-next
+            data-track="authority_carousel_click"
+            data-track-label="Siguiente"
+            data-track-location="tech_authority"
+            class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-brand-black/70 text-brand-off-white/70 transition-colors duration-300 hover:border-brand-gold/45 hover:text-white"
+          >
+            <span aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div class="mt-12 grid gap-5 md:grid-cols-3">
       {
@@ -85,3 +130,121 @@ const {
     </div>
   </div>
 </section>
+
+<style>
+  [data-logo-track] {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  [data-logo-track]::-webkit-scrollbar {
+    display: none;
+  }
+</style>
+
+<script>
+  const GLOBAL_TIMER_KEY = "__jsLogoCarouselTimers";
+  const GLOBAL_HOOK_KEY = "__jsLogoCarouselCleanupBound";
+
+  const activeTimers =
+    (window[GLOBAL_TIMER_KEY] instanceof Set
+      ? window[GLOBAL_TIMER_KEY]
+      : new Set());
+  window[GLOBAL_TIMER_KEY] = activeTimers;
+
+  if (!window[GLOBAL_HOOK_KEY]) {
+    const clearGlobalTimers = () => {
+      activeTimers.forEach((timerId) => window.clearInterval(timerId));
+      activeTimers.clear();
+    };
+
+    document.addEventListener("astro:before-swap", clearGlobalTimers);
+    window.addEventListener("pagehide", clearGlobalTimers);
+    window[GLOBAL_HOOK_KEY] = true;
+  }
+
+  const carousels = document.querySelectorAll("[data-logo-carousel]");
+
+  carousels.forEach((carousel) => {
+    if (!(carousel instanceof HTMLElement) || carousel.dataset.carouselReady === "true") {
+      return;
+    }
+
+    carousel.dataset.carouselReady = "true";
+
+    const track = carousel.querySelector("[data-logo-track]");
+    const prevButton = carousel.querySelector("[data-carousel-prev]");
+    const nextButton = carousel.querySelector("[data-carousel-next]");
+
+    if (!(track instanceof HTMLElement)) return;
+
+    const getStepSize = () => {
+      const firstCard = track.querySelector("[data-carousel-card]");
+      if (!(firstCard instanceof HTMLElement)) return track.clientWidth * 0.78;
+
+      const styles = window.getComputedStyle(track);
+      const rawGap = styles.columnGap || styles.gap || "16";
+      const parsedGap = Number.parseFloat(rawGap);
+      const gap = Number.isFinite(parsedGap) ? parsedGap : 16;
+
+      return firstCard.getBoundingClientRect().width + gap;
+    };
+
+    const move = (direction) => {
+      const step = getStepSize();
+      const maxLeft = Math.max(track.scrollWidth - track.clientWidth, 0);
+      const nearEnd = track.scrollLeft >= maxLeft - step * 0.45;
+      const nearStart = track.scrollLeft <= step * 0.45;
+
+      if (direction > 0 && nearEnd) {
+        track.scrollTo({ left: 0, behavior: "smooth" });
+        return;
+      }
+
+      if (direction < 0 && nearStart) {
+        track.scrollTo({ left: maxLeft, behavior: "smooth" });
+        return;
+      }
+
+      track.scrollBy({
+        left: step * direction,
+        behavior: "smooth",
+      });
+    };
+
+    const AUTOPLAY_DELAY_MS = 3600;
+    let autoplayId;
+
+    const stopAutoplay = () => {
+      if (!autoplayId) return;
+      window.clearInterval(autoplayId);
+      activeTimers.delete(autoplayId);
+      autoplayId = undefined;
+    };
+
+    const startAutoplay = () => {
+      stopAutoplay();
+      autoplayId = window.setInterval(() => move(1), AUTOPLAY_DELAY_MS);
+      activeTimers.add(autoplayId);
+    };
+
+    prevButton?.addEventListener("click", () => {
+      move(-1);
+      startAutoplay();
+    });
+
+    nextButton?.addEventListener("click", () => {
+      move(1);
+      startAutoplay();
+    });
+
+    carousel.addEventListener("pointerenter", stopAutoplay);
+    carousel.addEventListener("pointerleave", startAutoplay);
+    carousel.addEventListener("focusin", stopAutoplay);
+    carousel.addEventListener("focusout", startAutoplay);
+    carousel.addEventListener("touchstart", stopAutoplay, { passive: true });
+    carousel.addEventListener("touchend", startAutoplay);
+
+    startAutoplay();
+  });
+</script>
