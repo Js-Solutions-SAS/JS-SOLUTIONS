@@ -52,17 +52,20 @@ const {
         >
           {
             integrationBadges.map((tool) => (
-              <li class="min-w-[12.5rem] shrink-0 snap-start md:min-w-[14rem]" data-carousel-card>
+              <li class="min-w-[11rem] shrink-0 snap-start md:min-w-[12rem]" data-carousel-card>
                 <a
                   href={tool.href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label={`Abrir ${tool.name}`}
+                  title={tool.name}
                   data-track="authority_tool_click"
                   data-track-label={tool.name}
                   data-track-location="tech_authority"
-                  class="group flex h-full items-center gap-3 rounded-[1.35rem] border border-white/10 bg-brand-black/65 px-4 py-3 transition-colors duration-300 hover:border-brand-gold/40"
+                  class="group flex h-full items-center justify-center rounded-[1.35rem] border border-white/10 bg-brand-black/65 px-4 py-3 transition-colors duration-300 hover:border-white/22"
+                  data-carousel-card-link
                 >
-                  <span class="flex h-9 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white/[0.04] p-1">
+                  <span class="flex h-10 w-full max-w-[7.5rem] shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/8 bg-white/[0.03] px-2 py-1.5">
                     <img
                       src={tool.logo}
                       alt={`Logo ${tool.name}`}
@@ -71,10 +74,8 @@ const {
                       loading="lazy"
                       decoding="async"
                       class="h-full w-full object-contain"
+                      data-logo-mark
                     />
-                  </span>
-                  <span class="text-xs font-semibold leading-tight text-brand-off-white/78 transition-colors duration-300 group-hover:text-white">
-                    {tool.name}
                   </span>
                 </a>
               </li>
@@ -83,10 +84,7 @@ const {
         </ul>
       </div>
 
-      <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
-        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-brand-off-white/58">
-          IA, CRM, voz, nube y automatizacion en una sola operacion
-        </p>
+      <div class="mt-5 flex justify-end">
         <div class="flex items-center gap-2">
           <button
             type="button"
@@ -139,6 +137,17 @@ const {
 
   [data-logo-track]::-webkit-scrollbar {
     display: none;
+  }
+
+  [data-logo-mark] {
+    filter: grayscale(1) saturate(0.2) brightness(1.22) contrast(1.06);
+    opacity: 0.9;
+  }
+
+  [data-carousel-card-link]:hover [data-logo-mark],
+  [data-carousel-card-link]:focus-visible [data-logo-mark] {
+    filter: grayscale(1) saturate(0.2) brightness(1.35) contrast(1.08);
+    opacity: 1;
   }
 </style>
 
