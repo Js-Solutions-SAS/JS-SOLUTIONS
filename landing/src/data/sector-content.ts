@@ -104,19 +104,14 @@ export const integrationBadges: IntegrationBadge[] = [
     logo: "/google-cloud-1.svg",
   },
   {
-    name: "Vozy",
-    href: "https://vozy.co",
-    logo: "/integrations/vozy.svg",
+    name: "ElevenLabs",
+    href: "https://elevenlabs.io",
+    logo: "/elevenlabs-logo-white.svg",
   },
   {
     name: "Claude",
     href: "https://claude.ai",
     logo: "/claude-color.svg",
-  },
-  {
-    name: "ElevenLabs",
-    href: "https://elevenlabs.io",
-    logo: "/elevenlabs-logo-white.svg",
   },
 ];
 
