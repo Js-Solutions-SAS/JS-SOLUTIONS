@@ -103,7 +103,7 @@ export const localBusinessVerticals: Record<
     seoDescription:
       "Aprovecha 40% de descuento en paginas web para restaurantes con menu, reservas y WhatsApp. Convierte visitas en pedidos por tiempo limitado.",
     seoKeywords:
-      "pagina web para restaurante, landing restaurante, menu digital, reservas por WhatsApp, web restaurante Colombia",
+      "pagina web para restaurante, web restaurante Bogota, reservas WhatsApp Medellin, carta digital Cali, menu digital Barranquilla, web restaurante Colombia",
     heroTitle: "Una web para restaurante debe vender mesas, pedidos y confianza.",
     heroDescription:
       "Mostramos menu, horarios, ubicacion, fotos, reservas y WhatsApp sin hacer que el cliente pregunte lo obvio o abandone por falta de informacion.",
@@ -156,7 +156,7 @@ export const localBusinessVerticals: Record<
     seoDescription:
       "Digitaliza tu veterinaria con 40% de descuento en landings profesionales. Agenda de citas por WhatsApp y recordatorios.",
     seoKeywords:
-      "pagina web veterinaria, landing veterinaria, citas por WhatsApp, web para clinicas veterinarias",
+      "pagina web veterinaria, landing veterinaria Bogota, citas veterinaria Cali, agenda veterinaria Medellin, veterinaria Barranquilla, clinica veterinaria Colombia",
     heroTitle: "Tu veterinaria necesita transmitir confianza antes de la primera cita.",
     heroDescription:
       "Organizamos servicios, senales de confianza, ubicacion, agenda y preguntas frecuentes para que el paciente escriba con menos miedo.",
@@ -209,7 +209,7 @@ export const localBusinessVerticals: Record<
     seoDescription:
       "Landings de alta conversion para oftalmologos y clinicas de ojos con 40% de descuento. Agenda de examenes y citas en linea.",
     seoKeywords:
-      "landing clinica oftalmologica, web para oftalmologos, citas por WhatsApp, examenes de ojos Colombia",
+      "landing clinica oftalmologica, web para oftalmologos, citas oftalmologia Bogota, consulta oftalmologica Medellin, examen ojos Cali, oftalmologo Barranquilla, clinica ocular Colombia",
     heroTitle: "Tu consultorio necesita transmitir precision y confianza.",
     heroDescription:
       "Organizamos tratamientos, examenes diagnosticos, ubicacion, agenda y preguntas para que el paciente agende con total seguridad.",
@@ -262,7 +262,7 @@ export const localBusinessVerticals: Record<
     seoDescription:
       "Tu tienda de celulares online con catalogo y WhatsApp. Obten tu web comercial con 40% de descuento por tiempo limitado.",
     seoKeywords:
-      "pagina web tienda celulares, catalogo celulares WhatsApp, web reparacion celulares, landing tienda tecnologia",
+      "catalogo celulares WhatsApp, tienda celulares Bogota, celulares a credito Cali, reparacion celulares Medellin, comprar celular Barranquilla, pagina web tienda celulares",
     heroTitle: "Tu tienda de celulares puede vender sin depender solo del mostrador.",
     heroDescription:
       "Creamos una vitrina clara para equipos, accesorios, reparaciones y promociones, conectada a WhatsApp para cerrar rapido.",
@@ -315,7 +315,7 @@ export const localBusinessVerticals: Record<
     seoDescription:
       "Muestra tus acabados y capta obras con 40% de descuento en paginas web para marmolerias. Cotizacion por WhatsApp y portafolio interactivo.",
     seoKeywords:
-      "pagina web marmoleria, landing marmoles, web para mesones cocina, cotizacion marmol WhatsApp",
+      "marmoleria Bogota, mesones cocina granito Cali, encimeras marmol Medellin, marmoleria Barranquilla, marmol Palmira, pagina web marmoleria",
     heroTitle: "Una marmoleria vende mejor cuando muestra acabados, confianza y proceso.",
     heroDescription:
       "Convertimos materiales, proyectos y cotizaciones en una landing que ayuda al cliente a pedir una propuesta con medidas y contexto.",

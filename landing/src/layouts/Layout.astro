@@ -8,6 +8,7 @@ import {
   getDefaultWhatsAppLabel,
   getDefaultWhatsAppMessage,
 } from "@/lib/whatsapp";
+import { getLocalBusinessVerticalByRoute } from "@/data/local-business-content";
 
 interface Props {
   title: string;
@@ -28,6 +29,52 @@ const {
 } = Astro.props;
 const siteUrl = Astro.site ?? new URL("https://www.jssolutions.com.co");
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
+const verticalData = getLocalBusinessVerticalByRoute(Astro.url.pathname);
+
+const jsonLdData = verticalData
+  ? {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "name": verticalData.seoTitle,
+      "description": verticalData.seoDescription,
+      "provider": {
+        "@type": "LocalBusiness",
+        "name": "JS Solutions",
+        "image": "https://www.jssolutions.com.co/logo.svg",
+        "priceRange": "$$",
+        "address": {
+          "@type": "PostalAddress",
+          "addressCountry": "CO"
+        }
+      },
+      "areaServed": [
+        { "@type": "AdministrativeArea", "name": "Bogotá" },
+        { "@type": "AdministrativeArea", "name": "Medellín" },
+        { "@type": "AdministrativeArea", "name": "Cali" },
+        { "@type": "AdministrativeArea", "name": "Barranquilla" },
+        { "@type": "AdministrativeArea", "name": "Palmira" },
+        { "@type": "Country", "name": "Colombia" }
+      ]
+    }
+  : {
+      "@context": "https://schema.org",
+      "@type": "ProfessionalService",
+      "name": "JS Solutions",
+      "image": "https://www.jssolutions.com.co/logo.svg",
+      "@id": "https://www.jssolutions.com.co/#organization",
+      "url": "https://www.jssolutions.com.co",
+      "priceRange": "$$",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Bogotá",
+        "addressRegion": "Cundinamarca",
+        "addressCountry": "CO"
+      },
+      "areaServed": [
+        { "@type": "Country", "name": "Colombia" }
+      ]
+    };
+
 const seoDescription =
   description ||
   "JS Solutions - Potencia tu negocio con Inteligencia Artificial, Automatizacion de Procesos y Agentes AI. Maximizamos tu eficiencia y reducimos costos operativos.";
@@ -366,6 +413,10 @@ const trackingScript = `(() => {
     <title>{title}</title>
 
     <link rel="canonical" href={canonicalUrl} />
+
+    <meta name="geo.region" content="CO" />
+    <meta name="geo.placename" content="Colombia" />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLdData)}></script>
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
