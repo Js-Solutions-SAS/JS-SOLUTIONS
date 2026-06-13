@@ -8,6 +8,7 @@ export interface PackageTier {
   id: "web-simple" | "web-whatsapp" | "web-automatizacion";
   name: string;
   range: string;
+  originalRange?: string;
   summary: string;
   bestFor: string;
   included: string[];
@@ -42,7 +43,8 @@ export const webPackages: PackageTier[] = [
   {
     id: "web-simple",
     name: "Web simple / landing rapida",
-    range: "Desde COP 900k a 1.8M",
+    originalRange: "Desde COP 900k a 1.8M",
+    range: "Desde COP 540k a 1.08M",
     summary:
       "Pagina enfocada en explicar tu negocio, mostrar servicios, generar confianza y llevar al cliente a WhatsApp.",
     bestFor: "Negocios que necesitan presencia clara y conversion rapida.",
@@ -56,7 +58,8 @@ export const webPackages: PackageTier[] = [
   {
     id: "web-whatsapp",
     name: "Web + captura por WhatsApp",
-    range: "COP 1.8M a 3.5M",
+    originalRange: "COP 1.8M a 3.5M",
+    range: "COP 1.08M a 2.1M",
     summary:
       "Landing por rubro con mensajes prellenados, medicion de campañas y estructura para responder leads mejor.",
     bestFor: "Negocios que pagaran pauta o reciben consultas repetidas.",
@@ -70,7 +73,8 @@ export const webPackages: PackageTier[] = [
   {
     id: "web-automatizacion",
     name: "Web + automatizacion ligera",
-    range: "COP 3.5M a 7M+",
+    originalRange: "COP 3.5M a 7M+",
+    range: "COP 2.1M a 4.2M+",
     summary:
       "Web comercial conectada con seguimiento, CRM ligero o automatizacion para que los leads no se pierdan.",
     bestFor: "Equipos que ya pierden oportunidades por demora o desorden.",
@@ -93,16 +97,16 @@ export const localBusinessVerticals: Record<
     navLabel: "Restaurantes",
     businessType: "Restaurante",
     seoTitle:
-      "Paginas Web para Restaurantes | Menus, Reservas y WhatsApp - JS Solutions",
+      "Paginas Web para Restaurantes | 40% OFF | Menus y WhatsApp - JS Solutions",
     seoDescription:
-      "Creamos paginas web para restaurantes con menu, reservas, WhatsApp y medicion para convertir visitas en pedidos o mesas reservadas.",
+      "Aprovecha 40% de descuento en paginas web para restaurantes con menu, reservas y WhatsApp. Convierte visitas en pedidos por tiempo limitado.",
     seoKeywords:
       "pagina web para restaurante, landing restaurante, menu digital, reservas por WhatsApp, web restaurante Colombia",
     heroTitle: "Una web para restaurante debe vender mesas, pedidos y confianza.",
     heroDescription:
       "Mostramos menu, horarios, ubicacion, fotos, reservas y WhatsApp sin hacer que el cliente pregunte lo obvio o abandone por falta de informacion.",
     painPoints: [
-      "Clientes preguntan menu, horarios y ubicacion una y otra vez",
+      "Clientes preguntan menu, horarios and ubicacion una y otra vez",
       "Las reservas o pedidos quedan dispersos en chats",
       "La pauta manda trafico a redes que no cierran la venta",
     ],
@@ -145,9 +149,9 @@ export const localBusinessVerticals: Record<
     navLabel: "Veterinarias y oftalmologia",
     businessType: "Clinica local",
     seoTitle:
-      "Paginas Web para Veterinarias y Oftalmologia | Citas por WhatsApp - JS Solutions",
+      "Paginas Web para Veterinarias | 40% OFF | Citas por WhatsApp - JS Solutions",
     seoDescription:
-      "Landing pages para veterinarias, oftalmologos y clinicas locales con servicios, confianza, agenda por WhatsApp y medicion de leads.",
+      "Digitaliza tu veterinaria o clinica con 40% de descuento en landings profesionales. Agenda de citas por WhatsApp y medicion de leads.",
     seoKeywords:
       "pagina web veterinaria, landing clinica oftalmologica, citas por WhatsApp, web para clinicas locales",
     heroTitle: "Tu clinica necesita transmitir confianza antes de la primera cita.",
@@ -197,9 +201,9 @@ export const localBusinessVerticals: Record<
     navLabel: "Tiendas de celulares",
     businessType: "Tienda de celulares",
     seoTitle:
-      "Paginas Web para Tiendas de Celulares | Catalogo y WhatsApp - JS Solutions",
+      "Paginas Web para Tiendas de Celulares | 40% OFF | Catalogo - JS Solutions",
     seoDescription:
-      "Webs para tiendas de celulares con catalogo simple, servicios tecnicos, reparaciones, WhatsApp y medicion para campañas locales.",
+      "Tu tienda de celulares online con catalogo y WhatsApp. Obten tu web comercial con 40% de descuento por tiempo limitado.",
     seoKeywords:
       "pagina web tienda celulares, catalogo celulares WhatsApp, web reparacion celulares, landing tienda tecnologia",
     heroTitle: "Tu tienda de celulares puede vender sin depender solo del mostrador.",
@@ -249,9 +253,9 @@ export const localBusinessVerticals: Record<
     navLabel: "Marmolerias",
     businessType: "Marmoleria",
     seoTitle:
-      "Paginas Web para Marmolerias | Portafolio, Cotizacion y WhatsApp - JS Solutions",
+      "Paginas Web para Marmolerias | 40% OFF | Portafolio y Cotizacion - JS Solutions",
     seoDescription:
-      "Webs para marmolerias con portafolio, materiales, proyectos, cotizacion por WhatsApp y estructura para captar obras locales.",
+      "Muestra tus acabados y capta obras con 40% de descuento en paginas web para marmolerias. Cotizacion por WhatsApp y portafolio interactivo.",
     seoKeywords:
       "pagina web marmoleria, landing marmoles, web para mesones cocina, cotizacion marmol WhatsApp",
     heroTitle: "Una marmoleria vende mejor cuando muestra acabados, confianza y proceso.",
@@ -293,7 +297,7 @@ export const localBusinessVerticals: Record<
     ],
     proofTitle: "El portafolio no puede vivir solo en el celular del vendedor.",
     proofBody:
-      "Una web clara convierte fotos y experiencia en confianza comercial repetible.",
+      "Una web clara convierte fotos y experiencia en confianza comercial reputible.",
   },
 };
 

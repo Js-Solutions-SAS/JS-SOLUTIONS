@@ -34,10 +34,20 @@ const { location = "web_packages", vertical = "" } = Astro.props;
           const message = `Hola JS Solutions, quiero cotizar el paquete ${tier.name}${vertical ? ` para ${vertical}` : ""}.`;
 
           return (
-            <article class="flex h-full flex-col rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-6">
+            <article class="relative flex h-full flex-col rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-6 transition-all duration-300 hover:border-brand-gold/30">
+              <div class="absolute -top-3 right-6 rounded-full bg-brand-gold px-3.5 py-1 text-[10px] font-black uppercase tracking-wider text-black shadow-[0_4px_12px_rgba(212,175,55,0.25)]">
+                40% OFF
+              </div>
               <div>
-                <h3 class="text-2xl font-bold leading-tight text-white">{tier.name}</h3>
-                <p class="mt-4 text-lg font-black text-brand-gold">{tier.range}</p>
+                <h3 class="text-2xl font-bold leading-tight text-white pr-16">{tier.name}</h3>
+                <div class="mt-4 flex flex-col">
+                  {tier.originalRange && (
+                    <span class="text-xs text-brand-off-white/40 line-through">
+                      Antes: {tier.originalRange}
+                    </span>
+                  )}
+                  <p class="text-lg font-black text-brand-gold">{tier.range}</p>
+                </div>
                 <p class="mt-4 text-sm leading-relaxed text-brand-off-white/72">
                   {tier.summary}
                 </p>
