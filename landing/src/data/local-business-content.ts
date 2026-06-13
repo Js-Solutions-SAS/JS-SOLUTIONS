@@ -1,6 +1,7 @@
 export type LocalBusinessVerticalKey =
   | "restaurantes"
-  | "veterinarias-oftalmologia"
+  | "veterinarias"
+  | "oftalmologia"
   | "tiendas-celulares"
   | "marmolerias";
 
@@ -37,6 +38,7 @@ export interface LocalBusinessVertical {
   }>;
   proofTitle: string;
   proofBody: string;
+  imagePath: string;
 }
 
 export const webPackages: PackageTier[] = [
@@ -142,58 +144,113 @@ export const localBusinessVerticals: Record<
     proofTitle: "No necesitas una app para empezar a vender mejor.",
     proofBody:
       "Para muchos restaurantes, una landing rapida y bien medida resuelve mas que una plataforma compleja que nadie mantiene.",
+    imagePath: "/images/rubros/restaurantes.png",
   },
-  "veterinarias-oftalmologia": {
-    key: "veterinarias-oftalmologia",
-    route: "/webs/veterinarias-oftalmologia",
-    navLabel: "Veterinarias y oftalmologia",
-    businessType: "Clinica local",
+  veterinarias: {
+    key: "veterinarias",
+    route: "/webs/veterinarias",
+    navLabel: "Veterinarias",
+    businessType: "Veterinaria",
     seoTitle:
       "Paginas Web para Veterinarias | 40% OFF | Citas por WhatsApp - JS Solutions",
     seoDescription:
-      "Digitaliza tu veterinaria o clinica con 40% de descuento en landings profesionales. Agenda de citas por WhatsApp y medicion de leads.",
+      "Digitaliza tu veterinaria con 40% de descuento en landings profesionales. Agenda de citas por WhatsApp y recordatorios.",
     seoKeywords:
-      "pagina web veterinaria, landing clinica oftalmologica, citas por WhatsApp, web para clinicas locales",
-    heroTitle: "Tu clinica necesita transmitir confianza antes de la primera cita.",
+      "pagina web veterinaria, landing veterinaria, citas por WhatsApp, web para clinicas veterinarias",
+    heroTitle: "Tu veterinaria necesita transmitir confianza antes de la primera cita.",
     heroDescription:
-      "Organizamos servicios, senales de confianza, ubicacion, agenda y preguntas frecuentes para que el paciente o acudiente escriba con menos miedo.",
+      "Organizamos servicios, senales de confianza, ubicacion, agenda y preguntas frecuentes para que el paciente escriba con menos miedo.",
     painPoints: [
-      "Los pacientes comparan opciones antes de escribir",
-      "Las preguntas repetidas consumen tiempo del equipo",
-      "Una web generica no transmite especialidad ni confianza",
+      "Los acudientes comparan opciones antes de escribir",
+      "Las preguntas repetidas de horarios consumen tiempo del equipo",
+      "Una web generica no transmite especialidad ni amor por las mascotas",
     ],
-    primaryCtaLabel: "Cotizar landing para clinica",
+    primaryCtaLabel: "Cotizar landing para veterinaria",
     whatsappMessage:
-      "Hola JS Solutions, quiero cotizar una landing para veterinaria, oftalmologia o clinica local con agenda por WhatsApp.",
-    offerTitle: "Landing de confianza para servicios de salud local",
+      "Hola JS Solutions, quiero cotizar una landing para veterinaria con agenda por WhatsApp.",
+    offerTitle: "Landing de confianza para servicios veterinarios locales",
     offerSummary:
-      "Una pagina sobria y clara que explica servicios, ayuda a elegir el siguiente paso y lleva a agenda o WhatsApp.",
+      "Una pagina calida y clara que explica servicios, ayuda a elegir el siguiente paso y lleva a agenda o WhatsApp.",
     visibleOutcomes: [
-      "Servicios y especialidades ordenadas",
-      "CTA por cita, urgencia o pregunta frecuente",
-      "Confianza visual sin promesas medicas exageradas",
+      "Servicios y especialidades veterinarias ordenadas",
+      "CTA por cita, urgencia o consulta de vacunas",
+      "Confianza visual con secciones de testimonios y equipo",
     ],
-    flowTitle: "De la busqueda a una cita mejor calificada",
+    flowTitle: "De la busqueda a una consulta mejor calificada",
     flowSteps: [
       {
-        title: "El paciente busca una solucion local",
+        title: "El acudiente busca una veterinaria local",
         description:
-          "La landing responde dudas basicas y muestra por que escribir ahora.",
+          "La landing responde dudas basicas y muestra por que agendar ahora.",
       },
       {
-        title: "El CTA separa cita, urgencia o informacion",
+        title: "El CTA abre conversacion directa",
         description:
-          "WhatsApp abre con contexto para que recepcion no empiece desde cero.",
+          "WhatsApp inicia con contexto para que recepcion agende mas rapido.",
       },
       {
         title: "El seguimiento queda medible",
         description:
-          "UTM y origen ayudan a entender que campañas generan citas reales.",
+          "Sabes de inmediato que campañas trajeron mas citas efectivas.",
       },
     ],
-    proofTitle: "La innovacion no debe asustar al paciente ni al equipo.",
+    proofTitle: "La atencion medica empieza en la primera pantalla.",
     proofBody:
-      "La tecnologia aparece como una agenda mas clara y una respuesta mas rapida, no como una barrera nueva.",
+      "Facilitar el agendamiento y mostrar profesionalismo reduce el abandono del cliente.",
+    imagePath: "/images/rubros/veterinarias.png",
+  },
+  oftalmologia: {
+    key: "oftalmologia",
+    route: "/webs/oftalmologia",
+    navLabel: "Oftalmologia",
+    businessType: "Clinica local",
+    seoTitle:
+      "Paginas Web para Oftalmologia | 40% OFF | Citas y Examenes - JS Solutions",
+    seoDescription:
+      "Landings de alta conversion para oftalmologos y clinicas de ojos con 40% de descuento. Agenda de examenes y citas en linea.",
+    seoKeywords:
+      "landing clinica oftalmologica, web para oftalmologos, citas por WhatsApp, examenes de ojos Colombia",
+    heroTitle: "Tu consultorio necesita transmitir precision y confianza.",
+    heroDescription:
+      "Organizamos tratamientos, examenes diagnosticos, ubicacion, agenda y preguntas para que el paciente agende con total seguridad.",
+    painPoints: [
+      "Los pacientes buscan especialistas pero no encuentran informacion clara",
+      "Llamadas constantes para consultar costos de examenes basicos",
+      "Falta de claridad sobre convenios y especialidades del centro",
+    ],
+    primaryCtaLabel: "Cotizar landing para oftalmologia",
+    whatsappMessage:
+      "Hola JS Solutions, quiero cotizar una landing para oftalmologia con agenda y citas por WhatsApp.",
+    offerTitle: "Landing de confianza para especialidades visuales",
+    offerSummary:
+      "Una pagina sobria y de nivel medico que explica tratamientos, diagnosticos y facilita el agendamiento rapido.",
+    visibleOutcomes: [
+      "Tratamientos y examenes oftalmologicos explicados",
+      "Boton de agendamiento directo por intencion de examen",
+      "Estetica limpia, profesional y altamente confiable",
+    ],
+    flowTitle: "De la necesidad de examen a la cita confirmada",
+    flowSteps: [
+      {
+        title: "El paciente busca especialista oftalmologo",
+        description:
+          "Aterriza en una web que detalla examenes, medicos y beneficios.",
+      },
+      {
+        title: "Selecciona el examen o cita",
+        description:
+          "El mensaje prellenado en WhatsApp indica el tipo de cita solicitado.",
+      },
+      {
+        title: "Recepcion confirma sin rodeos",
+        description:
+          "El equipo recibe los datos necesarios reduciendo el tiempo de llamada.",
+      },
+    ],
+    proofTitle: "La precision medica requiere una web de alto nivel.",
+    proofBody:
+      "Una landing limpia y bien estructurada refleja el rigor y cuidado de tus tratamientos visuales.",
+    imagePath: "/images/rubros/oftalmologia.png",
   },
   "tiendas-celulares": {
     key: "tiendas-celulares",
@@ -246,6 +303,7 @@ export const localBusinessVerticals: Record<
     proofTitle: "Una vitrina simple puede producir caja antes de montar ecommerce.",
     proofBody:
       "Para una tienda local, primero conviene medir demanda y cerrar por WhatsApp; el ecommerce puede venir cuando el flujo lo justifique.",
+    imagePath: "/images/rubros/tiendas-celulares.png",
   },
   marmolerias: {
     key: "marmolerias",
@@ -298,6 +356,7 @@ export const localBusinessVerticals: Record<
     proofTitle: "El portafolio no puede vivir solo en el celular del vendedor.",
     proofBody:
       "Una web clara convierte fotos y experiencia en confianza comercial reputible.",
+    imagePath: "/images/rubros/marmolerias.png",
   },
 };
 

@@ -1,5 +1,31 @@
 ---
 import { localBusinessVerticalList } from "@/data/local-business-content";
+
+// Map custom properties for each vertical to match the screenshot precisely
+const rubrosMeta = {
+  restaurantes: {
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>`, // Fallback to a clean icon or specific SVG
+    svg: `<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />`,
+    shortDesc: "Menús, reservas y pedidos por WhatsApp.",
+    iconSvg: `<svg viewBox="0 0 24 24" fill="currentColor" class="size-5 text-brand-gold"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm8-3h-3v7.1c0 1.25.75 1.9 1.5 1.9s1.5-.65 1.5-1.9V2h-2v4z"/></svg>`
+  },
+  veterinarias: {
+    shortDesc: "Servicios, agendamiento y recordatorios.",
+    iconSvg: `<svg viewBox="0 0 24 24" fill="currentColor" class="size-5 text-brand-gold"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>` // paw / heart icon representation
+  },
+  oftalmologia: {
+    shortDesc: "Exámenes, tratamientos y citas en línea.",
+    iconSvg: `<svg viewBox="0 0 24 24" fill="currentColor" class="size-5 text-brand-gold"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>`
+  },
+  "tiendas-celulares": {
+    shortDesc: "Catálogos, promociones y consultas rápidas.",
+    iconSvg: `<svg viewBox="0 0 24 24" fill="currentColor" class="size-5 text-brand-gold"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>`
+  },
+  marmolerias: {
+    shortDesc: "Proyectos, materiales y cotizaciones.",
+    iconSvg: `<svg viewBox="0 0 24 24" fill="currentColor" class="size-5 text-brand-gold"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>`
+  }
+};
 ---
 
 <section
@@ -8,53 +34,68 @@ import { localBusinessVerticalList } from "@/data/local-business-content";
   class="relative border-b border-white/10 bg-brand-black py-20 md:py-24"
 >
   <div class="mx-auto max-w-7xl px-6">
-    <div class="grid gap-8 md:grid-cols-[0.78fr_1.22fr] md:items-end">
-      <div class="max-w-xl">
-        <h2 class="text-balance text-4xl font-bold leading-tight text-white md:text-5xl">
-          Arrancamos por rubros donde una web bien hecha puede cerrar rapido.
-        </h2>
-      </div>
-      <p class="max-w-2xl text-base leading-relaxed text-brand-off-white/72 md:justify-self-end md:text-lg">
-        Cada landing habla el idioma del negocio: dolores reales, WhatsApp con
-        contexto, rangos visibles y opcion de crecer hacia automatizacion.
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <h2 class="text-balance text-4xl font-bold leading-tight text-white md:text-5xl">
+        Soluciones pensadas para tu rubro
+      </h2>
+      <p class="mt-4 text-base leading-relaxed text-brand-off-white/72 md:text-lg">
+        Sitios web simples, rápidos y enfocados en conseguirte más clientes.
       </p>
     </div>
 
-    <div class="mt-12 grid gap-5 md:grid-cols-2">
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
       {
-        localBusinessVerticalList.map((vertical) => (
-          <article class="group rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-6 transition-colors duration-300 hover:border-brand-gold/40">
-            <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-              <div>
-                <h3 class="text-2xl font-bold leading-tight text-white">
-                  {vertical.navLabel}
-                </h3>
-                <p class="mt-4 max-w-2xl text-sm leading-relaxed text-brand-off-white/70">
-                  {vertical.heroDescription}
-                </p>
-              </div>
-              <a
-                href={vertical.route}
-                data-track="vertical_view_click"
-                data-track-label={vertical.navLabel}
-                data-track-location="home_verticals"
-                data-vertical={vertical.key}
-                class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-white/15 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-white transition-colors duration-300 hover:border-brand-gold/60 hover:text-brand-gold"
-              >
-                Ver landing
-              </a>
-            </div>
+        localBusinessVerticalList.map((vertical) => {
+          const meta = rubrosMeta[vertical.key as keyof typeof rubrosMeta] || {
+            shortDesc: vertical.heroDescription,
+            iconSvg: `<svg viewBox="0 0 24 24" fill="currentColor" class="size-5 text-brand-gold"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>`
+          };
 
-            <div class="mt-6 grid gap-3 border-t border-white/10 pt-5">
-              {vertical.visibleOutcomes.map((outcome) => (
-                <p class="flex gap-3 text-sm leading-relaxed text-brand-off-white/70">
-                  <span class="mt-1.5 size-2 shrink-0 rounded-full bg-brand-gold"></span>
-                  <span>{outcome}</span>
-                </p>
-              ))}
-            </div>
-          </article>
-        ))
+          return (
+            <article class="group flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] transition-all duration-300 hover:-translate-y-1 hover:border-brand-gold/30 hover:bg-white/[0.045]">
+              <div>
+                <div class="relative aspect-[4/3] overflow-hidden">
+                  <img
+                    src={vertical.imagePath}
+                    alt={vertical.navLabel}
+                    class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                </div>
+
+                <div class="p-5">
+                  <div class="flex items-center gap-3">
+                    <div class="flex size-9 items-center justify-center rounded-full bg-brand-gold/10 text-brand-gold border border-brand-gold/10">
+                      <Fragment set:html={meta.iconSvg} />
+                    </div>
+                    <h3 class="text-lg font-bold text-white leading-tight">
+                      {vertical.navLabel}
+                    </h3>
+                  </div>
+                  <p class="mt-4 text-sm leading-relaxed text-brand-off-white/70">
+                    {meta.shortDesc}
+                  </p>
+                </div>
+              </div>
+
+              <div class="px-5 pb-5">
+                <a
+                  href={vertical.route}
+                  data-track="vertical_view_click"
+                  data-track-label={vertical.navLabel}
+                  data-track-location="home_verticals"
+                  data-vertical={vertical.key}
+                  class="inline-flex items-center gap-1 text-sm font-semibold text-brand-gold transition-colors hover:text-white"
+                >
+                  <span>Ver ejemplo</span>
+                  <svg viewBox="0 0 20 20" fill="currentColor" class="size-4 transition-transform group-hover:translate-x-1">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                  </svg>
+                </a>
+              </div>
+            </article>
+          );
+        })
       }
     </div>
   </div>

@@ -10,7 +10,8 @@ describe("local business content", () => {
   it("defines the first launch verticals with stable routes", () => {
     expect(localBusinessVerticalList.map((vertical) => vertical.route)).toEqual([
       "/webs/restaurantes",
-      "/webs/veterinarias-oftalmologia",
+      "/webs/veterinarias",
+      "/webs/oftalmologia",
       "/webs/tiendas-celulares",
       "/webs/marmolerias",
     ]);
