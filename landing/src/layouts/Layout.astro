@@ -95,6 +95,9 @@ const gaMeasurementId =
   (import.meta.env.PROD ? "G-Q742W0YTB5" : "");
 const metaPixelId = import.meta.env.PUBLIC_META_PIXEL_ID;
 const clarityProjectId = import.meta.env.PUBLIC_CLARITY_PROJECT_ID;
+const googleAdsId =
+  import.meta.env.PUBLIC_GOOGLE_ADS_ID ||
+  (import.meta.env.PROD ? "AW-18237305146" : "");
 
 const gtmScript = gtmId
   ? `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`
@@ -110,6 +113,10 @@ const metaPixelScript = metaPixelId
 
 const clarityScript = clarityProjectId
   ? `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src='https://www.clarity.ms/tag/'+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,'clarity','script','${clarityProjectId}');`
+  : "";
+
+const googleAdsScript = googleAdsId
+  ? `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=window.gtag||gtag;gtag('js',new Date());gtag('config','${googleAdsId}');`
   : "";
 
 const trackingScript = `(() => {
@@ -445,6 +452,15 @@ const trackingScript = `(() => {
     {gaScript && <script is:inline set:html={gaScript}></script>}
     {metaPixelScript && <script is:inline set:html={metaPixelScript}></script>}
     {clarityScript && <script is:inline set:html={clarityScript}></script>}
+    {
+      googleAdsId && (
+        <script
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${googleAdsId}`}
+        ></script>
+      )
+    }
+    {googleAdsScript && <script is:inline set:html={googleAdsScript}></script>}
     <script is:inline set:html={trackingScript}></script>
 
     <ClientRouter />
