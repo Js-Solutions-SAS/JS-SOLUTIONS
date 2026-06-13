@@ -2,19 +2,23 @@
 import Layout from "../layouts/Layout.astro";
 import Footer from "../components/Footer.astro";
 import HomeHero from "../components/HomeHero.astro";
+import LocalBusinessPathways from "../components/LocalBusinessPathways.astro";
 import Navbar from "../components/Navbar.astro";
 import SectorPathways from "../components/SectorPathways.astro";
 import TechAuthority from "../components/TechAuthority.astro";
+import WebPackages from "../components/WebPackages.astro";
 ---
 
 <Layout
-  title="JS Solutions | IA Aplicada para Operaciones Reales"
-  description="JS Solutions presenta dos rutas claras para implementar IA segun tu contexto: crecimiento comercial para PyMES y atencion ciudadana para sector publico."
-  keywords="IA para empresas, automatizacion de procesos, crecimiento comercial por WhatsApp, atencion ciudadana asistida, soluciones de IA en Colombia"
+  title="JS Solutions | Webs Simples y Automatizacion para Negocios Locales"
+  description="Creamos landings, paginas web simples y automatizacion ligera para restaurantes, clinicas, tiendas de celulares, marmolerias y negocios locales en Colombia."
+  keywords="paginas web para negocios, landing pages Colombia, webs para restaurantes, web para veterinarias, automatizacion WhatsApp, JS Solutions"
 >
   <Navbar />
   <main class="relative overflow-hidden bg-brand-black">
     <HomeHero />
+    <LocalBusinessPathways />
+    <WebPackages location="home_packages" />
     <SectorPathways />
     <TechAuthority />
   </main>

@@ -1,5 +1,7 @@
 export const WHATSAPP_BASE_URL = "https://wa.me/573186110790";
 
+import { getLocalBusinessVerticalByRoute } from "@/data/local-business-content";
+
 export type SectorKey = "pymes" | "sector_publico";
 
 const DEFAULT_MESSAGE =
@@ -31,11 +33,17 @@ export function getSectorKeyFromPath(pathname: string): SectorKey | null {
 }
 
 export function getDefaultWhatsAppMessage(pathname: string): string {
+  const vertical = getLocalBusinessVerticalByRoute(pathname);
+  if (vertical) return vertical.whatsappMessage;
+
   const sectorKey = getSectorKeyFromPath(pathname);
   return sectorKey ? SECTOR_MESSAGES[sectorKey] : DEFAULT_MESSAGE;
 }
 
 export function getDefaultWhatsAppLabel(pathname: string): string {
+  const vertical = getLocalBusinessVerticalByRoute(pathname);
+  if (vertical) return `WhatsApp ${vertical.navLabel}`;
+
   const sectorKey = getSectorKeyFromPath(pathname);
 
   if (sectorKey === "pymes") {

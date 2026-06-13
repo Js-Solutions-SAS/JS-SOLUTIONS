@@ -1,4 +1,9 @@
 ---
+import { createWhatsAppHref } from "@/lib/whatsapp";
+
+const heroWhatsappHref = createWhatsAppHref(
+  "Hola JS Solutions, quiero cotizar una web simple con automatizacion ligera para mi negocio.",
+);
 ---
 
 <section
@@ -9,53 +14,116 @@
   <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(212,175,55,0.16),transparent_38%),radial-gradient(circle_at_85%_18%,rgba(139,92,246,0.12),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent)]"></div>
   <div class="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.07)_1px,transparent_1px)] [background-size:34px_34px]"></div>
 
-  <div class="relative mx-auto flex min-h-[calc(100svh-5rem)] max-w-7xl flex-col justify-between px-6 pb-14 pt-28 md:pb-20 md:pt-32">
-    <div class="max-w-4xl">
-      <p class="inline-flex items-center gap-3 rounded-full border border-brand-gold/30 bg-brand-gold/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.28em] text-brand-gold">
-        JS Solutions
-        <span class="h-1.5 w-1.5 rounded-full bg-brand-gold"></span>
-        IA aplicada a operaciones reales
-      </p>
-
-      <h1 class="mt-8 max-w-5xl text-balance text-5xl font-bold leading-[0.95] text-white md:text-7xl lg:text-[5.4rem]">
-        Tu operacion puede crecer
+  <div class="relative mx-auto grid min-h-[calc(100svh-5rem)] max-w-7xl gap-12 px-6 pb-14 pt-28 md:pb-18 md:pt-32 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+    <div class="max-w-3xl">
+      <h1 class="max-w-5xl text-balance text-5xl font-bold leading-[0.98] text-white md:text-7xl lg:text-[5.2rem]">
+        Webs simples que traen clientes,
         <span class="block text-transparent bg-clip-text bg-gold-gradient">
-          sin perder claridad.
+          no solo presencia.
         </span>
       </h1>
 
       <p class="mt-6 max-w-2xl text-lg leading-relaxed text-brand-off-white/78 md:text-xl">
-        Esta entrada principal te ayuda a elegir el camino correcto segun tu
-        realidad: crecimiento comercial para empresas o atencion ciudadana para
-        entidades. Sin ruido tecnico en el primer vistazo.
+        Creamos landings y automatizacion ligera para restaurantes, clinicas,
+        veterinarias, tiendas de celulares, marmolerias y negocios locales que
+        necesitan mover flujo de caja sin meterse en tecnologia complicada.
       </p>
-    </div>
 
-    <div class="mt-12 grid gap-4 md:mt-16 md:grid-cols-[1.2fr_0.8fr] md:items-end">
-      <div class="flex flex-col gap-4 sm:flex-row">
+      <div class="mt-9 flex flex-col gap-4 sm:flex-row">
         <a
-          href="/pymes"
-          data-track="sector_selector_click"
-          data-track-label="Ir a PyMES"
+          href={heroWhatsappHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-track="whatsapp_click"
+          data-track-label="Cotizar web por WhatsApp"
           data-track-location="home_hero"
-          class="inline-flex items-center justify-center rounded-full bg-gold-gradient px-7 py-4 text-sm font-black uppercase tracking-[0.18em] text-black transition-transform duration-300 hover:scale-[1.02]"
+          data-cta-intent="quote_web"
+          class="inline-flex min-h-12 items-center justify-center rounded-full bg-gold-gradient px-7 py-4 text-center text-sm font-black uppercase tracking-[0.16em] text-black transition-transform duration-300 hover:scale-[1.02]"
         >
-          Ir a PyMES
+          Cotizar por WhatsApp
         </a>
         <a
-          href="/sector-publico"
-          data-track="sector_selector_click"
-          data-track-label="Ir a Sector Publico"
+          href="#paquetes"
+          data-track="package_anchor_click"
+          data-track-label="Ver paquetes"
           data-track-location="home_hero"
-          class="inline-flex items-center justify-center rounded-full border border-white/15 px-7 py-4 text-sm font-black uppercase tracking-[0.18em] text-white transition-colors duration-300 hover:border-brand-gold/60 hover:text-brand-gold"
+          class="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-7 py-4 text-sm font-black uppercase tracking-[0.16em] text-white transition-colors duration-300 hover:border-brand-gold/60 hover:text-brand-gold"
         >
-          Ir a Sector Publico
+          Ver paquetes
         </a>
       </div>
 
-      <div class="max-w-lg justify-self-end border-l border-white/10 pl-5 text-sm leading-relaxed text-brand-off-white/64">
-        Empieza por la ruta que se parece a tu operacion. Luego bajamos esa
-        experiencia a tus reglas, tu equipo y tus canales reales.
+      <div class="mt-10 grid gap-4 border-t border-white/10 pt-6 sm:grid-cols-3">
+        <div>
+          <p class="text-sm font-bold text-white">Web primero</p>
+          <p class="mt-2 text-sm leading-relaxed text-brand-off-white/60">
+            Una landing clara para explicar, generar confianza y capturar leads.
+          </p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-white">WhatsApp como cierre</p>
+          <p class="mt-2 text-sm leading-relaxed text-brand-off-white/60">
+            Mensajes prellenados por rubro para responder con contexto.
+          </p>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-white">IA cuando aporte</p>
+          <p class="mt-2 text-sm leading-relaxed text-brand-off-white/60">
+            Seguimiento, CRM o automatizacion ligera si ya hay flujo.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="relative">
+      <div class="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5 shadow-[0_32px_120px_rgba(0,0,0,0.42)]">
+        <div class="rounded-[1.5rem] border border-white/10 bg-brand-black/85 p-5">
+          <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <div class="flex items-center gap-2">
+              <span class="size-2.5 rounded-full bg-[#f87171]"></span>
+              <span class="size-2.5 rounded-full bg-[#facc15]"></span>
+              <span class="size-2.5 rounded-full bg-[#4ade80]"></span>
+            </div>
+            <span class="text-[10px] font-black uppercase tracking-[0.24em] text-brand-off-white/45">
+              Embudo simple
+            </span>
+          </div>
+
+          <div class="mt-5 grid gap-4">
+            <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.035] p-4">
+              <p class="text-[10px] font-black uppercase tracking-[0.24em] text-brand-gold">
+                Google Ads
+              </p>
+              <p class="mt-2 text-lg font-bold leading-snug text-white">
+                Persona busca un servicio local.
+              </p>
+            </div>
+            <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.035] p-4">
+              <p class="text-[10px] font-black uppercase tracking-[0.24em] text-brand-gold">
+                Landing por rubro
+              </p>
+              <p class="mt-2 text-lg font-bold leading-snug text-white">
+                Ve oferta, rango y siguiente paso sin perderse.
+              </p>
+            </div>
+            <div class="rounded-[1.25rem] border border-brand-gold/20 bg-brand-gold/10 p-4">
+              <p class="text-[10px] font-black uppercase tracking-[0.24em] text-brand-gold">
+                WhatsApp + seguimiento
+              </p>
+              <p class="mt-2 text-lg font-bold leading-snug text-white">
+                Llega con intencion, rubro y contexto comercial.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+        {["Restaurantes", "Clinicas", "Celulares", "Marmolerias"].map((item) => (
+          <div class="rounded-full border border-white/10 bg-white/[0.035] px-4 py-3 text-center font-semibold text-brand-off-white/78">
+            {item}
+          </div>
+        ))}
       </div>
     </div>
   </div>

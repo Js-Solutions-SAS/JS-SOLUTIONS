@@ -1,0 +1,39 @@
+---
+import Footer from "@/components/Footer.astro";
+import LocalBusinessLanding from "@/components/LocalBusinessLanding.astro";
+import Navbar from "@/components/Navbar.astro";
+import { localBusinessVerticalList } from "@/data/local-business-content";
+import Layout from "@/layouts/Layout.astro";
+
+export const prerender = true;
+
+export function getStaticPaths() {
+  return localBusinessVerticalList.map((vertical) => ({
+    params: { vertical: vertical.route.replace("/webs/", "") },
+    props: { vertical },
+  }));
+}
+
+const { vertical } = Astro.props;
+---
+
+<Layout
+  title={vertical.seoTitle}
+  description={vertical.seoDescription}
+  keywords={vertical.seoKeywords}
+  floatingWhatsappMessage={vertical.whatsappMessage}
+  floatingWhatsappLabel={`WhatsApp ${vertical.navLabel}`}
+>
+  <Navbar
+    activePath={vertical.route}
+    ctaHref={vertical.route}
+    ctaLabel="Cotizar web"
+    ctaTrack="vertical_nav_cta_click"
+    ctaTrackLabel={`Cotizar ${vertical.navLabel}`}
+    ctaTrackLocation="navbar"
+  />
+  <main class="relative overflow-hidden bg-brand-black">
+    <LocalBusinessLanding vertical={vertical} />
+  </main>
+  <Footer />
+</Layout>

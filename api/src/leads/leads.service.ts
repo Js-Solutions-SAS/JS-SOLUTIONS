@@ -175,6 +175,15 @@ export class LeadsService {
         `${dto.email || dto.fullName}:${dto.companyName}:${dto.source}`,
       );
 
+    const marketingContext = {
+      ...(dto.utm && typeof dto.utm === 'object' ? dto.utm : {}),
+      ...(dto.vertical ? { vertical: dto.vertical } : {}),
+      ...(dto.packageInterest ? { package_interest: dto.packageInterest } : {}),
+      ...(dto.ctaIntent ? { cta_intent: dto.ctaIntent } : {}),
+      ...(dto.whatsappMessage ? { whatsapp_message: dto.whatsappMessage } : {}),
+      ...(dto.businessType ? { business_type: dto.businessType } : {}),
+    };
+
     const response = await this.createIntake({
       nombre: dto.fullName,
       empresa: dto.companyName,
@@ -182,7 +191,7 @@ export class LeadsService {
       phone: dto.phone,
       servicio: dto.serviceInterest,
       source: dto.source,
-      utm: dto.utm,
+      utm: marketingContext,
       landingPath: dto.landingPath,
       referrer: dto.referrer,
       estado: LEAD_STATUS.DIAGNOSTIC_CAPTURED,
@@ -216,6 +225,10 @@ export class LeadsService {
           customData: {
             source: dto.source,
             service_interest: dto.serviceInterest,
+            vertical: dto.vertical || '',
+            package_interest: dto.packageInterest || '',
+            cta_intent: dto.ctaIntent || '',
+            business_type: dto.businessType || '',
             landing_path: dto.landingPath || '',
             referrer: dto.referrer || requestContext?.referrer || '',
             correlation_id: correlationId,

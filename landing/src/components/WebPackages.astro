@@ -1,0 +1,83 @@
+---
+import { webPackages } from "@/data/local-business-content";
+import { createWhatsAppHref } from "@/lib/whatsapp";
+
+interface Props {
+  location?: string;
+  vertical?: string;
+}
+
+const { location = "web_packages", vertical = "" } = Astro.props;
+---
+
+<section
+  id="paquetes"
+  data-track-section="web_packages"
+  class="border-b border-white/10 bg-brand-black py-20 md:py-24"
+>
+  <div class="mx-auto max-w-7xl px-6">
+    <div class="grid gap-8 md:grid-cols-[0.78fr_1.22fr] md:items-end">
+      <div class="max-w-xl">
+        <h2 class="text-balance text-4xl font-bold leading-tight text-white md:text-5xl">
+          Paquetes claros para salir a vender sin eternizar el proyecto.
+        </h2>
+      </div>
+      <p class="max-w-2xl text-base leading-relaxed text-brand-off-white/72 md:justify-self-end md:text-lg">
+        Los rangos ayudan a saber si estamos en el mismo punto antes de reunirnos.
+        Ajustamos alcance, contenidos e integraciones segun tu rubro y urgencia.
+      </p>
+    </div>
+
+    <div class="mt-12 grid gap-5 lg:grid-cols-3">
+      {
+        webPackages.map((tier) => {
+          const message = `Hola JS Solutions, quiero cotizar el paquete ${tier.name}${vertical ? ` para ${vertical}` : ""}.`;
+
+          return (
+            <article class="flex h-full flex-col rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-6">
+              <div>
+                <h3 class="text-2xl font-bold leading-tight text-white">{tier.name}</h3>
+                <p class="mt-4 text-lg font-black text-brand-gold">{tier.range}</p>
+                <p class="mt-4 text-sm leading-relaxed text-brand-off-white/72">
+                  {tier.summary}
+                </p>
+              </div>
+
+              <div class="mt-6 border-t border-white/10 pt-5">
+                <p class="text-xs font-black uppercase tracking-[0.22em] text-brand-off-white/45">
+                  Ideal para
+                </p>
+                <p class="mt-2 text-sm font-semibold leading-relaxed text-white">
+                  {tier.bestFor}
+                </p>
+              </div>
+
+              <ul class="mt-5 grid gap-3 text-sm leading-relaxed text-brand-off-white/70">
+                {tier.included.map((item) => (
+                  <li class="flex gap-3">
+                    <span class="mt-1.5 size-2 shrink-0 rounded-full bg-brand-gold"></span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <a
+                href={createWhatsAppHref(message)}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-track="package_click"
+                data-track-label={tier.name}
+                data-track-location={location}
+                data-package-interest={tier.id}
+                data-vertical={vertical}
+                class="mt-7 inline-flex min-h-12 items-center justify-center rounded-full border border-brand-gold/35 px-5 py-3 text-center text-sm font-black uppercase tracking-[0.14em] text-brand-gold transition-colors duration-300 hover:bg-brand-gold hover:text-black"
+              >
+                Cotizar este paquete
+              </a>
+            </article>
+          );
+        })
+      }
+    </div>
+  </div>
+</section>

@@ -199,6 +199,14 @@ const trackingScript = `(() => {
         customData.search_string = typeof params.service_interest === 'string'
           ? params.service_interest
           : '';
+      } else if (eventName === 'package_click') {
+        serverEventName = 'CustomizeProduct';
+        customData.package_interest = typeof params.package_interest === 'string' ? params.package_interest : '';
+        customData.vertical = typeof params.vertical === 'string' ? params.vertical : '';
+      } else if (eventName === 'vertical_view_click' || eventName === 'vertical_view') {
+        serverEventName = 'ViewContent';
+        customData.vertical = typeof params.vertical === 'string' ? params.vertical : '';
+        customData.content_name = typeof params.label === 'string' ? params.label : '';
       } else if (
         eventName === 'whatsapp_purchase_intent_click' ||
         eventName === 'whatsapp_click' ||
@@ -210,6 +218,10 @@ const trackingScript = `(() => {
         customData.cta_label = typeof params.label === 'string' ? params.label : '';
         customData.whatsapp_url = typeof params.href === 'string' ? params.href : '';
         customData.sector = typeof params.sector === 'string' ? params.sector : '';
+        customData.vertical = typeof params.vertical === 'string' ? params.vertical : '';
+        customData.package_interest =
+          typeof params.package_interest === 'string' ? params.package_interest : '';
+        customData.cta_intent = typeof params.cta_intent === 'string' ? params.cta_intent : '';
       }
 
       if (serverEventName) {
@@ -292,6 +304,11 @@ const trackingScript = `(() => {
       label: target.getAttribute('data-track-label') || target.textContent?.trim() || '',
       location: target.getAttribute('data-track-location') || '',
       href: target.getAttribute('href') || '',
+      sector: target.getAttribute('data-sector') || '',
+      vertical: target.getAttribute('data-vertical') || '',
+      package_interest: target.getAttribute('data-package-interest') || '',
+      cta_intent: target.getAttribute('data-cta-intent') || '',
+      business_type: target.getAttribute('data-business-type') || '',
     });
   });
 
@@ -329,6 +346,8 @@ const trackingScript = `(() => {
     track('sector_route_view', { sector: 'pymes', demo_type: 'Demo PyMES' });
   } else if (normalizedPath === '/sector-publico') {
     track('sector_route_view', { sector: 'sector_publico', demo_type: 'Demo Sector Publico' });
+  } else if (normalizedPath.startsWith('/webs/')) {
+    track('vertical_view', { vertical: normalizedPath.replace('/webs/', '') });
   }
 
 })();`;

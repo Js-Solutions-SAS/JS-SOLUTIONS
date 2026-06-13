@@ -64,4 +64,29 @@ export class PublicLeadIntakeDto {
   @IsString()
   @MaxLength(200)
   idempotencyKey?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  vertical?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  packageInterest?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  ctaIntent?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  whatsappMessage?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  businessType?: string;
 }

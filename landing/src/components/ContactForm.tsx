@@ -4,6 +4,7 @@ import { assign, createMachine, fromPromise } from "xstate";
 
 import { createDomainEvent } from "@/domain/core/events/types";
 import { createDualEventBus } from "@/domain/core/events/event-bus";
+import { getLocalBusinessVerticalByRoute } from "@/data/local-business-content";
 
 interface ContactContext {
   name: string;
@@ -50,6 +51,34 @@ function track(eventName: string, payload: Record<string, unknown> = {}) {
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+interface LandingLeadContext {
+  vertical?: string;
+  packageInterest?: string;
+  ctaIntent?: string;
+  whatsappMessage?: string;
+  businessType?: string;
+}
+
+function getLandingLeadContext(): LandingLeadContext {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  const vertical = getLocalBusinessVerticalByRoute(window.location.pathname);
+
+  if (!vertical) {
+    return {};
+  }
+
+  return {
+    vertical: vertical.key,
+    packageInterest: "contact_form",
+    ctaIntent: "lead_form",
+    whatsappMessage: vertical.whatsappMessage,
+    businessType: vertical.businessType,
+  };
 }
 
 export const contactFormMachine = createMachine(
@@ -206,6 +235,7 @@ export const contactFormMachine = createMachine(
     },
     actors: {
       submit: fromPromise(async ({ input }: { input: ContactContext }) => {
+        const landingLeadContext = getLandingLeadContext();
         const tracker =
           typeof window !== "undefined"
             ? ((window as Window & { __jsTrack?: Record<string, unknown> }).__jsTrack as
@@ -226,10 +256,14 @@ export const contactFormMachine = createMachine(
             fullName: input.name.trim(),
             companyName: input.company.trim() || "Prospecto web",
             email: input.email.trim(),
-            serviceInterest: "Contacto general",
+            serviceInterest:
+              typeof landingLeadContext.vertical === "string"
+                ? `Web para ${landingLeadContext.businessType || "negocio local"}`
+                : "Contacto general",
             notes: input.message.trim(),
             source: "landing_contact_form",
             website: input.website.trim(),
+            ...landingLeadContext,
             utm: (trackingMeta.utm as Record<string, unknown> | undefined) || {},
             landingPath:
               typeof trackingMeta.landingPath === "string" ? trackingMeta.landingPath : "",

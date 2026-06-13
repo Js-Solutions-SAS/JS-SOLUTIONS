@@ -25,6 +25,12 @@ describe("whatsapp helpers", () => {
     expect(getDefaultWhatsAppMessage("/sector-publico")).toContain(
       "atencion ciudadana",
     );
+    expect(getDefaultWhatsAppMessage("/webs/restaurantes")).toContain(
+      "restaurante",
+    );
+    expect(getDefaultWhatsAppLabel("/webs/marmolerias")).toBe(
+      "WhatsApp Marmolerias",
+    );
     expect(getDefaultWhatsAppLabel("/")).toBe("WhatsApp General");
   });
 });
