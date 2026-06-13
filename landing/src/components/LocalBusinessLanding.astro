@@ -1,5 +1,6 @@
 ---
 import TechAuthority from "@/components/TechAuthority.astro";
+import TemplateSimulator from "@/components/TemplateSimulator";
 import WebPackages from "@/components/WebPackages.astro";
 import type { LocalBusinessVertical } from "@/data/local-business-content";
 import { createWhatsAppHref } from "@/lib/whatsapp";
@@ -60,36 +61,8 @@ const heroHref = createWhatsAppHref(vertical.whatsappMessage);
       </div>
     </div>
 
-    <div class="relative rounded-[2rem] border border-white/10 bg-white/[0.035] p-5 shadow-[0_32px_120px_rgba(0,0,0,0.42)]">
-      <div class="rounded-[1.5rem] border border-white/10 bg-brand-black/80 p-5">
-        <div class="flex items-center justify-between border-b border-white/10 pb-4">
-          <div class="flex items-center gap-2">
-            <span class="size-2.5 rounded-full bg-[#f87171]"></span>
-            <span class="size-2.5 rounded-full bg-[#facc15]"></span>
-            <span class="size-2.5 rounded-full bg-[#4ade80]"></span>
-          </div>
-          <span class="text-[10px] font-black uppercase tracking-[0.24em] text-brand-off-white/45">
-            Flujo comercial
-          </span>
-        </div>
-
-        <div class="mt-5 grid gap-4">
-          {vertical.painPoints.map((point) => (
-            <div class="rounded-[1.25rem] border border-white/10 bg-white/[0.035] px-4 py-3">
-              <p class="text-sm leading-relaxed text-brand-off-white/76">{point}</p>
-            </div>
-          ))}
-        </div>
-
-        <div class="mt-5 rounded-[1.25rem] border border-brand-gold/20 bg-brand-gold/10 p-4">
-          <p class="text-[10px] font-black uppercase tracking-[0.24em] text-brand-gold">
-            Resultado buscado
-          </p>
-          <p class="mt-2 text-lg font-bold leading-snug text-white">
-            Mas consultas utiles por WhatsApp, menos friccion antes de vender.
-          </p>
-        </div>
-      </div>
+    <div class="relative">
+      <TemplateSimulator client:load verticalKey={vertical.key} defaultBusinessName={vertical.navLabel} />
     </div>
   </div>
 </section>

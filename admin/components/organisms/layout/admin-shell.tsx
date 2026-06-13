@@ -34,6 +34,7 @@ interface AdminShellProps {
 
 const navItems = [
   { name: "Inicio", href: "/", icon: LayoutDashboard },
+  { name: "Prospección", href: "/prospectos", icon: UsersRound },
   { name: "Entregas", href: "/entregas", icon: CalendarClock },
   { name: "Capacidad", href: "/capacidad", icon: UsersRound },
   { name: "Aprobaciones", href: "/aprobaciones", icon: ClipboardCheck },
@@ -48,6 +49,7 @@ const navItems = [
 
 const breadcrumbLabelMap: Record<string, string> = {
   admin: "Inicio",
+  prospectos: "Prospección",
   entregas: "Entregas",
   capacidad: "Capacidad",
   aprobaciones: "Aprobaciones",
