@@ -20,13 +20,13 @@ export OVERPASS_ENDPOINT="https://overpass-api.de/api/interpreter"
 ### OpenStreetMap / Overpass (recomendado sin tarjeta)
 
 ```bash
-node prospecting/osm-leads.mjs --dry-run --cities Bogota --verticals odontologias --limit 25
+node prospecting/osm-leads.mjs --dry-run --cities Cali,Medellin,Pereira --verticals odontologias,oftalmologicas --limit 0
 ```
 
 Consulta real pequena:
 
 ```bash
-node prospecting/osm-leads.mjs --cities Bogota --verticals odontologias --limit 25
+node prospecting/osm-leads.mjs --cities Cali,Medellin,Pereira --verticals odontologias,oftalmologicas,centros_estetica,inmobiliarias,servicios_tecnicos,gimnasios,veterinarias,abogados --limit 0
 ```
 
 Salida:
@@ -50,6 +50,8 @@ node prospecting/maps-leads.mjs --cities Bogota,Medellin,Cali --verticals odonto
 OSM:
 
 `osmId`, `osmType`, `businessName`, `category`, `address`, `phone`, `website`, `email`, `lat`, `lon`, `city`, `sourceQuery`, `leadScore`, `recommendedOffer`, `outreachStatus`, `nextActionAt`, `optOut`.
+
+`--limit 0` o `--limit all` significa sin tope interno; el limite real sera lo que devuelva Overpass para las ciudades y verticales seleccionadas.
 
 Google Places:
 

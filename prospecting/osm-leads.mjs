@@ -9,10 +9,14 @@ const DEFAULT_OUTPUT_DIR = process.env.PROSPECTING_OUTPUT_DIR || "prospecting/ou
 const DEFAULT_CITIES = ["Bogota", "Medellin", "Cali"];
 const DEFAULT_VERTICALS = [
   "odontologias",
+  "oftalmologicas",
   "centros_estetica",
   "restaurantes_cafes",
   "inmobiliarias",
   "servicios_tecnicos",
+  "gimnasios",
+  "veterinarias",
+  "abogados",
 ];
 
 const CITIES = {
@@ -28,6 +32,10 @@ const CITIES = {
     label: "Cali",
     bbox: [3.314, -76.614, 3.546, -76.443],
   },
+  Pereira: {
+    label: "Pereira",
+    bbox: [4.741, -75.796, 4.879, -75.622],
+  },
 };
 
 const VERTICALS = {
@@ -36,6 +44,17 @@ const VERTICALS = {
     tags: [{ key: "amenity", value: "dentist" }],
     offer: "Sistema Comercial Web + WhatsApp + Agenda + Cotizacion",
     sourceLabel: "amenity=dentist",
+    highIntent: true,
+  },
+  oftalmologicas: {
+    label: "Oftalmologicas y opticas",
+    tags: [
+      { key: "healthcare", value: "ophthalmology" },
+      { key: "healthcare", value: "optometrist" },
+      { key: "shop", value: "optician" },
+    ],
+    offer: "Landing de Especialidad + WhatsApp + Agenda + Captacion Local",
+    sourceLabel: "healthcare=ophthalmology|optometrist, shop=optician",
     highIntent: true,
   },
   centros_estetica: {
@@ -80,6 +99,30 @@ const VERTICALS = {
     sourceLabel: "shop/craft/office technical services",
     highIntent: true,
   },
+  gimnasios: {
+    label: "Gimnasios y centros fitness",
+    tags: [
+      { key: "leisure", value: "fitness_centre" },
+      { key: "leisure", value: "sports_centre" },
+    ],
+    offer: "Landing de Captacion + WhatsApp + Planes/Membresias",
+    sourceLabel: "leisure=fitness_centre|sports_centre",
+    highIntent: true,
+  },
+  veterinarias: {
+    label: "Veterinarias",
+    tags: [{ key: "amenity", value: "veterinary" }],
+    offer: "Web Local + WhatsApp + Agenda + Urgencias",
+    sourceLabel: "amenity=veterinary",
+    highIntent: true,
+  },
+  abogados: {
+    label: "Abogados",
+    tags: [{ key: "office", value: "lawyer" }],
+    offer: "Landing Profesional + WhatsApp + Consulta Inicial",
+    sourceLabel: "office=lawyer",
+    highIntent: true,
+  },
 };
 
 const args = parseArgs(process.argv.slice(2));
@@ -91,7 +134,7 @@ if (args.help) {
 
 const cities = splitArg(args.cities, DEFAULT_CITIES).filter((city) => CITIES[city]);
 const verticalKeys = splitArg(args.verticals, DEFAULT_VERTICALS).filter((key) => VERTICALS[key]);
-const limit = toPositiveInt(args.limit, 100);
+const limit = toLimit(args.limit, 100);
 const outputDir = args.outputDir || DEFAULT_OUTPUT_DIR;
 const endpoint = args.endpoint || DEFAULT_OVERPASS_ENDPOINT;
 const outreachStatus = args.outreachStatus || "new";
@@ -142,7 +185,7 @@ async function collectLeads({
 
   for (const cityName of cities) {
     for (const verticalKey of verticalKeys) {
-      if (seen.size >= limit) break;
+      if (isLimitReached(seen.size, limit)) break;
 
       const city = CITIES[cityName];
       const vertical = VERTICALS[verticalKey];
@@ -151,7 +194,7 @@ async function collectLeads({
       const elements = await runOverpass(endpoint, query);
 
       for (const element of elements) {
-        if (seen.size >= limit) break;
+        if (isLimitReached(seen.size, limit)) break;
         const lead = normalizeLead({
           element,
           city: city.label,
@@ -408,6 +451,15 @@ function toPositiveInt(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function toLimit(value, fallback) {
+  if (value === "0" || value === 0 || value === "all") return Number.POSITIVE_INFINITY;
+  return toPositiveInt(value, fallback);
+}
+
+function isLimitReached(count, limit) {
+  return Number.isFinite(limit) && count >= limit;
+}
+
 function nextActionDate() {
   const date = new Date();
   date.setDate(date.getDate() + 1);
@@ -437,8 +489,8 @@ function printHelp() {
 
 Options:
   --cities Bogota,Medellin,Cali
-  --verticals odontologias,centros_estetica,restaurantes_cafes,inmobiliarias,servicios_tecnicos
-  --limit 100
+  --verticals odontologias,oftalmologicas,centros_estetica,restaurantes_cafes,inmobiliarias,servicios_tecnicos,gimnasios,veterinarias,abogados
+  --limit 0
   --endpoint https://overpass-api.de/api/interpreter
   --output-dir prospecting/output
   --outreach-status new
