@@ -8,6 +8,26 @@ Para PyMES locales que pierden oportunidades porque sus leads entran por canales
 
 **Promesa comercial defendible:** convertir la presencia web en un flujo operativo trazable: captar demanda, calificarla, cotizar, aprobar, cobrar y dar visibilidad al cliente sin depender de hojas sueltas ni seguimiento manual.
 
+## Evidencia Graphify
+
+Graphify genero un mapa tecnico desde `main` actualizado con **2037 nodos**, **3768 edges** y **239 comunidades**. La extraccion quedo util para ventas, aunque parcial: Gemini tuvo errores 503 en dos chunks semanticos y el labeling de comunidades quedo con nombres genericos `Community N`.
+
+Archivos generados para auditoria:
+
+- `graphify-out/graph.json`
+- `graphify-out/graph.html`
+- `graphify-out/JS-SOLUTIONS-local-callflow.html`
+- `graphify-out/GRAPH_REPORT.md`
+- `graphify-out/query-lead-flow.txt`
+
+La query `como fluye un lead desde landing hasta cotizacion y contrato` conecto estos puntos de prueba:
+
+- `Landing Context` llama a `API Context`.
+- `API Context` referencia `n8n Workflows README`.
+- `API Context` llama a `Portal Context`.
+- `ContactForm.tsx` contiene `contactFormMachine`, `getLandingLeadContext()` y tracking.
+- `use-cotizaciones-context.tsx` contiene la maquina y provider de cotizaciones.
+
 ## Inventario vendible
 
 | Modulo | Estado actual | Demo disponible | Vertical aplicable | Valor de negocio |
@@ -17,9 +37,9 @@ Para PyMES locales que pierden oportunidades porque sus leads entran por canales
 | Cotizador interactivo | Implementado en landing con XState y preview/correccion/envio | Si: `/cotizador` | Servicios profesionales y proyectos a medida | Reduce friccion para pedir precio y alcance |
 | Admin cockpit | Implementado en `admin` con modulos operativos visibles | Si: dashboard y modulos de cotizaciones, entregas, capacidad, aprobaciones, cambios, SLA, portafolio, finanzas, RAID, SOPs | Empresas con operacion recurrente | Permite operar ventas y entrega sin estado oculto |
 | API de negocio | Implementado en `api` como core NestJS con dominios de leads, quotes, contracts, projects, approvals, tickets, finance, payments y webhooks | Demo tecnica via endpoints y Graphify | Clientes que requieren trazabilidad y automatizacion real | Convierte automatizaciones en sistema auditable |
-| Portal cliente | Implementado en `portal` con dashboard, brief y endpoints de estado | Demo parcial; requiere materializar archivos iCloud para auditoria completa | Proyectos con entregables/aprobaciones | Reduce preguntas repetidas y centraliza estado |
-| n8n workflows | Workflows presentes para cotizacion, contrato, pagos, aprobacion y estado de proyecto | Demo conceptual; archivos actuales estan iCloud dataless | Automatizacion comercial y operativa | Orquesta tareas alrededor del API sin ser la fuente de verdad |
-| Agentes internos | Kit de agentes en `agents/` para engineering y marketing | Demo de proceso; archivos marketing estan iCloud dataless | Fabrica de software y contenido | Sistematiza produccion y mejora consistencia |
+| Portal cliente | Implementado en `portal` con dashboard, brief y endpoints de estado | Si: Graphify detecta `Portal Context` conectado desde `API Context` | Proyectos con entregables/aprobaciones | Reduce preguntas repetidas y centraliza estado |
+| n8n workflows | Workflows presentes para cotizacion, contrato, pagos, aprobacion y estado de proyecto | Si: Graphify detecta `n8n Workflows README` referenciado desde `API Context` | Automatizacion comercial y operativa | Orquesta tareas alrededor del API sin ser la fuente de verdad |
+| Agentes internos | Kit de agentes en `agents/` para engineering y marketing | Demo de proceso | Fabrica de software y contenido | Sistematiza produccion y mejora consistencia |
 
 ## Paquetes replicables
 
@@ -64,4 +84,4 @@ Para llegar a 10/10:
 - Agregar 2-3 casos reales con antes/despues medible.
 - Definir precios por paquete y alcance cerrado.
 - Grabar el video de referencia y usarlo como prueba visual en prospeccion.
-- Materializar archivos iCloud para que Graphify pruebe todo el flujo tecnicamente.
+- Reintentar Graphify cuando Gemini este estable para completar chunks semanticos y nombres de comunidades.

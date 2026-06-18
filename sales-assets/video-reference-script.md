@@ -66,6 +66,8 @@
 
 "Para revisar y explicar el sistema estamos usando Graphify, que convierte el repo en un grafo consultable. Nos ayuda a ver como se conectan landing, portal, admin, API y automatizaciones, y a convertir arquitectura tecnica en contenido comercial claro."
 
+**Prueba visual sugerida en pantalla:** mostrar `graphify-out/GRAPH_REPORT.md` con 2037 nodos y la query `query-lead-flow.txt`, donde aparecen `Landing Context`, `API Context`, `Portal Context`, `n8n Workflows README`, `ContactForm.tsx` y `use-cotizaciones-context.tsx`.
+
 **165-180s - CTA**
 
 "Si tienes una PyME con leads por WhatsApp, formularios o redes, pero el seguimiento depende de memoria, chats y hojas sueltas, este sistema se puede adaptar a tu operacion. Primero auditamos tu flujo, luego montamos una version inicial y dejamos trazabilidad desde el primer contacto hasta la entrega."

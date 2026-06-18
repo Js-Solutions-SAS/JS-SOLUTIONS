@@ -5,8 +5,10 @@
 - Abrir `landing` en `http://localhost:4321`.
 - Abrir `admin` en `http://localhost:3002` si se usa `start.sh`.
 - Abrir `portal` en `http://localhost:3001` si se usa `start.sh`.
-- Abrir `graphify-out/graph.html` cuando el grafo este generado.
+- Abrir `graphify-out/graph.html`.
+- Abrir `graphify-out/JS-SOLUTIONS-local-callflow.html`.
 - Tener una pestana con `graphify-out/GRAPH_REPORT.md` para mostrar nodos y conexiones.
+- Tener una pestana con `graphify-out/query-lead-flow.txt` para mostrar el flujo landing -> API -> portal/n8n -> cotizaciones.
 
 ## Tomas exactas
 
@@ -22,7 +24,7 @@
 | 8 | Portal brief/aprobacion | Formulario o aprobacion | "Menos ida y vuelta por chat." |
 | 9 | API/NestJS | Estructura `api/src/modules` | "El API es la fuente de verdad, no una automatizacion suelta." |
 | 10 | n8n workflows | Lista de workflows | "n8n orquesta cotizacion, contrato, pagos y callbacks." |
-| 11 | Graphify graph | Comunidades y nodos principales | "El sistema se puede auditar como arquitectura conectada." |
+| 11 | Graphify graph | 2037 nodos, 3768 edges, god nodes y query lead-flow | "El sistema se puede auditar como arquitectura conectada." |
 | 12 | CTA final | WhatsApp o contacto | "Agenda una auditoria del flujo comercial de tu PyME." |
 
 ## Checklist antes de grabar
@@ -30,7 +32,7 @@
 - No mostrar `.env`, tokens, credenciales ni datos reales de clientes.
 - Usar datos ficticios o cuentas demo.
 - Evitar promesas de ingresos si no hay caso medido.
-- Si Graphify sigue incompleto por iCloud dataless, decir "mapa tecnico en preparacion" y no mostrarlo como auditoria final.
+- Si mencionas Graphify, aclarar que el grafo actual es util para ventas pero parcial porque Gemini fallo en dos chunks semanticos por demanda alta.
 - Grabar en 16:9 para YouTube/LinkedIn y recortar a 9:16 para Reels/TikTok.
 
 ## Clips reutilizables
