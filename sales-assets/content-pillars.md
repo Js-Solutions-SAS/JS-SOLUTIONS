@@ -54,3 +54,18 @@
 | 8 | Post autoridad | Graphify | "Convertimos nuestro repo en un mapa para vender y auditar mejor." |
 | 9 | Reel/Short | Nichos PyME | "Odontologias, esteticas e inmobiliarias necesitan el mismo problema resuelto diferente." |
 | 10 | CTA directo | Auditoria | "Te decimos en 20 minutos donde se pierden tus leads." |
+
+## Fuente tecnica disponible
+
+- `graphify-out/GRAPH_REPORT.md`: mapa tecnico con 2037 nodos y 3768 edges.
+- `graphify-out/query-lead-flow.txt`: prueba narrativa para explicar el flujo desde landing hasta API, portal, n8n y cotizaciones.
+- `graphify-out/JS-SOLUTIONS-local-callflow.html`: recurso visual para explicar arquitectura sin entrar al codigo.
+
+## Piezas nuevas a partir de Graphify
+
+| Formato | Tema | Gancho |
+| --- | --- | --- |
+| Reel/Short | Repo como prueba de venta | "No es una promesa: nuestro sistema ya tiene grafo tecnico." |
+| Carrusel | Landing -> API -> portal -> n8n | "Asi se ve un lead cuando no queda perdido en WhatsApp." |
+| Demo corta | Graphify callflow | "La arquitectura tambien vende cuando sabes explicarla." |
+| Post tecnico | God nodes del sistema | "Las abstracciones que sostienen una operacion comercial digital." |

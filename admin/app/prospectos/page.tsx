@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Search, MapPin, Send, Save, FileText, CheckCircle2, MessageSquare, AlertTriangle } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Search, MapPin, Save, FileText, CheckCircle2, MessageSquare, AlertTriangle } from "lucide-react";
 import { getProspects, updateProspectStatus, updateProspectNotes, searchAndImportProspects, type Prospect } from "./actions";
 
 const VERTICALS = [
@@ -40,11 +40,12 @@ export default function ProspectosPage() {
   // Editable notes state (keyed by placeId)
   const [notesState, setNotesState] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    loadProspects();
+  const showNotice = useCallback((type: "success" | "error", text: string) => {
+    setNotification({ type, text });
+    setTimeout(() => setNotification(null), 4000);
   }, []);
 
-  const loadProspects = async () => {
+  const loadProspects = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getProspects();
@@ -60,12 +61,11 @@ export default function ProspectosPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showNotice]);
 
-  const showNotice = (type: "success" | "error", text: string) => {
-    setNotification({ type, text });
-    setTimeout(() => setNotification(null), 4000);
-  };
+  useEffect(() => {
+    loadProspects();
+  }, [loadProspects]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -279,7 +279,6 @@ export default function ProspectosPage() {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {filteredProspects.map((p) => {
-                    const statusConfig = STATUSES.find((s) => s.value === p.status) || STATUSES[0];
                     return (
                       <tr key={p.placeId} className="group hover:bg-white/[0.01]">
                         <td className="py-4 pr-4">
