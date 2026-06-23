@@ -15,7 +15,6 @@ import {
   RefreshCw,
   Save,
   Search,
-  Users,
 } from "lucide-react";
 import { getProspects, importLatestOsmProspects, searchOsmProspects, updateProspectStatus, updateProspectNotes, type Prospect } from "./actions";
 
@@ -59,6 +58,8 @@ export default function ProspectosPage() {
   const [filterVertical, setFilterVertical] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCity, setFilterCity] = useState("all");
+  const [filterContact, setFilterContact] = useState("all");
+  const [filterWebsite, setFilterWebsite] = useState("all");
 
   // Notifications
   const [notification, setNotification] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -164,7 +165,20 @@ export default function ProspectosPage() {
     const matchesVert = filterVertical === "all" || p.vertical === filterVertical;
     const matchesStat = filterStatus === "all" || p.status === filterStatus;
     const matchesCity = filterCity === "all" || p.city === filterCity;
-    return matchesVert && matchesStat && matchesCity;
+    const hasPhone = Boolean(p.phone);
+    const hasEmail = Boolean(p.email);
+    const hasWebsite = Boolean(p.website);
+    const matchesContact =
+      filterContact === "all" ||
+      (filterContact === "whatsapp" && hasPhone) ||
+      (filterContact === "email" && hasEmail) ||
+      (filterContact === "both" && hasPhone && hasEmail) ||
+      (filterContact === "none" && !hasPhone && !hasEmail);
+    const matchesWebsite =
+      filterWebsite === "all" ||
+      (filterWebsite === "no_website" && !hasWebsite) ||
+      (filterWebsite === "has_website" && hasWebsite);
+    return matchesVert && matchesStat && matchesCity && matchesContact && matchesWebsite;
   });
 
   const getWhatsAppLink = (p: Prospect) => {
@@ -178,18 +192,20 @@ export default function ProspectosPage() {
     new Set(prospects.map((p) => p.city).filter((city): city is string => Boolean(city)))
   ).sort((a, b) => a.localeCompare(b));
 
-  const contactedCount = prospects.filter((p) => p.status === "contactado").length;
   const noWebsiteCount = prospects.filter((p) => !p.website).length;
+  const hasWebsiteCount = prospects.filter((p) => p.website).length;
   const whatsappReadyCount = prospects.filter((p) => p.phone).length;
-  const interestedCount = prospects.filter((p) => p.status === "interesado").length;
+  const emailReadyCount = prospects.filter((p) => p.email).length;
+  const multiChannelCount = prospects.filter((p) => p.phone && p.email).length;
   const avgScore = prospects.length
     ? Math.round(prospects.reduce((sum, p) => sum + Number(p.leadScore || 0), 0) / prospects.length)
     : 0;
   const metricCards = [
     { label: "Prospectos", value: prospects.length, detail: "cargados en la base", icon: Database },
-    { label: "WhatsApp", value: whatsappReadyCount, detail: "con teléfono disponible", icon: MessageSquare },
-    { label: "Sin web", value: noWebsiteCount, detail: "oportunidad prioritaria", icon: Globe2 },
-    { label: "Interesados", value: interestedCount, detail: "seguimiento comercial", icon: Users },
+    { label: "Sin web", value: noWebsiteCount, detail: "oferta: landing + WhatsApp", icon: Globe2 },
+    { label: "Con web", value: hasWebsiteCount, detail: "oferta: auditoría y mejora", icon: ExternalLink },
+    { label: "WhatsApp", value: whatsappReadyCount, detail: "contacto directo disponible", icon: MessageSquare },
+    { label: "Email", value: emailReadyCount, detail: "campaña de correo posible", icon: Mail },
   ];
 
   return (
@@ -215,8 +231,8 @@ export default function ProspectosPage() {
               <div className="mt-1 text-2xl font-black text-white">{avgScore}</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/35 px-4 py-3">
-              <div className="text-xs text-brand-off-white/52">Contactados</div>
-              <div className="mt-1 text-2xl font-black text-white">{contactedCount}</div>
+              <div className="text-xs text-brand-off-white/52">Multicanal</div>
+              <div className="mt-1 text-2xl font-black text-white">{multiChannelCount}</div>
             </div>
           </div>
         </div>
@@ -340,6 +356,27 @@ export default function ProspectosPage() {
         })}
       </div>
 
+      <section className="grid gap-3 lg:grid-cols-3">
+        <div className="rounded-xl border border-rose-300/15 bg-rose-300/10 p-4">
+          <div className="text-sm font-bold text-white">Sin web: {noWebsiteCount}</div>
+          <p className="mt-1 text-xs leading-5 text-brand-off-white/58">
+            Oferta principal: landing profesional, WhatsApp visible, formulario/cotizador y seguimiento básico.
+          </p>
+        </div>
+        <div className="rounded-xl border border-brand-gold/15 bg-brand-gold/10 p-4">
+          <div className="text-sm font-bold text-white">Con web: {hasWebsiteCount}</div>
+          <p className="mt-1 text-xs leading-5 text-brand-off-white/58">
+            Oferta principal: auditoría rápida, mejora de conversión, SEO local, velocidad, WhatsApp y automatización.
+          </p>
+        </div>
+        <div className="rounded-xl border border-emerald-300/15 bg-emerald-300/10 p-4">
+          <div className="text-sm font-bold text-white">Canales: {whatsappReadyCount} WhatsApp / {emailReadyCount} email</div>
+          <p className="mt-1 text-xs leading-5 text-brand-off-white/58">
+            WhatsApp sirve para contacto directo; email sirve para enviar diagnóstico, video corto o propuesta inicial.
+          </p>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-white/10 bg-brand-charcoal/72 p-4 shadow-[0_12px_44px_rgba(0,0,0,0.22)]">
         <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
@@ -355,7 +392,7 @@ export default function ProspectosPage() {
             </p>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[560px]">
+          <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[880px] xl:grid-cols-5">
             <select
               value={filterCity}
               onChange={(e) => setFilterCity(e.target.value)}
@@ -393,6 +430,28 @@ export default function ProspectosPage() {
                   {s.label}
                 </option>
               ))}
+            </select>
+
+            <select
+              value={filterContact}
+              onChange={(e) => setFilterContact(e.target.value)}
+              className="min-h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-xs text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+            >
+              <option value="all">Todos los canales</option>
+              <option value="whatsapp">Con WhatsApp</option>
+              <option value="email">Con email</option>
+              <option value="both">WhatsApp + email</option>
+              <option value="none">Sin contacto</option>
+            </select>
+
+            <select
+              value={filterWebsite}
+              onChange={(e) => setFilterWebsite(e.target.value)}
+              className="min-h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-xs text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+            >
+              <option value="all">Todas las webs</option>
+              <option value="no_website">Sin web</option>
+              <option value="has_website">Con web</option>
             </select>
           </div>
         </div>

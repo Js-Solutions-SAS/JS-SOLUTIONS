@@ -97,15 +97,15 @@ export function AdminShell({ children }: AdminShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-brand-black text-brand-off-white">
+    <div className="h-screen overflow-hidden bg-brand-black text-brand-off-white">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute left-1/2 top-0 h-[420px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-gold/10 blur-[120px]" />
       </div>
 
-      <div className="relative flex min-h-screen">
+      <div className="relative flex h-screen min-h-0">
         <aside
           className={cn(
-            "hidden border-r border-white/10 bg-brand-charcoal/95 backdrop-blur md:flex md:flex-col md:transition-all",
+            "hidden h-screen shrink-0 border-r border-white/10 bg-brand-charcoal/95 backdrop-blur md:sticky md:top-0 md:flex md:flex-col md:transition-all",
             collapsed ? "md:w-20" : "md:w-72",
           )}
         >
@@ -136,7 +136,7 @@ export function AdminShell({ children }: AdminShellProps) {
             </Button>
           </div>
 
-          <nav className="flex-1 space-y-1 p-3">
+          <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -165,7 +165,7 @@ export function AdminShell({ children }: AdminShellProps) {
           </div>
         </aside>
 
-        <main className="flex-1">
+        <main className="h-screen min-w-0 flex-1 overflow-y-auto">
           <header className="sticky top-0 z-20 border-b border-white/10 bg-brand-black/80 backdrop-blur">
             <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-8">
               <div className="flex items-center gap-2 md:hidden">
