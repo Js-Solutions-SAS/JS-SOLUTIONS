@@ -1,15 +1,18 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Search, MapPin, Save, FileText, CheckCircle2, MessageSquare, AlertTriangle } from "lucide-react";
-import { getProspects, updateProspectStatus, updateProspectNotes, searchAndImportProspects, type Prospect } from "./actions";
+import { Search, MapPin, Save, FileText, CheckCircle2, MessageSquare, AlertTriangle, RefreshCw } from "lucide-react";
+import { getProspects, importLatestOsmProspects, updateProspectStatus, updateProspectNotes, type Prospect } from "./actions";
 
 const VERTICALS = [
-  { value: "restaurantes", label: "Restaurantes" },
+  { value: "odontologias", label: "Odontologías" },
+  { value: "oftalmologicas", label: "Oftalmológicas" },
+  { value: "centros_estetica", label: "Centros de estética" },
+  { value: "inmobiliarias", label: "Inmobiliarias" },
+  { value: "servicios_tecnicos", label: "Servicios técnicos" },
+  { value: "gimnasios", label: "Gimnasios" },
   { value: "veterinarias", label: "Veterinarias" },
-  { value: "oftalmologia", label: "Oftalmología" },
-  { value: "tiendas-celulares", label: "Tiendas de Celulares" },
-  { value: "marmolerias", label: "Marmolerías" },
+  { value: "abogados", label: "Abogados" },
 ];
 
 const STATUSES = [
@@ -22,17 +25,12 @@ const STATUSES = [
 export default function ProspectosPage() {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-
-  // Form State
-  const [vertical, setVertical] = useState("restaurantes");
-  const [city, setCity] = useState("Bogotá, Colombia");
-  const [query, setQuery] = useState("restaurantes");
-  const [limit, setLimit] = useState(20);
+  const [importLoading, setImportLoading] = useState(false);
 
   // Filters State
   const [filterVertical, setFilterVertical] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterCity, setFilterCity] = useState("all");
 
   // Notifications
   const [notification, setNotification] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -67,21 +65,20 @@ export default function ProspectosPage() {
     loadProspects();
   }, [loadProspects]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSearchLoading(true);
+  const handleImport = async () => {
+    setImportLoading(true);
     try {
-      const res = await searchAndImportProspects(vertical, city, query, limit);
+      const res = await importLatestOsmProspects();
       if (res.success) {
-        showNotice("success", `Escaneo finalizado. Se importaron ${res.count} nuevos prospectos.`);
-        loadProspects();
+        showNotice("success", `Base OSM sincronizada. ${res.count} nuevos, ${res.total} prospectos en total.`);
+        await loadProspects();
       } else {
-        showNotice("error", res.message || "Error al buscar prospectos.");
+        showNotice("error", res.message || "No se pudo importar la base OSM.");
       }
     } catch {
-      showNotice("error", "Error inesperado al conectar con el buscador.");
+      showNotice("error", "Error inesperado al importar la base OSM.");
     } finally {
-      setSearchLoading(false);
+      setImportLoading(false);
     }
   };
 
@@ -114,14 +111,24 @@ export default function ProspectosPage() {
   const filteredProspects = prospects.filter((p) => {
     const matchesVert = filterVertical === "all" || p.vertical === filterVertical;
     const matchesStat = filterStatus === "all" || p.status === filterStatus;
-    return matchesVert && matchesStat;
+    const matchesCity = filterCity === "all" || p.city === filterCity;
+    return matchesVert && matchesStat && matchesCity;
   });
 
   const getWhatsAppLink = (p: Prospect) => {
-    const text = `Hola, vi tu negocio ${p.name} en Google Maps. Notamos que no tienes página web y estamos ofreciendo el diseño de landings comerciales de alta conversión para ${p.vertical} por tiempo limitado con 40% de descuento. ¿Te interesaría ver un ejemplo?`;
+    const offer = p.recommendedOffer || "landing profesional con WhatsApp y seguimiento comercial";
+    const text = `Hola, vi ${p.name} en un directorio publico local. En JS Solutions estamos ayudando a negocios de ${p.category || p.vertical} a convertir mas contactos de WhatsApp con ${offer}. Te puedo compartir una revision rapida de tu presencia digital y un ejemplo aplicable a tu negocio?`;
     const cleanPhone = p.phone.replace(/[^\d]/g, "");
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
   };
+
+  const availableCities = Array.from(
+    new Set(prospects.map((p) => p.city).filter((city): city is string => Boolean(city)))
+  ).sort((a, b) => a.localeCompare(b));
+
+  const contactedCount = prospects.filter((p) => p.status === "contactado").length;
+  const noWebsiteCount = prospects.filter((p) => !p.website).length;
+  const whatsappReadyCount = prospects.filter((p) => p.phone).length;
 
   return (
     <div className="space-y-6">
@@ -129,10 +136,10 @@ export default function ProspectosPage() {
       <div>
         <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
           <Search className="h-8 w-8 text-brand-gold" />
-          Prospección de Clientes (Google Maps)
+          Prospección de Clientes (OSM)
         </h1>
         <p className="mt-1 text-sm text-brand-off-white/70">
-          Escanea negocios locales directamente desde Google Places API, identifica quiénes no tienen web y contáctalos por WhatsApp con ofertas personalizadas.
+          Usa la base generada desde OpenStreetMap/Overpass, identifica negocios con oportunidad digital y contáctalos por WhatsApp.
         </p>
       </div>
 
@@ -150,75 +157,44 @@ export default function ProspectosPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[0.8fr_2.2fr]">
-        {/* Search Panel */}
+        {/* Import Panel */}
         <section className="rounded-2xl border border-white/10 bg-brand-charcoal/45 p-6 space-y-4">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <MapPin className="h-5 w-5 text-brand-gold" />
-            Escanear Zona
+            Base Mapeada
           </h2>
-          <form onSubmit={handleSearch} className="space-y-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-brand-off-white/70">Rubro / Vertical</label>
-              <select
-                value={vertical}
-                onChange={(e) => {
-                  setVertical(e.target.value);
-                  setQuery(e.target.value);
-                }}
-                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
-              >
-                {VERTICALS.map((v) => (
-                  <option key={v.value} value={v.value} className="bg-brand-charcoal">
-                    {v.label}
-                  </option>
-                ))}
-              </select>
+          <div className="grid gap-3 text-sm text-brand-off-white/70">
+            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+              <div className="text-2xl font-black text-white">{prospects.length}</div>
+              <div>prospectos cargados desde OSM</div>
             </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-brand-off-white/70">Ciudad / Zona</label>
-              <input
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
-                placeholder="Ej. Cali, Colombia"
-                required
-              />
+            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+              <div className="text-2xl font-black text-white">{whatsappReadyCount}</div>
+              <div>con teléfono para WhatsApp</div>
             </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-brand-off-white/70">Término de Búsqueda</label>
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
-                placeholder="Ej. restaurantes"
-                required
-              />
+            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+              <div className="text-2xl font-black text-white">{noWebsiteCount}</div>
+              <div>sin sitio web registrado</div>
             </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-brand-off-white/70">Límite de Prospectos</label>
-              <input
-                type="number"
-                value={limit}
-                onChange={(e) => setLimit(Number(e.target.value))}
-                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
-                min={1}
-                max={60}
-              />
+            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+              <div className="text-2xl font-black text-white">{contactedCount}</div>
+              <div>marcados como contactados</div>
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={searchLoading}
-              className="w-full inline-flex min-h-11 items-center justify-center rounded-xl bg-gold-gradient px-4 text-center text-sm font-black uppercase tracking-wide text-black transition-transform duration-200 hover:scale-[1.01] disabled:opacity-50"
-            >
-              {searchLoading ? "Escaneando Maps..." : "Iniciar Escaneo"}
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={handleImport}
+            disabled={importLoading}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gold-gradient px-4 text-center text-sm font-black uppercase tracking-wide text-black transition-transform duration-200 hover:scale-[1.01] disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${importLoading ? "animate-spin" : ""}`} />
+            {importLoading ? "Sincronizando..." : "Importar JSON OSM"}
+          </button>
+
+          <p className="text-xs leading-relaxed text-brand-off-white/55">
+            La web carga el seed versionado y, en local, toma el archivo más reciente de prospecting/output/osm-leads-*.json. No requiere API key ni tarjeta de Google Maps.
+          </p>
         </section>
 
         {/* Results Panel */}
@@ -230,7 +206,20 @@ export default function ProspectosPage() {
             </h2>
 
             {/* Filters */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <select
+                value={filterCity}
+                onChange={(e) => setFilterCity(e.target.value)}
+                className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-xs text-white focus:outline-none"
+              >
+                <option value="all">Todas las ciudades</option>
+                {availableCities.map((city) => (
+                  <option key={city} value={city} className="bg-brand-charcoal">
+                    {city}
+                  </option>
+                ))}
+              </select>
+
               <select
                 value={filterVertical}
                 onChange={(e) => setFilterVertical(e.target.value)}
@@ -263,16 +252,18 @@ export default function ProspectosPage() {
             <div className="py-20 text-center text-brand-off-white/50">Cargando base de datos...</div>
           ) : filteredProspects.length === 0 ? (
             <div className="py-20 text-center border border-dashed border-white/10 rounded-xl text-brand-off-white/50">
-              No se encontraron prospectos en la base. Inicia una búsqueda a la izquierda.
+              No se encontraron prospectos con estos filtros. Importa el JSON OSM o cambia los filtros.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-sm text-brand-off-white">
                 <thead>
                   <tr className="border-b border-white/10 pb-3 text-xs uppercase tracking-widest text-brand-off-white/50">
-                    <th className="py-3 pr-4">Nombre / Maps</th>
-                    <th className="py-3 px-4">Teléfono</th>
+                    <th className="py-3 pr-4">Negocio / Mapa</th>
+                    <th className="py-3 px-4">Ciudad</th>
+                    <th className="py-3 px-4">Contacto</th>
                     <th className="py-3 px-4">Sitio Web</th>
+                    <th className="py-3 px-4">Score</th>
                     <th className="py-3 px-4">Estado</th>
                     <th className="py-3 pl-4">Notas & Outreach</th>
                   </tr>
@@ -291,8 +282,13 @@ export default function ProspectosPage() {
                             {p.name}
                           </a>
                           <div className="text-xs text-brand-off-white/50 mt-1">{p.address}</div>
+                          <div className="mt-1 text-xs text-brand-off-white/40">{p.category}</div>
                         </td>
-                        <td className="py-4 px-4 font-mono">{p.phone || "Sin teléfono"}</td>
+                        <td className="py-4 px-4">{p.city || "Sin ciudad"}</td>
+                        <td className="py-4 px-4">
+                          <div className="font-mono">{p.phone || "Sin teléfono"}</div>
+                          {p.email && <div className="mt-1 text-xs text-brand-off-white/50">{p.email}</div>}
+                        </td>
                         <td className="py-4 px-4">
                           {p.website ? (
                             <a
@@ -308,6 +304,11 @@ export default function ProspectosPage() {
                               Ideal: Sin Web
                             </span>
                           )}
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="rounded-full border border-brand-gold/20 bg-brand-gold/10 px-2 py-0.5 text-xs font-bold text-brand-gold">
+                            {p.leadScore ?? "-"}
+                          </span>
                         </td>
                         <td className="py-4 px-4">
                           <select
