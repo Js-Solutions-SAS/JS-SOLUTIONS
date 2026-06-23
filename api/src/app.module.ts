@@ -10,6 +10,7 @@ import { ChangeRequestsModule } from './modules/change-requests/change-requests.
 import { DocumentsModule } from './modules/documents/documents.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { ProspectsModule } from './modules/prospects/prospects.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { RaidModule } from './modules/raid/raid.module';
 import { SharedModule } from './modules/shared/shared.module';
@@ -50,6 +51,7 @@ import { WorkflowEventsModule } from './workflow-events/workflow-events.module';
     ChannelsWhatsappModule,
     WebhooksModule,
     RaidModule,
+    ProspectsModule,
   ],
   providers: [
     {

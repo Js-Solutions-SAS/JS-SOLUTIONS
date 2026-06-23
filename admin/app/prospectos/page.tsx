@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Search, MapPin, Save, FileText, CheckCircle2, MessageSquare, AlertTriangle, RefreshCw } from "lucide-react";
-import { getProspects, importLatestOsmProspects, updateProspectStatus, updateProspectNotes, type Prospect } from "./actions";
+import { getProspects, importLatestOsmProspects, searchOsmProspects, updateProspectStatus, updateProspectNotes, type Prospect } from "./actions";
 
 const VERTICALS = [
   { value: "odontologias", label: "Odontologías" },
@@ -26,6 +26,11 @@ export default function ProspectosPage() {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [loading, setLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchCity, setSearchCity] = useState("Cali");
+  const [searchVertical, setSearchVertical] = useState("odontologias");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLimit, setSearchLimit] = useState(150);
 
   // Filters State
   const [filterVertical, setFilterVertical] = useState("all");
@@ -79,6 +84,30 @@ export default function ProspectosPage() {
       showNotice("error", "Error inesperado al importar la base OSM.");
     } finally {
       setImportLoading(false);
+    }
+  };
+
+  const handleOsmSearch = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSearchLoading(true);
+    try {
+      const res = await searchOsmProspects({
+        city: searchCity,
+        vertical: searchVertical,
+        query: searchQuery.trim() || undefined,
+        limit: searchLimit,
+      });
+
+      if (res.success) {
+        showNotice("success", `Overpass sincronizado. ${res.count} nuevos prospectos, ${res.total} en DB.`);
+        await loadProspects();
+      } else {
+        showNotice("error", res.message || "No se pudo consultar Overpass.");
+      }
+    } catch {
+      showNotice("error", "Error inesperado al consultar Overpass.");
+    } finally {
+      setSearchLoading(false);
     }
   };
 
@@ -157,12 +186,74 @@ export default function ProspectosPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[0.8fr_2.2fr]">
-        {/* Import Panel */}
+        {/* Search Panel */}
         <section className="rounded-2xl border border-white/10 bg-brand-charcoal/45 p-6 space-y-4">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <MapPin className="h-5 w-5 text-brand-gold" />
-            Base Mapeada
+            Buscar y Guardar
           </h2>
+
+          <form onSubmit={handleOsmSearch} className="space-y-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-brand-off-white/70">Ciudad</label>
+              <input
+                type="text"
+                value={searchCity}
+                onChange={(e) => setSearchCity(e.target.value)}
+                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
+                placeholder="Cali, Medellin, Pereira, Bogota"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-brand-off-white/70">Nicho sugerido</label>
+              <select
+                value={searchVertical}
+                onChange={(e) => setSearchVertical(e.target.value)}
+                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
+              >
+                {VERTICALS.map((v) => (
+                  <option key={v.value} value={v.value} className="bg-brand-charcoal">
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-brand-off-white/70">Búsqueda libre</label>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
+                placeholder="Ej. ortodoncia, spa, optica"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-brand-off-white/70">Máximo por búsqueda</label>
+              <input
+                type="number"
+                value={searchLimit}
+                onChange={(e) => setSearchLimit(Number(e.target.value))}
+                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
+                min={1}
+                max={500}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={searchLoading}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gold-gradient px-4 text-center text-sm font-black uppercase tracking-wide text-black transition-transform duration-200 hover:scale-[1.01] disabled:opacity-50"
+            >
+              <Search className="h-4 w-4" />
+              {searchLoading ? "Buscando..." : "Buscar en Overpass"}
+            </button>
+          </form>
+
           <div className="grid gap-3 text-sm text-brand-off-white/70">
             <div className="rounded-xl border border-white/10 bg-black/25 p-4">
               <div className="text-2xl font-black text-white">{prospects.length}</div>
@@ -193,7 +284,7 @@ export default function ProspectosPage() {
           </button>
 
           <p className="text-xs leading-relaxed text-brand-off-white/55">
-            La web carga el seed versionado y, en local, toma el archivo más reciente de prospecting/output/osm-leads-*.json. No requiere API key ni tarjeta de Google Maps.
+            La búsqueda web guarda nuevos prospectos en la DB del API. El JSON local queda solo como fallback cuando API_BASE_URL no está configurado.
           </p>
         </section>
 

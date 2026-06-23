@@ -2,6 +2,13 @@
 
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  buildApiUrl,
+  generateCorrelationId,
+  getJsonWithTimeout,
+  postJsonWithTimeout,
+  resolveApiInternalToken,
+} from "@/lib/network";
 import osmSeed from "../../data/prospects/osm-leads-seed.json";
 
 export interface Prospect {
@@ -53,6 +60,106 @@ interface OsmLead {
   outreachStatus: string;
   nextActionAt: string;
   optOut: boolean;
+}
+
+interface ApiProspect {
+  id: string;
+  source: "osm" | "google" | "manual";
+  osmId: string | null;
+  osmType: string | null;
+  businessName: string;
+  category: string | null;
+  vertical: string;
+  address: string | null;
+  phone: string | null;
+  website: string | null;
+  email: string | null;
+  lat: number | null;
+  lon: number | null;
+  city: string;
+  mapsUrl: string | null;
+  sourceQuery: string | null;
+  leadScore: number;
+  recommendedOffer: string | null;
+  status: string;
+  notes: string | null;
+}
+
+function normalizeApiProspect(item: ApiProspect): Prospect {
+  const osmType = item.osmType || "unknown";
+  const osmId = item.osmId || item.id;
+
+  return {
+    status: item.status || "nuevo",
+    vertical: item.vertical,
+    name: item.businessName,
+    category: item.category || item.vertical,
+    address: item.address || "",
+    phone: item.phone || "",
+    website: item.website || "",
+    rating: "",
+    mapsUrl: item.mapsUrl || "",
+    placeId: item.id || `osm:${osmType}:${osmId}`,
+    types: item.sourceQuery || "",
+    notes: item.notes || "",
+    city: item.city,
+    email: item.email || "",
+    leadScore: item.leadScore,
+    recommendedOffer: item.recommendedOffer || "",
+    source: item.source,
+    osmId: item.osmId || "",
+    osmType: item.osmType || "",
+    lat: item.lat || undefined,
+    lon: item.lon || undefined,
+    sourceQuery: item.sourceQuery || "",
+  };
+}
+
+function extractDataArray(payload: Record<string, unknown>): ApiProspect[] {
+  const data = payload.data;
+  if (Array.isArray(data)) return data as ApiProspect[];
+  return [];
+}
+
+async function fetchApiProspects(): Promise<Prospect[] | null> {
+  const apiUrl = buildApiUrl("/api/v1/admin/prospects?limit=1000");
+  if (!apiUrl) return null;
+
+  const response = await getJsonWithTimeout(apiUrl, {
+    correlationId: generateCorrelationId("prospects-list"),
+    secretToken: resolveApiInternalToken(),
+    timeoutMs: 20000,
+  });
+
+  if (!response.ok) return null;
+  return extractDataArray(response.data).map(normalizeApiProspect);
+}
+
+async function patchApiProspect(
+  placeId: string,
+  body: Record<string, unknown>,
+): Promise<boolean> {
+  const apiUrl = buildApiUrl(`/api/v1/admin/prospects/${placeId}`);
+  if (!apiUrl) return false;
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Correlation-Id": generateCorrelationId("prospects-update"),
+        ...(resolveApiInternalToken()
+          ? { Authorization: `Bearer ${resolveApiInternalToken()}` }
+          : {}),
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 function slugifyVertical(value: string): string {
@@ -152,6 +259,9 @@ async function ensureDbExists(): Promise<Prospect[]> {
 }
 
 export async function getProspects(): Promise<Prospect[]> {
+  const apiProspects = await fetchApiProspects();
+  if (apiProspects) return apiProspects;
+
   const prospects = await ensureDbExists();
   if (prospects.length > 0) return prospects;
 
@@ -159,6 +269,59 @@ export async function getProspects(): Promise<Prospect[]> {
   if (!imported.success) return prospects;
 
   return ensureDbExists();
+}
+
+export async function searchOsmProspects(input: {
+  city: string;
+  vertical: string;
+  query?: string;
+  limit?: number;
+}): Promise<{
+  success: boolean;
+  count: number;
+  total: number;
+  message?: string;
+}> {
+  const apiUrl = buildApiUrl("/api/v1/admin/prospects/search-osm");
+  if (!apiUrl) {
+    return {
+      success: false,
+      count: 0,
+      total: 0,
+      message: "Configura API_BASE_URL y API_INTERNAL_TOKEN para buscar desde Overpass y guardar en la DB.",
+    };
+  }
+
+  const response = await postJsonWithTimeout(apiUrl, {
+    correlationId: generateCorrelationId("prospects-osm"),
+    secretToken: resolveApiInternalToken(),
+    timeoutMs: 60000,
+    body: {
+      city: input.city,
+      vertical: input.vertical,
+      query: input.query,
+      limit: input.limit || 100,
+    },
+  });
+
+  if (!response.ok) {
+    return {
+      success: false,
+      count: 0,
+      total: 0,
+      message: response.errorMessage || "No fue posible buscar prospectos en Overpass.",
+    };
+  }
+
+  const data = response.data.data as
+    | { imported?: number; updated?: number; total?: number }
+    | undefined;
+
+  return {
+    success: true,
+    count: Number(data?.imported || 0),
+    total: Number(data?.total || 0),
+  };
 }
 
 export async function importLatestOsmProspects(): Promise<{
@@ -206,6 +369,8 @@ export async function importLatestOsmProspects(): Promise<{
 }
 
 export async function updateProspectStatus(placeId: string, status: string): Promise<boolean> {
+  if (await patchApiProspect(placeId, { status })) return true;
+
   const prospects = await ensureDbExists();
   const index = prospects.findIndex((p) => p.placeId === placeId);
   if (index === -1) return false;
@@ -216,6 +381,8 @@ export async function updateProspectStatus(placeId: string, status: string): Pro
 }
 
 export async function updateProspectNotes(placeId: string, notes: string): Promise<boolean> {
+  if (await patchApiProspect(placeId, { notes })) return true;
+
   const prospects = await ensureDbExists();
   const index = prospects.findIndex((p) => p.placeId === placeId);
   if (index === -1) return false;
