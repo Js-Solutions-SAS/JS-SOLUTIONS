@@ -35,6 +35,19 @@ Operaciones conectadas a API:
 - previsualizar/enviar cotizacion: `POST /api/v1/quotes/generate`
 - generar contrato: `POST /api/v1/contracts/generate`
 
+## Prospeccion
+
+`/prospectos` usa la API interna como fuente de verdad para busquedas nuevas y persistencia en Postgres.
+
+Operaciones conectadas a API:
+
+- listado con filtros: `GET /api/v1/admin/prospects`
+- opciones de ciudad/rubro/filtros: `GET /api/v1/admin/prospects/options`
+- busqueda real Overpass + guardado: `POST /api/v1/admin/prospects/search-osm`
+- estado/notas: `PATCH /api/v1/admin/prospects/:id`
+
+El JSON local queda solo como respaldo operativo/importacion inicial cuando el admin no tiene `API_BASE_URL` configurado; no reemplaza la base real.
+
 ## Performance budgets y alertas
 
 - Presupuestos por ruta: `admin/lib/performance/budgets.ts`.
@@ -72,6 +85,10 @@ Cobertura minima recomendada:
 
 ```env
 # Integracion interna admin -> api
+# Local con ./start.sh:
+# API_BASE_URL=http://localhost:3003
+# Produccion/Vercel:
+# API_BASE_URL=https://api.jssolutions.com.co
 API_BASE_URL=https://api.jssolutions.com.co
 API_INTERNAL_TOKEN=<shared_secret>
 API_REQUEST_TIMEOUT_MS=15000

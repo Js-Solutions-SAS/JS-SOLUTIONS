@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 
 import { okResponse } from '../shared/contracts/api-response';
 import { ListProspectsDto } from './dto/list-prospects.dto';
@@ -149,6 +149,27 @@ const VERTICALS: Record<string, VerticalConfig> = {
   },
 };
 
+const PROSPECT_STATUSES = [
+  { value: 'nuevo', label: 'Nuevo' },
+  { value: 'contactado', label: 'Contactado' },
+  { value: 'interesado', label: 'Interesado' },
+  { value: 'descartado', label: 'Descartado' },
+];
+
+const CONTACT_FILTERS = [
+  { value: 'all', label: 'Todos los canales' },
+  { value: 'whatsapp', label: 'Con WhatsApp' },
+  { value: 'email', label: 'Con email' },
+  { value: 'both', label: 'WhatsApp + email' },
+  { value: 'none', label: 'Sin contacto' },
+];
+
+const WEBSITE_FILTERS = [
+  { value: 'all', label: 'Todas las webs' },
+  { value: 'no_website', label: 'Sin web' },
+  { value: 'has_website', label: 'Con web' },
+];
+
 @Injectable()
 export class ProspectsService {
   constructor(
@@ -158,19 +179,78 @@ export class ProspectsService {
   ) {}
 
   async list(filters: ListProspectsDto, correlationId: string) {
-    const where: FindOptionsWhere<ProspectEntity> = {};
-    if (filters.city) where.city = filters.city;
-    if (filters.vertical) where.vertical = filters.vertical;
-    if (filters.status) where.status = filters.status;
+    const limit = Math.min(Math.max(filters.limit || 500, 1), 1000);
+    const query = this.prospectsRepository.createQueryBuilder('prospect');
 
-    const prospects = await this.prospectsRepository.find({
-      where,
-      order: { leadScore: 'DESC', updatedAt: 'DESC' },
-      take: filters.limit || 500,
-    });
+    if (filters.city) {
+      query.andWhere('prospect.city = :city', { city: filters.city });
+    }
+
+    if (filters.vertical) {
+      query.andWhere('prospect.vertical = :vertical', {
+        vertical: filters.vertical,
+      });
+    }
+
+    if (filters.status) {
+      query.andWhere('prospect.status = :status', { status: filters.status });
+    }
+
+    this.applyContactFilter(query, filters.contact);
+    this.applyWebsiteFilter(query, filters.website);
+
+    const search = String(filters.q || '').trim();
+    if (search) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('prospect.business_name ILIKE :search', {
+            search: `%${search}%`,
+          })
+            .orWhere('prospect.category ILIKE :search', {
+              search: `%${search}%`,
+            })
+            .orWhere('prospect.address ILIKE :search', {
+              search: `%${search}%`,
+            })
+            .orWhere('prospect.phone ILIKE :search', { search: `%${search}%` })
+            .orWhere('prospect.email ILIKE :search', { search: `%${search}%` })
+            .orWhere('prospect.website ILIKE :search', {
+              search: `%${search}%`,
+            })
+            .orWhere('prospect.source_query ILIKE :search', {
+              search: `%${search}%`,
+            });
+        }),
+      );
+    }
+
+    const prospects = await query
+      .orderBy('prospect.lead_score', 'DESC')
+      .addOrderBy('prospect.updated_at', 'DESC')
+      .take(limit)
+      .getMany();
 
     return okResponse(
       prospects.map((prospect) => this.serialize(prospect)),
+      correlationId,
+    );
+  }
+
+  options(correlationId: string) {
+    return okResponse(
+      {
+        cities: Object.values(CITIES).map((city) => ({
+          value: city.label,
+          label: city.label,
+        })),
+        verticals: Object.entries(VERTICALS).map(([value, vertical]) => ({
+          value,
+          label: vertical.label,
+        })),
+        statuses: PROSPECT_STATUSES,
+        contacts: CONTACT_FILTERS,
+        websites: WEBSITE_FILTERS,
+      },
       correlationId,
     );
   }
@@ -464,6 +544,49 @@ export class ProspectsService {
       this.configService.get<string>('OVERPASS_TIMEOUT_SECONDS', '25'),
     );
     return Number.isFinite(value) && value > 0 ? value : 25;
+  }
+
+  private applyContactFilter(
+    query: SelectQueryBuilder<ProspectEntity>,
+    contact?: string,
+  ): void {
+    const hasPhone = "NULLIF(BTRIM(prospect.phone), '') IS NOT NULL";
+    const hasEmail = "NULLIF(BTRIM(prospect.email), '') IS NOT NULL";
+
+    if (contact === 'whatsapp') {
+      query.andWhere(hasPhone);
+      return;
+    }
+
+    if (contact === 'email') {
+      query.andWhere(hasEmail);
+      return;
+    }
+
+    if (contact === 'both') {
+      query.andWhere(hasPhone).andWhere(hasEmail);
+      return;
+    }
+
+    if (contact === 'none') {
+      query.andWhere(`NOT (${hasPhone})`).andWhere(`NOT (${hasEmail})`);
+    }
+  }
+
+  private applyWebsiteFilter(
+    query: SelectQueryBuilder<ProspectEntity>,
+    website?: string,
+  ): void {
+    const hasWebsite = "NULLIF(BTRIM(prospect.website), '') IS NOT NULL";
+
+    if (website === 'no_website') {
+      query.andWhere(`NOT (${hasWebsite})`);
+      return;
+    }
+
+    if (website === 'has_website') {
+      query.andWhere(hasWebsite);
+    }
   }
 }
 

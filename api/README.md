@@ -48,6 +48,22 @@ Admin:
 - `GET /api/v1/admin/tickets`
 - `GET /api/v1/admin/finance`
 - `GET /api/v1/admin/raid`
+- `GET /api/v1/admin/prospects`
+- `GET /api/v1/admin/prospects/options`
+- `POST /api/v1/admin/prospects/search-osm`
+- `PATCH /api/v1/admin/prospects/:id`
+
+### Prospeccion OSM
+
+La API es la fuente de verdad para prospectos. `search-osm` consulta Overpass, normaliza, calcula score y hace upsert en Postgres por `source/osm_type/osm_id`.
+
+Filtros soportados en `GET /api/v1/admin/prospects`:
+
+- `city`, `vertical`, `status`
+- `contact=whatsapp|email|both|none`
+- `website=has_website|no_website`
+- `q=<texto libre>`
+- `limit` hasta `1000`
 
 ## Variables de entorno
 

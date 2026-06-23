@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -16,18 +16,18 @@ import {
   Save,
   Search,
 } from "lucide-react";
-import { getProspects, importLatestOsmProspects, searchOsmProspects, updateProspectStatus, updateProspectNotes, type Prospect } from "./actions";
-
-const VERTICALS = [
-  { value: "odontologias", label: "Odontologías" },
-  { value: "oftalmologicas", label: "Oftalmológicas" },
-  { value: "centros_estetica", label: "Centros de estética" },
-  { value: "inmobiliarias", label: "Inmobiliarias" },
-  { value: "servicios_tecnicos", label: "Servicios técnicos" },
-  { value: "gimnasios", label: "Gimnasios" },
-  { value: "veterinarias", label: "Veterinarias" },
-  { value: "abogados", label: "Abogados" },
-];
+import {
+  getProspectOptions,
+  getProspects,
+  importLatestOsmProspects,
+  searchOsmProspects,
+  updateProspectNotes,
+  updateProspectStatus,
+  type Prospect,
+  type ProspectFilters,
+  type ProspectOption,
+  type ProspectOptions,
+} from "./actions";
 
 const STATUSES = [
   { value: "nuevo", label: "Nuevo", tone: "border-sky-400/25 bg-sky-400/10 text-sky-200" },
@@ -36,16 +36,23 @@ const STATUSES = [
   { value: "descartado", label: "Descartado", tone: "border-zinc-500/30 bg-zinc-500/10 text-zinc-300" },
 ];
 
-function getVerticalLabel(value: string) {
-  return VERTICALS.find((vertical) => vertical.value === value)?.label || value;
-}
-
 function getStatusTone(value: string) {
   return STATUSES.find((status) => status.value === value)?.tone || STATUSES[0].tone;
 }
 
+function getOptionLabel(options: ProspectOption[], value: string) {
+  return options.find((option) => option.value === value)?.label || value;
+}
+
 export default function ProspectosPage() {
   const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [prospectOptions, setProspectOptions] = useState<ProspectOptions>({
+    cities: [],
+    verticals: [],
+    statuses: STATUSES.map(({ value, label }) => ({ value, label })),
+    contacts: [],
+    websites: [],
+  });
   const [loading, setLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -60,6 +67,7 @@ export default function ProspectosPage() {
   const [filterCity, setFilterCity] = useState("all");
   const [filterContact, setFilterContact] = useState("all");
   const [filterWebsite, setFilterWebsite] = useState("all");
+  const [filterSearch, setFilterSearch] = useState("");
 
   // Notifications
   const [notification, setNotification] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -72,10 +80,35 @@ export default function ProspectosPage() {
     setTimeout(() => setNotification(null), 4000);
   }, []);
 
+  const statusOptions = prospectOptions.statuses.length
+    ? prospectOptions.statuses
+    : STATUSES.map(({ value, label }) => ({ value, label }));
+  const contactOptions = prospectOptions.contacts.length
+    ? prospectOptions.contacts
+    : [{ value: "all", label: "Todos los canales" }];
+  const websiteOptions = prospectOptions.websites.length
+    ? prospectOptions.websites
+    : [{ value: "all", label: "Todas las webs" }];
+  const cityOptions = prospectOptions.cities;
+  const verticalOptions = prospectOptions.verticals;
+
+  const activeFilters = useMemo<ProspectFilters>(
+    () => ({
+      city: filterCity,
+      vertical: filterVertical,
+      status: filterStatus,
+      contact: filterContact,
+      website: filterWebsite,
+      q: filterSearch,
+      limit: 1000,
+    }),
+    [filterCity, filterContact, filterSearch, filterStatus, filterVertical, filterWebsite],
+  );
+
   const loadProspects = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getProspects();
+      const data = await getProspects(activeFilters);
       setProspects(data);
       // Initialize notes state
       const notesMap: Record<string, string> = {};
@@ -88,11 +121,23 @@ export default function ProspectosPage() {
     } finally {
       setLoading(false);
     }
+  }, [activeFilters, showNotice]);
+
+  useEffect(() => {
+    getProspectOptions()
+      .then(setProspectOptions)
+      .catch(() => {
+        showNotice("error", "No se pudieron cargar las opciones de prospección.");
+      });
   }, [showNotice]);
 
   useEffect(() => {
-    loadProspects();
-  }, [loadProspects]);
+    const timeout = window.setTimeout(() => {
+      loadProspects();
+    }, filterSearch.trim() ? 350 : 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [filterSearch, loadProspects]);
 
   const handleImport = async () => {
     setImportLoading(true);
@@ -123,7 +168,10 @@ export default function ProspectosPage() {
       });
 
       if (res.success) {
-        showNotice("success", `Overpass sincronizado. ${res.count} nuevos prospectos, ${res.total} en DB.`);
+        showNotice(
+          "success",
+          `Overpass sincronizado. ${res.searched || 0} encontrados, ${res.count} nuevos, ${res.updated || 0} actualizados, ${res.total} en DB.`,
+        );
         await loadProspects();
       } else {
         showNotice("error", res.message || "No se pudo consultar Overpass.");
@@ -161,25 +209,7 @@ export default function ProspectosPage() {
     }
   };
 
-  const filteredProspects = prospects.filter((p) => {
-    const matchesVert = filterVertical === "all" || p.vertical === filterVertical;
-    const matchesStat = filterStatus === "all" || p.status === filterStatus;
-    const matchesCity = filterCity === "all" || p.city === filterCity;
-    const hasPhone = Boolean(p.phone);
-    const hasEmail = Boolean(p.email);
-    const hasWebsite = Boolean(p.website);
-    const matchesContact =
-      filterContact === "all" ||
-      (filterContact === "whatsapp" && hasPhone) ||
-      (filterContact === "email" && hasEmail) ||
-      (filterContact === "both" && hasPhone && hasEmail) ||
-      (filterContact === "none" && !hasPhone && !hasEmail);
-    const matchesWebsite =
-      filterWebsite === "all" ||
-      (filterWebsite === "no_website" && !hasWebsite) ||
-      (filterWebsite === "has_website" && hasWebsite);
-    return matchesVert && matchesStat && matchesCity && matchesContact && matchesWebsite;
-  });
+  const filteredProspects = prospects;
 
   const getWhatsAppLink = (p: Prospect) => {
     const offer = p.recommendedOffer || "landing profesional con WhatsApp y seguimiento comercial";
@@ -187,10 +217,6 @@ export default function ProspectosPage() {
     const cleanPhone = p.phone.replace(/[^\d]/g, "");
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
   };
-
-  const availableCities = Array.from(
-    new Set(prospects.map((p) => p.city).filter((city): city is string => Boolean(city)))
-  ).sort((a, b) => a.localeCompare(b));
 
   const noWebsiteCount = prospects.filter((p) => !p.website).length;
   const hasWebsiteCount = prospects.filter((p) => p.website).length;
@@ -294,11 +320,17 @@ export default function ProspectosPage() {
               onChange={(e) => setSearchVertical(e.target.value)}
               className="min-h-11 rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white outline-none transition focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
             >
-              {VERTICALS.map((v) => (
-                <option key={v.value} value={v.value} className="bg-brand-charcoal">
-                  {v.label}
+              {verticalOptions.length === 0 ? (
+                <option value={searchVertical} className="bg-brand-charcoal">
+                  Cargando nichos
                 </option>
-              ))}
+              ) : (
+                verticalOptions.map((option) => (
+                  <option key={option.value} value={option.value} className="bg-brand-charcoal">
+                    {option.label}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
@@ -392,16 +424,24 @@ export default function ProspectosPage() {
             </p>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[880px] xl:grid-cols-5">
+          <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[980px] xl:grid-cols-6">
+            <input
+              type="search"
+              value={filterSearch}
+              onChange={(e) => setFilterSearch(e.target.value)}
+              className="min-h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-xs text-white outline-none placeholder:text-brand-off-white/35 focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+              placeholder="Buscar nombre, zona, email"
+            />
+
             <select
               value={filterCity}
               onChange={(e) => setFilterCity(e.target.value)}
               className="min-h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-xs text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
             >
               <option value="all">Todas las ciudades</option>
-              {availableCities.map((city) => (
-                <option key={city} value={city} className="bg-brand-charcoal">
-                  {city}
+              {cityOptions.map((city) => (
+                <option key={city.value} value={city.value} className="bg-brand-charcoal">
+                  {city.label}
                 </option>
               ))}
             </select>
@@ -412,9 +452,9 @@ export default function ProspectosPage() {
               className="min-h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-xs text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
             >
               <option value="all">Todos los rubros</option>
-              {VERTICALS.map((v) => (
-                <option key={v.value} value={v.value} className="bg-brand-charcoal">
-                  {v.label}
+              {verticalOptions.map((option) => (
+                <option key={option.value} value={option.value} className="bg-brand-charcoal">
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -425,7 +465,7 @@ export default function ProspectosPage() {
               className="min-h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-xs text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
             >
               <option value="all">Todos los estados</option>
-              {STATUSES.map((s) => (
+              {statusOptions.map((s) => (
                 <option key={s.value} value={s.value} className="bg-brand-charcoal">
                   {s.label}
                 </option>
@@ -437,11 +477,11 @@ export default function ProspectosPage() {
               onChange={(e) => setFilterContact(e.target.value)}
               className="min-h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-xs text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
             >
-              <option value="all">Todos los canales</option>
-              <option value="whatsapp">Con WhatsApp</option>
-              <option value="email">Con email</option>
-              <option value="both">WhatsApp + email</option>
-              <option value="none">Sin contacto</option>
+              {contactOptions.map((option) => (
+                <option key={option.value} value={option.value} className="bg-brand-charcoal">
+                  {option.label}
+                </option>
+              ))}
             </select>
 
             <select
@@ -449,9 +489,11 @@ export default function ProspectosPage() {
               onChange={(e) => setFilterWebsite(e.target.value)}
               className="min-h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-xs text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
             >
-              <option value="all">Todas las webs</option>
-              <option value="no_website">Sin web</option>
-              <option value="has_website">Con web</option>
+              {websiteOptions.map((option) => (
+                <option key={option.value} value={option.value} className="bg-brand-charcoal">
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -489,7 +531,7 @@ export default function ProspectosPage() {
                         {p.name}
                       </a>
                       <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusTone(p.status)}`}>
-                        {STATUSES.find((status) => status.value === p.status)?.label || p.status}
+                        {getOptionLabel(statusOptions, p.status)}
                       </span>
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-brand-off-white/55">
@@ -497,7 +539,7 @@ export default function ProspectosPage() {
                         <MapPin className="h-3.5 w-3.5 text-brand-gold/80" />
                         {p.city || "Sin ciudad"}
                       </span>
-                      <span>{getVerticalLabel(p.vertical)}</span>
+                      <span>{getOptionLabel(verticalOptions, p.vertical)}</span>
                     </div>
                     <p className="mt-2 max-w-2xl text-sm leading-5 text-brand-off-white/62">
                       {p.address || "Dirección no disponible"}
@@ -547,7 +589,7 @@ export default function ProspectosPage() {
                       onChange={(e) => handleStatusChange(p.placeId, e.target.value)}
                       className="min-h-10 w-full rounded-lg border border-white/10 bg-black/45 px-3 text-sm text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
                     >
-                      {STATUSES.map((s) => (
+                      {statusOptions.map((s) => (
                         <option key={s.value} value={s.value} className="bg-brand-charcoal">
                           {s.label}
                         </option>

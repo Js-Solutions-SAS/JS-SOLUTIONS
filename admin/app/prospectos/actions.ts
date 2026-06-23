@@ -36,11 +36,72 @@ export interface Prospect {
   sourceQuery?: string;
 }
 
+export interface ProspectFilters {
+  city?: string;
+  vertical?: string;
+  status?: string;
+  contact?: string;
+  website?: string;
+  q?: string;
+  limit?: number;
+}
+
+export interface ProspectOption {
+  value: string;
+  label: string;
+}
+
+export interface ProspectOptions {
+  cities: ProspectOption[];
+  verticals: ProspectOption[];
+  statuses: ProspectOption[];
+  contacts: ProspectOption[];
+  websites: ProspectOption[];
+}
+
 const DB_DIR =
   process.env.PROSPECTS_DB_DIR ||
   (process.env.VERCEL ? "/tmp/js-solutions-prospects" : path.resolve(process.cwd(), "../.artifacts/prospects"));
 const DB_FILE = path.join(DB_DIR, "prospects-db.json");
 const OSM_OUTPUT_DIR = path.resolve(process.cwd(), "../prospecting/output");
+
+const DEFAULT_OPTIONS: ProspectOptions = {
+  cities: [
+    { value: "Bogota", label: "Bogota" },
+    { value: "Medellin", label: "Medellin" },
+    { value: "Cali", label: "Cali" },
+    { value: "Pereira", label: "Pereira" },
+  ],
+  verticals: [
+    { value: "odontologias", label: "Odontologías" },
+    { value: "oftalmologicas", label: "Oftalmológicas" },
+    { value: "centros_estetica", label: "Centros de estética" },
+    { value: "restaurantes_cafes", label: "Restaurantes y cafés" },
+    { value: "inmobiliarias", label: "Inmobiliarias" },
+    { value: "servicios_tecnicos", label: "Servicios técnicos" },
+    { value: "gimnasios", label: "Gimnasios" },
+    { value: "veterinarias", label: "Veterinarias" },
+    { value: "abogados", label: "Abogados" },
+  ],
+  statuses: [
+    { value: "nuevo", label: "Nuevo" },
+    { value: "contactado", label: "Contactado" },
+    { value: "interesado", label: "Interesado" },
+    { value: "descartado", label: "Descartado" },
+  ],
+  contacts: [
+    { value: "all", label: "Todos los canales" },
+    { value: "whatsapp", label: "Con WhatsApp" },
+    { value: "email", label: "Con email" },
+    { value: "both", label: "WhatsApp + email" },
+    { value: "none", label: "Sin contacto" },
+  ],
+  websites: [
+    { value: "all", label: "Todas las webs" },
+    { value: "no_website", label: "Sin web" },
+    { value: "has_website", label: "Con web" },
+  ],
+};
 
 interface OsmLead {
   osmId: string;
@@ -121,8 +182,27 @@ function extractDataArray(payload: Record<string, unknown>): ApiProspect[] {
   return [];
 }
 
-async function fetchApiProspects(): Promise<Prospect[] | null> {
-  const apiUrl = buildApiUrl("/api/v1/admin/prospects?limit=1000");
+function appendFilter(params: URLSearchParams, key: keyof ProspectFilters, value: unknown): void {
+  if (value == null) return;
+  const normalized = String(value).trim();
+  if (!normalized || normalized === "all") return;
+  params.set(key, normalized);
+}
+
+function buildProspectsPath(filters: ProspectFilters = {}): string {
+  const params = new URLSearchParams();
+  params.set("limit", String(filters.limit || 1000));
+  appendFilter(params, "city", filters.city);
+  appendFilter(params, "vertical", filters.vertical);
+  appendFilter(params, "status", filters.status);
+  appendFilter(params, "contact", filters.contact);
+  appendFilter(params, "website", filters.website);
+  appendFilter(params, "q", filters.q);
+  return `/api/v1/admin/prospects?${params.toString()}`;
+}
+
+async function fetchApiProspects(filters: ProspectFilters = {}): Promise<Prospect[] | null> {
+  const apiUrl = buildApiUrl(buildProspectsPath(filters));
   if (!apiUrl) return null;
 
   const response = await getJsonWithTimeout(apiUrl, {
@@ -131,8 +211,58 @@ async function fetchApiProspects(): Promise<Prospect[] | null> {
     timeoutMs: 20000,
   });
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    throw new Error(
+      response.errorMessage || "No fue posible cargar prospectos desde la API.",
+    );
+  }
+
   return extractDataArray(response.data).map(normalizeApiProspect);
+}
+
+function normalizeOptionArray(value: unknown): ProspectOption[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const record = item as Record<string, unknown>;
+      const option = {
+        value: String(record.value || "").trim(),
+        label: String(record.label || record.value || "").trim(),
+      };
+      return option.value && option.label ? option : null;
+    })
+    .filter((item): item is ProspectOption => Boolean(item));
+}
+
+async function fetchApiProspectOptions(): Promise<ProspectOptions | null> {
+  const apiUrl = buildApiUrl("/api/v1/admin/prospects/options");
+  if (!apiUrl) return null;
+
+  const response = await getJsonWithTimeout(apiUrl, {
+    correlationId: generateCorrelationId("prospects-options"),
+    secretToken: resolveApiInternalToken(),
+    timeoutMs: 15000,
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      response.errorMessage || "No fue posible cargar opciones desde la API.",
+    );
+  }
+
+  if (!response.data.data || typeof response.data.data !== "object") {
+    throw new Error("La API devolvió opciones de prospectos con formato inválido.");
+  }
+
+  const data = response.data.data as Record<string, unknown>;
+  return {
+    cities: normalizeOptionArray(data.cities),
+    verticals: normalizeOptionArray(data.verticals),
+    statuses: normalizeOptionArray(data.statuses),
+    contacts: normalizeOptionArray(data.contacts),
+    websites: normalizeOptionArray(data.websites),
+  };
 }
 
 async function patchApiProspect(
@@ -156,9 +286,15 @@ async function patchApiProspect(
       cache: "no-store",
     });
 
-    return response.ok;
-  } catch {
-    return false;
+    if (!response.ok) {
+      throw new Error(`No fue posible actualizar el prospecto. Estado ${response.status}.`);
+    }
+
+    return true;
+  } catch (error) {
+    throw error instanceof Error
+      ? error
+      : new Error("No fue posible actualizar el prospecto.");
   }
 }
 
@@ -258,17 +394,73 @@ async function ensureDbExists(): Promise<Prospect[]> {
   }
 }
 
-export async function getProspects(): Promise<Prospect[]> {
-  const apiProspects = await fetchApiProspects();
+function matchesLocalFilters(prospect: Prospect, filters: ProspectFilters = {}): boolean {
+  const hasPhone = Boolean(prospect.phone);
+  const hasEmail = Boolean(prospect.email);
+  const hasWebsite = Boolean(prospect.website);
+  const query = String(filters.q || "").trim().toLowerCase();
+  const haystack = [
+    prospect.name,
+    prospect.category,
+    prospect.vertical,
+    prospect.address,
+    prospect.phone,
+    prospect.email,
+    prospect.website,
+    prospect.sourceQuery,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    (!filters.city || filters.city === "all" || prospect.city === filters.city) &&
+    (!filters.vertical || filters.vertical === "all" || prospect.vertical === filters.vertical) &&
+    (!filters.status || filters.status === "all" || prospect.status === filters.status) &&
+    (!filters.contact ||
+      filters.contact === "all" ||
+      (filters.contact === "whatsapp" && hasPhone) ||
+      (filters.contact === "email" && hasEmail) ||
+      (filters.contact === "both" && hasPhone && hasEmail) ||
+      (filters.contact === "none" && !hasPhone && !hasEmail)) &&
+    (!filters.website ||
+      filters.website === "all" ||
+      (filters.website === "no_website" && !hasWebsite) ||
+      (filters.website === "has_website" && hasWebsite)) &&
+    (!query || haystack.includes(query))
+  );
+}
+
+function filterLocalProspects(prospects: Prospect[], filters: ProspectFilters = {}): Prospect[] {
+  const limit = Math.min(Math.max(filters.limit || 1000, 1), 1000);
+  return prospects.filter((prospect) => matchesLocalFilters(prospect, filters)).slice(0, limit);
+}
+
+export async function getProspects(filters: ProspectFilters = {}): Promise<Prospect[]> {
+  const apiProspects = await fetchApiProspects(filters);
   if (apiProspects) return apiProspects;
 
   const prospects = await ensureDbExists();
-  if (prospects.length > 0) return prospects;
+  if (prospects.length > 0) return filterLocalProspects(prospects, filters);
 
   const imported = await importLatestOsmProspects();
-  if (!imported.success) return prospects;
+  if (!imported.success) return filterLocalProspects(prospects, filters);
 
-  return ensureDbExists();
+  return filterLocalProspects(await ensureDbExists(), filters);
+}
+
+export async function getProspectOptions(): Promise<ProspectOptions> {
+  const apiOptions = await fetchApiProspectOptions();
+  if (apiOptions) {
+    return {
+      cities: apiOptions.cities.length ? apiOptions.cities : DEFAULT_OPTIONS.cities,
+      verticals: apiOptions.verticals.length ? apiOptions.verticals : DEFAULT_OPTIONS.verticals,
+      statuses: apiOptions.statuses.length ? apiOptions.statuses : DEFAULT_OPTIONS.statuses,
+      contacts: apiOptions.contacts.length ? apiOptions.contacts : DEFAULT_OPTIONS.contacts,
+      websites: apiOptions.websites.length ? apiOptions.websites : DEFAULT_OPTIONS.websites,
+    };
+  }
+
+  return DEFAULT_OPTIONS;
 }
 
 export async function searchOsmProspects(input: {
@@ -279,6 +471,8 @@ export async function searchOsmProspects(input: {
 }): Promise<{
   success: boolean;
   count: number;
+  updated?: number;
+  searched?: number;
   total: number;
   message?: string;
 }> {
@@ -288,7 +482,18 @@ export async function searchOsmProspects(input: {
       success: false,
       count: 0,
       total: 0,
-      message: "Configura API_BASE_URL y API_INTERNAL_TOKEN para buscar desde Overpass y guardar en la DB.",
+      message:
+        "Configura API_BASE_URL/API_INTERNAL_TOKEN o levanta la API local en http://localhost:3003 para buscar y guardar prospectos reales.",
+    };
+  }
+
+  if (!resolveApiInternalToken()) {
+    return {
+      success: false,
+      count: 0,
+      total: 0,
+      message:
+        "Configura API_INTERNAL_TOKEN con el mismo token del backend para buscar y guardar prospectos reales.",
     };
   }
 
@@ -314,12 +519,14 @@ export async function searchOsmProspects(input: {
   }
 
   const data = response.data.data as
-    | { imported?: number; updated?: number; total?: number }
+    | { searched?: number; imported?: number; updated?: number; total?: number }
     | undefined;
 
   return {
     success: true,
     count: Number(data?.imported || 0),
+    updated: Number(data?.updated || 0),
+    searched: Number(data?.searched || 0),
     total: Number(data?.total || 0),
   };
 }

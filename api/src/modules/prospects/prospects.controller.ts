@@ -32,6 +32,12 @@ export class ProspectsController {
     return this.prospectsService.searchAndImport(body, correlationId);
   }
 
+  @Get('options')
+  options(@Req() req: Request) {
+    const correlationId = getCorrelationId(req, 'admin-prospects-options');
+    return this.prospectsService.options(correlationId);
+  }
+
   @Patch(':id')
   update(
     @Param('id') id: string,
