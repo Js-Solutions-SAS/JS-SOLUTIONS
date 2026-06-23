@@ -1,7 +1,22 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Search, MapPin, Save, FileText, CheckCircle2, MessageSquare, AlertTriangle, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Database,
+  ExternalLink,
+  FileText,
+  Globe2,
+  Mail,
+  MapPin,
+  MessageSquare,
+  Phone,
+  RefreshCw,
+  Save,
+  Search,
+  Users,
+} from "lucide-react";
 import { getProspects, importLatestOsmProspects, searchOsmProspects, updateProspectStatus, updateProspectNotes, type Prospect } from "./actions";
 
 const VERTICALS = [
@@ -16,11 +31,19 @@ const VERTICALS = [
 ];
 
 const STATUSES = [
-  { value: "nuevo", label: "Nuevo", tone: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-  { value: "contactado", label: "Contactado", tone: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
-  { value: "interesado", label: "Interesado", tone: "bg-green-500/10 text-green-400 border-green-500/20" },
-  { value: "descartado", label: "Descartado", tone: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20" },
+  { value: "nuevo", label: "Nuevo", tone: "border-sky-400/25 bg-sky-400/10 text-sky-200" },
+  { value: "contactado", label: "Contactado", tone: "border-amber-300/25 bg-amber-300/10 text-amber-100" },
+  { value: "interesado", label: "Interesado", tone: "border-emerald-300/25 bg-emerald-300/10 text-emerald-100" },
+  { value: "descartado", label: "Descartado", tone: "border-zinc-500/30 bg-zinc-500/10 text-zinc-300" },
 ];
+
+function getVerticalLabel(value: string) {
+  return VERTICALS.find((vertical) => vertical.value === value)?.label || value;
+}
+
+function getStatusTone(value: string) {
+  return STATUSES.find((status) => status.value === value)?.tone || STATUSES[0].tone;
+}
 
 export default function ProspectosPage() {
   const [prospects, setProspects] = useState<Prospect[]>([]);
@@ -158,304 +181,370 @@ export default function ProspectosPage() {
   const contactedCount = prospects.filter((p) => p.status === "contactado").length;
   const noWebsiteCount = prospects.filter((p) => !p.website).length;
   const whatsappReadyCount = prospects.filter((p) => p.phone).length;
+  const interestedCount = prospects.filter((p) => p.status === "interesado").length;
+  const avgScore = prospects.length
+    ? Math.round(prospects.reduce((sum, p) => sum + Number(p.leadScore || 0), 0) / prospects.length)
+    : 0;
+  const metricCards = [
+    { label: "Prospectos", value: prospects.length, detail: "cargados en la base", icon: Database },
+    { label: "WhatsApp", value: whatsappReadyCount, detail: "con teléfono disponible", icon: MessageSquare },
+    { label: "Sin web", value: noWebsiteCount, detail: "oportunidad prioritaria", icon: Globe2 },
+    { label: "Interesados", value: interestedCount, detail: "seguimiento comercial", icon: Users },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-white">
-          <Search className="h-8 w-8 text-brand-gold" />
-          Prospección de Clientes (OSM)
-        </h1>
-        <p className="mt-1 text-sm text-brand-off-white/70">
-          Usa la base generada desde OpenStreetMap/Overpass, identifica negocios con oportunidad digital y contáctalos por WhatsApp.
-        </p>
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(212,175,55,0.13),rgba(18,18,18,0.72)_42%,rgba(10,10,10,0.92))] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.28)]">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-brand-gold/20 bg-brand-gold/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-brand-gold">
+              <Database className="h-3.5 w-3.5" />
+              Prospección OSM
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+              Clientes potenciales listos para contactar
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-off-white/68">
+              Busca negocios en OpenStreetMap, guarda nuevos registros en la DB y opera el contacto comercial desde WhatsApp con estado y notas.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <div className="rounded-xl border border-white/10 bg-black/35 px-4 py-3">
+              <div className="text-xs text-brand-off-white/52">Score promedio</div>
+              <div className="mt-1 text-2xl font-black text-white">{avgScore}</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/35 px-4 py-3">
+              <div className="text-xs text-brand-off-white/52">Contactados</div>
+              <div className="mt-1 text-2xl font-black text-white">{contactedCount}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {notification && (
         <div
-          className={`flex items-center gap-2 rounded-xl border p-4 text-sm ${
+          role="status"
+          className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm ${
             notification.type === "success"
-              ? "bg-green-500/10 text-green-400 border-green-500/20"
-              : "bg-red-500/10 text-red-400 border-red-500/20"
+              ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-100"
+              : "border-rose-400/25 bg-rose-400/10 text-rose-100"
           }`}
         >
-          {notification.type === "success" ? <CheckCircle2 className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+          {notification.type === "success" ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <AlertTriangle className="h-5 w-5 shrink-0" />}
           <span>{notification.text}</span>
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[0.8fr_2.2fr]">
-        {/* Search Panel */}
-        <section className="rounded-2xl border border-white/10 bg-brand-charcoal/45 p-6 space-y-4">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-brand-gold" />
-            Buscar y Guardar
-          </h2>
-
-          <form onSubmit={handleOsmSearch} className="space-y-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-brand-off-white/70">Ciudad</label>
-              <input
-                type="text"
-                value={searchCity}
-                onChange={(e) => setSearchCity(e.target.value)}
-                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
-                placeholder="Cali, Medellin, Pereira, Bogota"
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-brand-off-white/70">Nicho sugerido</label>
-              <select
-                value={searchVertical}
-                onChange={(e) => setSearchVertical(e.target.value)}
-                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
-              >
-                {VERTICALS.map((v) => (
-                  <option key={v.value} value={v.value} className="bg-brand-charcoal">
-                    {v.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-brand-off-white/70">Búsqueda libre</label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
-                placeholder="Ej. ortodoncia, spa, optica"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-brand-off-white/70">Máximo por búsqueda</label>
-              <input
-                type="number"
-                value={searchLimit}
-                onChange={(e) => setSearchLimit(Number(e.target.value))}
-                className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-brand-gold focus:outline-none"
-                min={1}
-                max={500}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={searchLoading}
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gold-gradient px-4 text-center text-sm font-black uppercase tracking-wide text-black transition-transform duration-200 hover:scale-[1.01] disabled:opacity-50"
-            >
-              <Search className="h-4 w-4" />
-              {searchLoading ? "Buscando..." : "Buscar en Overpass"}
-            </button>
-          </form>
-
-          <div className="grid gap-3 text-sm text-brand-off-white/70">
-            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-              <div className="text-2xl font-black text-white">{prospects.length}</div>
-              <div>prospectos cargados desde OSM</div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-              <div className="text-2xl font-black text-white">{whatsappReadyCount}</div>
-              <div>con teléfono para WhatsApp</div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-              <div className="text-2xl font-black text-white">{noWebsiteCount}</div>
-              <div>sin sitio web registrado</div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-              <div className="text-2xl font-black text-white">{contactedCount}</div>
-              <div>marcados como contactados</div>
-            </div>
+      <section className="rounded-2xl border border-white/10 bg-brand-charcoal/80 p-4 shadow-[0_12px_44px_rgba(0,0,0,0.24)]">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-base font-bold text-white">
+              <Search className="h-4.5 w-4.5 text-brand-gold" />
+              Buscar y guardar prospectos
+            </h2>
+            <p className="mt-1 text-xs text-brand-off-white/55">
+              La búsqueda web persiste en el API. El JSON local queda como respaldo operativo.
+            </p>
           </div>
-
           <button
             type="button"
             onClick={handleImport}
             disabled={importLoading}
-            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gold-gradient px-4 text-center text-sm font-black uppercase tracking-wide text-black transition-transform duration-200 hover:scale-[1.01] disabled:opacity-50"
+            className="hidden min-h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-semibold text-brand-off-white/75 transition hover:border-brand-gold/35 hover:text-white disabled:opacity-50 sm:inline-flex"
           >
             <RefreshCw className={`h-4 w-4 ${importLoading ? "animate-spin" : ""}`} />
-            {importLoading ? "Sincronizando..." : "Importar JSON OSM"}
+            {importLoading ? "Importando" : "Importar JSON"}
           </button>
+        </div>
 
-          <p className="text-xs leading-relaxed text-brand-off-white/55">
-            La búsqueda web guarda nuevos prospectos en la DB del API. El JSON local queda solo como fallback cuando API_BASE_URL no está configurado.
-          </p>
-        </section>
-
-        {/* Results Panel */}
-        <section className="rounded-2xl border border-white/10 bg-brand-charcoal/20 p-6 space-y-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <FileText className="h-5 w-5 text-brand-gold" />
-              Base de Prospectos ({filteredProspects.length})
-            </h2>
-
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-3">
-              <select
-                value={filterCity}
-                onChange={(e) => setFilterCity(e.target.value)}
-                className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-xs text-white focus:outline-none"
-              >
-                <option value="all">Todas las ciudades</option>
-                {availableCities.map((city) => (
-                  <option key={city} value={city} className="bg-brand-charcoal">
-                    {city}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={filterVertical}
-                onChange={(e) => setFilterVertical(e.target.value)}
-                className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-xs text-white focus:outline-none"
-              >
-                <option value="all">Todos los rubros</option>
-                {VERTICALS.map((v) => (
-                  <option key={v.value} value={v.value} className="bg-brand-charcoal">
-                    {v.label}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-xs text-white focus:outline-none"
-              >
-                <option value="all">Todos los estados</option>
-                {STATUSES.map((s) => (
-                  <option key={s.value} value={s.value} className="bg-brand-charcoal">
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <form onSubmit={handleOsmSearch} className="grid gap-3 lg:grid-cols-[1fr_1.2fr_1.2fr_0.7fr_auto] lg:items-end">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-brand-off-white/70">Ciudad</label>
+            <input
+              type="text"
+              value={searchCity}
+              onChange={(e) => setSearchCity(e.target.value)}
+              className="min-h-11 rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white outline-none transition focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+              placeholder="Cali, Medellin, Pereira"
+              required
+            />
           </div>
 
-          {loading ? (
-            <div className="py-20 text-center text-brand-off-white/50">Cargando base de datos...</div>
-          ) : filteredProspects.length === 0 ? (
-            <div className="py-20 text-center border border-dashed border-white/10 rounded-xl text-brand-off-white/50">
-              No se encontraron prospectos con estos filtros. Importa el JSON OSM o cambia los filtros.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-sm text-brand-off-white">
-                <thead>
-                  <tr className="border-b border-white/10 pb-3 text-xs uppercase tracking-widest text-brand-off-white/50">
-                    <th className="py-3 pr-4">Negocio / Mapa</th>
-                    <th className="py-3 px-4">Ciudad</th>
-                    <th className="py-3 px-4">Contacto</th>
-                    <th className="py-3 px-4">Sitio Web</th>
-                    <th className="py-3 px-4">Score</th>
-                    <th className="py-3 px-4">Estado</th>
-                    <th className="py-3 pl-4">Notas & Outreach</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {filteredProspects.map((p) => {
-                    return (
-                      <tr key={p.placeId} className="group hover:bg-white/[0.01]">
-                        <td className="py-4 pr-4">
-                          <a
-                            href={p.mapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-bold text-white hover:text-brand-gold hover:underline"
-                          >
-                            {p.name}
-                          </a>
-                          <div className="text-xs text-brand-off-white/50 mt-1">{p.address}</div>
-                          <div className="mt-1 text-xs text-brand-off-white/40">{p.category}</div>
-                        </td>
-                        <td className="py-4 px-4">{p.city || "Sin ciudad"}</td>
-                        <td className="py-4 px-4">
-                          <div className="font-mono">{p.phone || "Sin teléfono"}</div>
-                          {p.email && <div className="mt-1 text-xs text-brand-off-white/50">{p.email}</div>}
-                        </td>
-                        <td className="py-4 px-4">
-                          {p.website ? (
-                            <a
-                              href={p.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-brand-gold hover:underline"
-                            >
-                              Visitar Web
-                            </a>
-                          ) : (
-                            <span className="text-xs font-semibold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20">
-                              Ideal: Sin Web
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="rounded-full border border-brand-gold/20 bg-brand-gold/10 px-2 py-0.5 text-xs font-bold text-brand-gold">
-                            {p.leadScore ?? "-"}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <select
-                            value={p.status}
-                            onChange={(e) => handleStatusChange(p.placeId, e.target.value)}
-                            className="rounded border border-white/10 bg-black/60 px-2 py-1 text-xs text-white focus:outline-none"
-                          >
-                            {STATUSES.map((s) => (
-                              <option key={s.value} value={s.value} className="bg-brand-charcoal">
-                                {s.label}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="py-4 pl-4 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={notesState[p.placeId] || ""}
-                              onChange={(e) =>
-                                setNotesState((prev) => ({ ...prev, [p.placeId]: e.target.value }))
-                              }
-                              onBlur={() => handleSaveNotes(p.placeId)}
-                              className="w-full rounded border border-white/5 bg-black/40 px-2 py-1 text-xs text-white focus:border-brand-gold focus:outline-none"
-                              placeholder="Escribe notas..."
-                            />
-                            <button
-                              onClick={() => handleSaveNotes(p.placeId)}
-                              className="p-1.5 rounded bg-white/5 text-brand-off-white/60 hover:text-white hover:bg-white/10"
-                              title="Guardar notas"
-                            >
-                              <Save className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-brand-off-white/70">Nicho sugerido</label>
+            <select
+              value={searchVertical}
+              onChange={(e) => setSearchVertical(e.target.value)}
+              className="min-h-11 rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white outline-none transition focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+            >
+              {VERTICALS.map((v) => (
+                <option key={v.value} value={v.value} className="bg-brand-charcoal">
+                  {v.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-                          {p.phone && (
-                            <a
-                              href={getWhatsAppLink(p)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs text-[#25d366] hover:underline bg-[#25d366]/5 px-2.5 py-1.5 rounded-lg border border-[#25d366]/10"
-                            >
-                              <MessageSquare className="h-3.5 w-3.5" />
-                              Outreach WhatsApp
-                            </a>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-brand-off-white/70">Búsqueda libre</label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="min-h-11 rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white outline-none transition placeholder:text-brand-off-white/35 focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+              placeholder="ortodoncia, spa, optica"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-brand-off-white/70">Límite</label>
+            <input
+              type="number"
+              value={searchLimit}
+              onChange={(e) => setSearchLimit(Number(e.target.value))}
+              className="min-h-11 rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white outline-none transition focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+              min={1}
+              max={500}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={searchLoading}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-gold-gradient px-5 text-sm font-black uppercase text-black transition hover:brightness-110 focus:outline-none focus:ring-4 focus:ring-brand-gold/25 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Search className="h-4 w-4" />
+            {searchLoading ? "Buscando" : "Buscar"}
+          </button>
+        </form>
+      </section>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {metricCards.map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <div key={metric.label} className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-off-white/45">{metric.label}</p>
+                  <p className="mt-2 text-3xl font-black text-white">{metric.value}</p>
+                </div>
+                <div className="rounded-lg border border-brand-gold/20 bg-brand-gold/10 p-2 text-brand-gold">
+                  <Icon className="h-5 w-5" />
+                </div>
+              </div>
+              <p className="mt-2 text-sm text-brand-off-white/55">{metric.detail}</p>
             </div>
-          )}
-        </section>
+          );
+        })}
       </div>
+
+      <section className="rounded-2xl border border-white/10 bg-brand-charcoal/72 p-4 shadow-[0_12px_44px_rgba(0,0,0,0.22)]">
+        <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+              <FileText className="h-5 w-5 text-brand-gold" />
+              Base de prospectos
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-xs text-brand-off-white/65">
+                {filteredProspects.length}
+              </span>
+            </h2>
+            <p className="mt-1 text-xs text-brand-off-white/52">
+              Prioriza leads con teléfono, sin web y score alto. Actualiza estado y notas sin salir del listado.
+            </p>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[560px]">
+            <select
+              value={filterCity}
+              onChange={(e) => setFilterCity(e.target.value)}
+              className="min-h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-xs text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+            >
+              <option value="all">Todas las ciudades</option>
+              {availableCities.map((city) => (
+                <option key={city} value={city} className="bg-brand-charcoal">
+                  {city}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={filterVertical}
+              onChange={(e) => setFilterVertical(e.target.value)}
+              className="min-h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-xs text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+            >
+              <option value="all">Todos los rubros</option>
+              {VERTICALS.map((v) => (
+                <option key={v.value} value={v.value} className="bg-brand-charcoal">
+                  {v.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="min-h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-xs text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+            >
+              <option value="all">Todos los estados</option>
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value} className="bg-brand-charcoal">
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="grid gap-3">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="h-28 animate-pulse rounded-xl border border-white/8 bg-white/[0.035]" />
+            ))}
+          </div>
+        ) : filteredProspects.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-white/12 bg-black/20 px-5 py-16 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-brand-gold/20 bg-brand-gold/10 text-brand-gold">
+              <Search className="h-5 w-5" />
+            </div>
+            <p className="font-semibold text-white">No hay prospectos con estos filtros</p>
+            <p className="mt-1 text-sm text-brand-off-white/55">Ajusta ciudad, rubro o estado para ampliar la búsqueda.</p>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {filteredProspects.map((p) => (
+              <article
+                key={p.placeId}
+                className="rounded-xl border border-white/10 bg-black/20 p-4 transition hover:border-brand-gold/25 hover:bg-white/[0.035]"
+              >
+                <div className="grid gap-4 xl:grid-cols-[minmax(260px,1.5fr)_minmax(260px,1fr)_160px_220px] xl:items-start">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={p.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="min-w-0 text-base font-bold leading-tight text-white underline-offset-4 hover:text-brand-gold hover:underline"
+                      >
+                        {p.name}
+                      </a>
+                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${getStatusTone(p.status)}`}>
+                        {STATUSES.find((status) => status.value === p.status)?.label || p.status}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-brand-off-white/55">
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-brand-gold/80" />
+                        {p.city || "Sin ciudad"}
+                      </span>
+                      <span>{getVerticalLabel(p.vertical)}</span>
+                    </div>
+                    <p className="mt-2 max-w-2xl text-sm leading-5 text-brand-off-white/62">
+                      {p.address || "Dirección no disponible"}
+                    </p>
+                    {p.recommendedOffer && (
+                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-brand-off-white/45">{p.recommendedOffer}</p>
+                    )}
+                  </div>
+
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex min-w-0 items-center gap-2 text-brand-off-white/78">
+                      <Phone className="h-4 w-4 shrink-0 text-brand-gold/80" />
+                      <span className="min-w-0 truncate font-mono">{p.phone || "Sin teléfono"}</span>
+                    </div>
+                    <div className="flex min-w-0 items-center gap-2 text-brand-off-white/58">
+                      <Mail className="h-4 w-4 shrink-0 text-brand-gold/65" />
+                      <span className="min-w-0 truncate">{p.email || "Sin email"}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {p.website ? (
+                        <a
+                          href={p.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-brand-gold/20 bg-brand-gold/10 px-2.5 text-xs font-semibold text-brand-gold hover:border-brand-gold/45"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Web
+                        </a>
+                      ) : (
+                        <span className="inline-flex min-h-8 items-center rounded-lg border border-rose-300/20 bg-rose-300/10 px-2.5 text-xs font-semibold text-rose-200">
+                          Sin web
+                        </span>
+                      )}
+                      <span className="inline-flex min-h-8 items-center rounded-lg border border-brand-gold/20 bg-brand-gold/10 px-2.5 text-xs font-bold text-brand-gold">
+                        Score {p.leadScore ?? "-"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-off-white/45">
+                      Estado
+                    </label>
+                    <select
+                      value={p.status}
+                      onChange={(e) => handleStatusChange(p.placeId, e.target.value)}
+                      className="min-h-10 w-full rounded-lg border border-white/10 bg-black/45 px-3 text-sm text-white outline-none focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s.value} value={s.value} className="bg-brand-charcoal">
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={notesState[p.placeId] || ""}
+                        onChange={(e) =>
+                          setNotesState((prev) => ({ ...prev, [p.placeId]: e.target.value }))
+                        }
+                        onBlur={() => handleSaveNotes(p.placeId)}
+                        className="min-h-10 min-w-0 flex-1 rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white outline-none transition placeholder:text-brand-off-white/35 focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
+                        placeholder="Nota rápida"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleSaveNotes(p.placeId)}
+                        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-brand-off-white/70 transition hover:border-brand-gold/35 hover:text-white focus:outline-none focus:ring-4 focus:ring-brand-gold/10"
+                        title="Guardar notas"
+                        aria-label={`Guardar notas de ${p.name}`}
+                      >
+                        <Save className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {p.phone ? (
+                      <a
+                        href={getWhatsAppLink(p)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 text-sm font-bold text-emerald-200 transition hover:border-emerald-300/40 hover:bg-emerald-400/15"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        WhatsApp
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        className="inline-flex min-h-10 items-center justify-center rounded-lg border border-white/8 bg-white/[0.025] px-3 text-sm font-semibold text-brand-off-white/35"
+                      >
+                        Sin WhatsApp
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
