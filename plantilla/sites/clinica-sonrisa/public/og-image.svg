@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#F8FAFC"/>
+  <rect x="70" y="70" width="1060" height="490" rx="42" fill="#0F172A"/>
+  <circle cx="965" cy="155" r="160" fill="#0EA5A5" opacity=".35"/>
+  <circle cx="170" cy="500" r="130" fill="#F59E0B" opacity=".25"/>
+  <text x="120" y="255" font-family="Arial, sans-serif" font-size="74" font-weight="900" fill="#fff">Clinica Sonrisa</text>
+  <text x="122" y="335" font-family="Arial, sans-serif" font-size="36" fill="#D8DEE9">Odontologia en Cali</text>
+  <rect x="120" y="410" width="320" height="70" rx="35" fill="#0EA5A5"/>
+  <text x="280" y="456" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="900" fill="#fff">Contactar por WhatsApp</text>
+</svg>

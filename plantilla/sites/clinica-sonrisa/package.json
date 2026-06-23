@@ -1,0 +1,20 @@
+{
+  "name": "js-local-business-landing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check:seo": "node scripts/check-seo.mjs"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.6.1",
+    "@astrojs/vercel": "^9.0.5",
+    "astro": "^5.16.6"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

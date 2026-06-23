@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JS Solutions Landing Client",
+  "type": "object",
+  "required": ["business", "brand", "seo", "content"],
+  "properties": {
+    "business": {
+      "type": "object",
+      "required": ["name", "type", "city", "country", "phone", "whatsapp", "address", "hours"],
+      "properties": {
+        "name": { "type": "string" },
+        "legalName": { "type": "string" },
+        "type": { "type": "string" },
+        "city": { "type": "string" },
+        "region": { "type": "string" },
+        "country": { "type": "string" },
+        "zone": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "email": { "type": "string" },
+        "hours": { "type": "string" },
+        "priceRange": { "type": "string" }
+      }
+    },
+    "brand": {
+      "type": "object",
+      "required": ["logoText", "logoAlt", "colors"],
+      "properties": {
+        "logoText": { "type": "string" },
+        "logoAlt": { "type": "string" },
+        "colors": {
+          "type": "object",
+          "required": ["primary", "secondary", "accent", "background", "text"],
+          "properties": {
+            "primary": { "type": "string" },
+            "secondary": { "type": "string" },
+            "accent": { "type": "string" },
+            "background": { "type": "string" },
+            "text": { "type": "string" }
+          }
+        }
+      }
+    },
+    "seo": {
+      "type": "object",
+      "required": ["siteUrl", "title", "description", "keywords", "schemaType"],
+      "properties": {
+        "siteUrl": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "keywords": { "type": "array", "items": { "type": "string" } },
+        "schemaType": { "type": "string" },
+        "locale": { "type": "string" }
+      }
+    },
+    "content": {
+      "type": "object",
+      "required": ["hero", "painPoints", "services", "trust", "faq", "finalCta"],
+      "properties": {
+        "hero": { "type": "object" },
+        "painPoints": { "type": "array" },
+        "services": { "type": "array" },
+        "trust": { "type": "object" },
+        "faq": { "type": "array" },
+        "finalCta": { "type": "object" }
+      }
+    }
+  }
+}

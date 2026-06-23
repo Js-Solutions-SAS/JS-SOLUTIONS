@@ -1,0 +1,60 @@
+---
+import "../styles/global.css";
+import client from "../data/client.config";
+import { createFaqJsonLd, createLocalBusinessJsonLd } from "../lib/seo";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const title = Astro.props.title || client.seo.title;
+const description = Astro.props.description || client.seo.description;
+const siteUrl = client.seo.siteUrl.replace(/\/$/, "");
+const canonicalUrl = `${siteUrl}${Astro.url.pathname}`;
+const keywords = client.seo.keywords.join(", ");
+const themeStyle = [
+  `--primary:${client.brand.colors.primary}`,
+  `--secondary:${client.brand.colors.secondary}`,
+  `--accent:${client.brand.colors.accent}`,
+  `--background:${client.brand.colors.background}`,
+  `--text:${client.brand.colors.text}`,
+].join(";");
+const jsonLd = [createLocalBusinessJsonLd(client), createFaqJsonLd(client)];
+---
+
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="keywords" content={keywords} />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content={client.brand.colors.primary} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/favicon.svg" as="image" type="image/svg+xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content={client.seo.locale || "es_CO"} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content={client.business.name} />
+    <meta property="og:image" content={`${siteUrl}/og-image.svg`} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={`${siteUrl}/og-image.svg`} />
+
+    <title>{title}</title>
+    {jsonLd.map((item) => (
+      <script type="application/ld+json" set:html={JSON.stringify(item)} />
+    ))}
+  </head>
+  <body style={themeStyle}>
+    <slot />
+  </body>
+</html>

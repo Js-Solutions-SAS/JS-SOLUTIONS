@@ -1,0 +1,543 @@
+---
+import { Image } from "astro:assets";
+import heroImage from "../assets/hero.svg";
+import logoImage from "../assets/logo.svg";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import client from "../data/client.config";
+import { createMapsSearchHref, createWhatsappHref } from "../lib/seo";
+
+const whatsappHref = createWhatsappHref(client);
+const mapsHref = createMapsSearchHref(client);
+---
+
+<BaseLayout>
+  <header class="site-header">
+    <nav class="container nav" aria-label="Navegacion principal">
+      <a href="/" class="brand" aria-label={client.business.name}>
+        <Image src={logoImage} alt={client.brand.logoAlt} width={48} height={48} loading="eager" />
+        <span>{client.business.name}</span>
+      </a>
+      <div class="nav-links">
+        <a href="#servicios">Servicios</a>
+        <a href="#confianza">Confianza</a>
+        <a href="#faq">Preguntas</a>
+      </div>
+      <a href={whatsappHref} class="button button-primary nav-cta" data-cta="header-whatsapp">WhatsApp</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="locality">{client.business.type} en {client.business.city}{client.business.zone ? ` - ${client.business.zone}` : ""}</p>
+          <h1>{client.content.hero.headline}</h1>
+          <p class="hero-subtitle">{client.content.hero.subheadline}</p>
+          <div class="hero-actions">
+            <a href={whatsappHref} class="button button-primary" data-cta="hero-whatsapp">{client.content.hero.primaryCta}</a>
+            <a href="#servicios" class="button button-secondary">{client.content.hero.secondaryCta}</a>
+          </div>
+          <dl class="quick-facts">
+            <div>
+              <dt>Ciudad</dt>
+              <dd>{client.business.city}</dd>
+            </div>
+            <div>
+              <dt>Horario</dt>
+              <dd>{client.business.hours}</dd>
+            </div>
+            <div>
+              <dt>Contacto</dt>
+              <dd>{client.business.phone}</dd>
+            </div>
+          </dl>
+        </div>
+        <div class="hero-media surface" aria-hidden="true">
+          <Image src={heroImage} alt="" width={720} height={520} loading="eager" decoding="async" />
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container split">
+        <div>
+          <p class="section-label">Para decidir mas rapido</p>
+          <h2>Informacion clara antes de escribir por WhatsApp</h2>
+        </div>
+        <div class="pain-list">
+          {client.content.painPoints.map((item) => (
+            <article class="pain-item">
+              <span></span>
+              <p>{item}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section id="servicios" class="section services-section">
+      <div class="container">
+        <div class="section-heading">
+          <p class="section-label">Servicios</p>
+          <h2>Lo que puedes consultar hoy</h2>
+          <p>Estos son los servicios principales de {client.business.name}. Escríbenos si necesitas orientación sobre cuál aplica para tu caso.</p>
+        </div>
+        <div class="services-grid">
+          {client.content.services.map((service) => (
+            <article class="service-card surface">
+              <h3>{service.name}</h3>
+              <p>{service.description}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section id="confianza" class="section trust-section">
+      <div class="container trust-card">
+        <div>
+          <p class="section-label">Confianza</p>
+          <h2>{client.content.trust.title}</h2>
+          <p class="trust-copy">
+            Una landing rápida debe resolver dudas básicas y llevar a una conversación con contexto, no hacer que el cliente busque información en varias partes.
+          </p>
+        </div>
+        <ul>
+          {client.content.trust.items.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section class="section location-section">
+      <div class="container location-card surface">
+        <div>
+          <p class="section-label">Ubicacion y contacto</p>
+          <h2>{client.business.name} atiende en {client.business.city}</h2>
+          <p>{client.business.address}</p>
+          <p>{client.business.hours}</p>
+        </div>
+        <div class="location-actions">
+          <a href={mapsHref} class="button button-secondary" target="_blank" rel="noopener noreferrer">Ver mapa</a>
+          <a href={whatsappHref} class="button button-primary" data-cta="location-whatsapp">Consultar por WhatsApp</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="section faq-section">
+      <div class="container">
+        <div class="section-heading">
+          <p class="section-label">Preguntas frecuentes</p>
+          <h2>Respuestas antes de contactar</h2>
+        </div>
+        <div class="faq-list">
+          {client.content.faq.map((item) => (
+            <details>
+              <summary>{item.question}</summary>
+              <p>{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="section final-section">
+      <div class="container final-card">
+        <h2>{client.content.finalCta.title}</h2>
+        <p>{client.content.finalCta.body}</p>
+        <a href={whatsappHref} class="button button-primary" data-cta="final-whatsapp">{client.content.finalCta.button}</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <p>{client.business.name} - {client.business.city}</p>
+      <a href={whatsappHref}>WhatsApp</a>
+    </div>
+  </footer>
+</BaseLayout>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--background) 92%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--secondary) 10%, transparent);
+    backdrop-filter: blur(18px);
+  }
+
+  .nav {
+    min-height: 74px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--secondary);
+    font-weight: 900;
+    text-decoration: none;
+  }
+
+  .brand img {
+    border-radius: 14px;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    color: color-mix(in srgb, var(--text) 72%, white);
+    font-size: 0.94rem;
+    font-weight: 700;
+  }
+
+  .nav-links a {
+    text-decoration: none;
+  }
+
+  .hero {
+    padding: 80px 0 64px;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.85fr);
+    gap: 56px;
+    align-items: center;
+  }
+
+  .locality,
+  .section-label {
+    margin: 0 0 12px;
+    color: var(--primary);
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+  }
+
+  h1,
+  h2,
+  h3,
+  p {
+    margin-top: 0;
+  }
+
+  h1 {
+    max-width: 780px;
+    margin-bottom: 20px;
+    color: var(--secondary);
+    font-size: clamp(2.55rem, 7vw, 5.4rem);
+    line-height: 0.94;
+    letter-spacing: -0.055em;
+  }
+
+  h2 {
+    color: var(--secondary);
+    font-size: clamp(2rem, 4vw, 3.15rem);
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  h3 {
+    color: var(--secondary);
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-subtitle {
+    max-width: 650px;
+    color: color-mix(in srgb, var(--text) 74%, white);
+    font-size: 1.17rem;
+    line-height: 1.65;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 30px 0 34px;
+  }
+
+  .quick-facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0;
+  }
+
+  .quick-facts div {
+    border-left: 3px solid var(--primary);
+    padding-left: 14px;
+  }
+
+  .quick-facts dt {
+    color: color-mix(in srgb, var(--text) 56%, white);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .quick-facts dd {
+    margin: 4px 0 0;
+    color: var(--secondary);
+    font-weight: 800;
+  }
+
+  .hero-media {
+    border-radius: 34px;
+    overflow: hidden;
+  }
+
+  .split {
+    display: grid;
+    grid-template-columns: 0.78fr 1fr;
+    gap: 44px;
+    align-items: start;
+  }
+
+  .pain-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .pain-item {
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: 14px;
+    align-items: start;
+    padding: 18px;
+    border-radius: 18px;
+    background: white;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  }
+
+  .pain-item span {
+    width: 12px;
+    height: 12px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+
+  .pain-item p {
+    margin: 0;
+    line-height: 1.55;
+  }
+
+  .section-heading {
+    max-width: 720px;
+    margin-bottom: 34px;
+  }
+
+  .section-heading p:not(.section-label) {
+    color: color-mix(in srgb, var(--text) 70%, white);
+    line-height: 1.6;
+  }
+
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .service-card {
+    min-height: 210px;
+    border-radius: 24px;
+    padding: 24px;
+  }
+
+  .service-card p {
+    color: color-mix(in srgb, var(--text) 68%, white);
+    line-height: 1.58;
+  }
+
+  .trust-card {
+    display: grid;
+    grid-template-columns: 1fr 0.8fr;
+    gap: 38px;
+    border-radius: 34px;
+    padding: 42px;
+    background: var(--secondary);
+    color: white;
+  }
+
+  .trust-card h2,
+  .trust-card .section-label {
+    color: white;
+  }
+
+  .trust-copy {
+    color: rgba(255, 255, 255, 0.72);
+    line-height: 1.65;
+  }
+
+  .trust-card ul {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .trust-card li {
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 16px 18px;
+    font-weight: 800;
+  }
+
+  .location-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+    border-radius: 28px;
+    padding: 28px;
+  }
+
+  .location-card p {
+    color: color-mix(in srgb, var(--text) 68%, white);
+    line-height: 1.55;
+  }
+
+  .location-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .faq-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  details {
+    border-radius: 18px;
+    background: white;
+    border: 1px solid color-mix(in srgb, var(--secondary) 9%, transparent);
+    padding: 18px 20px;
+  }
+
+  summary {
+    cursor: pointer;
+    color: var(--secondary);
+    font-weight: 900;
+  }
+
+  details p {
+    margin: 12px 0 0;
+    color: color-mix(in srgb, var(--text) 70%, white);
+    line-height: 1.6;
+  }
+
+  .final-card {
+    border-radius: 36px;
+    padding: 52px;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--primary) 92%, black), var(--secondary));
+    color: white;
+    text-align: center;
+  }
+
+  .final-card h2 {
+    color: white;
+  }
+
+  .final-card p {
+    max-width: 680px;
+    margin: 0 auto 26px;
+    color: rgba(255, 255, 255, 0.76);
+    line-height: 1.65;
+  }
+
+  .footer {
+    border-top: 1px solid color-mix(in srgb, var(--secondary) 10%, transparent);
+    padding: 26px 0;
+    color: color-mix(in srgb, var(--text) 58%, white);
+  }
+
+  .footer-grid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  @media (max-width: 900px) {
+    .nav-links {
+      display: none;
+    }
+
+    .hero-grid,
+    .split,
+    .trust-card {
+      grid-template-columns: 1fr;
+    }
+
+    .hero {
+      padding-top: 52px;
+    }
+
+    .hero-media {
+      order: -1;
+      max-width: 560px;
+    }
+
+    .services-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .location-card,
+    .footer-grid {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .location-actions {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .nav {
+      min-height: 66px;
+    }
+
+    .brand span {
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .nav-cta {
+      display: none;
+    }
+
+    .quick-facts {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-actions .button,
+    .location-actions .button,
+    .final-card .button {
+      width: 100%;
+    }
+
+    .trust-card,
+    .final-card {
+      padding: 28px 20px;
+      border-radius: 26px;
+    }
+  }
+</style>
