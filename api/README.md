@@ -55,7 +55,14 @@ Admin:
 
 ### Prospeccion OSM
 
-La API es la fuente de verdad para prospectos. `search-osm` consulta Overpass, normaliza, calcula score y hace upsert en Postgres por `source/osm_type/osm_id`.
+La API es la fuente de verdad para prospectos. `search-osm` resuelve la ciudad, consulta Overpass, normaliza, calcula score y hace upsert en Postgres por `source/osm_type/osm_id`.
+
+Ciudades:
+
+- Las ciudades frecuentes usan bbox interno para responder mas rapido.
+- Cualquier otra ciudad se resuelve con Nominatim y luego se usa su bbox en Overpass.
+- Para busquedas globales escribe ciudad + pais, por ejemplo `Quito, Ecuador` o `Madrid, España`.
+- Si el lugar resuelto es demasiado amplio, la API rechaza la busqueda y pide una ciudad mas especifica o `bbox`.
 
 Filtros soportados en `GET /api/v1/admin/prospects`:
 
@@ -64,6 +71,14 @@ Filtros soportados en `GET /api/v1/admin/prospects`:
 - `website=has_website|no_website`
 - `q=<texto libre>`
 - `limit` hasta `1000`
+
+Variables opcionales:
+
+- `NOMINATIM_ENDPOINT`
+- `NOMINATIM_TIMEOUT_MS`
+- `NOMINATIM_USER_AGENT`
+- `NOMINATIM_COUNTRY_CODES` (`co` si quieres sesgar a Colombia; vacio para mundo)
+- `PROSPECTS_MAX_BBOX_DEGREES`
 
 ## Variables de entorno
 

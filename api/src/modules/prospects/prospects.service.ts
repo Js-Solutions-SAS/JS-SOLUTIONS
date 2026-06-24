@@ -32,6 +32,20 @@ interface OverpassElement {
   tags?: Record<string, string>;
 }
 
+interface NominatimPlace {
+  display_name?: string;
+  boundingbox?: [string, string, string, string];
+  address?: {
+    city?: string;
+    town?: string;
+    village?: string;
+    municipality?: string;
+    county?: string;
+    state?: string;
+    country?: string;
+  };
+}
+
 interface NormalizedProspect {
   source: 'osm';
   osmId: string;
@@ -176,6 +190,10 @@ const WEBSITE_FILTERS = [
 
 @Injectable()
 export class ProspectsService {
+  private readonly cityCache = new Map<string, CityConfig>();
+  private lastNominatimRequestAt = 0;
+  private nominatimQueue = Promise.resolve();
+
   constructor(
     @InjectRepository(ProspectEntity)
     private readonly prospectsRepository: Repository<ProspectEntity>,
@@ -261,7 +279,7 @@ export class ProspectsService {
 
   async searchAndImport(input: SearchProspectsDto, correlationId: string) {
     const limit = Math.min(Math.max(input.limit || 100, 1), 500);
-    const city = this.resolveCity(input.city, input.bbox);
+    const city = await this.resolveCity(input.city, input.bbox);
     const customQuery = String(input.query || '').trim();
     const verticalKey = customQuery
       ? slugify(customQuery)
@@ -311,21 +329,29 @@ export class ProspectsService {
     return okResponse(this.serialize(saved), correlationId);
   }
 
-  private resolveCity(
+  private async resolveCity(
     rawCity: string,
     bbox?: [number, number, number, number],
-  ): CityConfig {
+  ): Promise<CityConfig> {
+    const label = String(rawCity || '').trim();
+    if (!label) {
+      throw new BadRequestException('Debes enviar una ciudad.');
+    }
+
     const key = slugify(rawCity);
     const city = CITIES[key];
     if (city) return city;
 
     if (bbox?.length === 4 && bbox.every((value) => Number.isFinite(value))) {
-      return { label: rawCity, bbox };
+      return { label, bbox };
     }
 
-    throw new BadRequestException(
-      `Ciudad no soportada todavia: ${rawCity}. Usa Bogota, Medellin, Cali, Pereira, Bucaramanga o envia bbox.`,
-    );
+    const cached = this.cityCache.get(key);
+    if (cached) return cached;
+
+    const resolved = await this.geocodeCity(label);
+    this.cityCache.set(key, resolved);
+    return resolved;
   }
 
   private buildCustomVertical(input: SearchProspectsDto): VerticalConfig {
@@ -408,6 +434,141 @@ export class ProspectsService {
 
     const payload = (await response.json()) as { elements?: OverpassElement[] };
     return payload.elements || [];
+  }
+
+  private async geocodeCity(rawCity: string): Promise<CityConfig> {
+    const endpoint =
+      this.configService.get<string>('NOMINATIM_ENDPOINT') ||
+      'https://nominatim.openstreetmap.org/search';
+    const url = new URL(endpoint);
+    url.searchParams.set('format', 'jsonv2');
+    url.searchParams.set('q', rawCity);
+    url.searchParams.set('limit', '1');
+    url.searchParams.set('addressdetails', '1');
+    url.searchParams.set('accept-language', 'es');
+
+    const countryCodes = String(
+      this.configService.get<string>('NOMINATIM_COUNTRY_CODES', ''),
+    ).trim();
+    if (countryCodes) {
+      url.searchParams.set('countrycodes', countryCodes);
+    }
+
+    const controller = new AbortController();
+    const timeoutMs = this.nominatimTimeoutMs();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      await this.waitForNominatimSlot();
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent':
+            this.configService.get<string>('NOMINATIM_USER_AGENT') ||
+            this.configService.get<string>('OVERPASS_USER_AGENT') ||
+            'JS-Solutions-Prospecting/1.0 (contact: sales@jssolutions.com.co)',
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new BadRequestException(
+          `Nominatim respondio ${response.status}: ${text.slice(0, 300)}`,
+        );
+      }
+
+      const places = (await response.json()) as NominatimPlace[];
+      const place = places[0];
+      if (!place?.boundingbox) {
+        throw new BadRequestException(
+          `No se pudo ubicar "${rawCity}". Escribe ciudad y pais, por ejemplo "Quito, Ecuador", o envia bbox.`,
+        );
+      }
+
+      const city = this.normalizeNominatimPlace(rawCity, place);
+      this.assertSearchableBbox(rawCity, city.bbox);
+      return city;
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new BadRequestException(
+          `Nominatim no respondio antes de ${timeoutMs}ms para "${rawCity}". Intenta de nuevo o envia bbox.`,
+        );
+      }
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : `No se pudo resolver la ciudad "${rawCity}".`,
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private normalizeNominatimPlace(
+    rawCity: string,
+    place: NominatimPlace,
+  ): CityConfig {
+    const [southRaw, northRaw, westRaw, eastRaw] = place.boundingbox || [];
+    const south = Number(southRaw);
+    const north = Number(northRaw);
+    const west = Number(westRaw);
+    const east = Number(eastRaw);
+    const bbox: [number, number, number, number] = [south, west, north, east];
+
+    if (!bbox.every((value) => Number.isFinite(value))) {
+      throw new BadRequestException(
+        `Nominatim devolvio un bbox invalido para "${rawCity}".`,
+      );
+    }
+
+    const label = this.geocodedCityLabel(rawCity, place);
+    return { label, bbox };
+  }
+
+  private geocodedCityLabel(rawCity: string, place: NominatimPlace): string {
+    const address = place.address || {};
+    const locality =
+      address.city ||
+      address.town ||
+      address.village ||
+      address.municipality ||
+      address.county ||
+      String(rawCity || '').trim();
+    const country = address.country || '';
+    return [locality, country].filter(Boolean).join(', ');
+  }
+
+  private assertSearchableBbox(
+    rawCity: string,
+    bbox: [number, number, number, number],
+  ): void {
+    const [south, west, north, east] = bbox;
+    const latSpan = Math.abs(north - south);
+    const lonSpan = Math.abs(east - west);
+    const maxSpan = this.maxGeocodedBboxDegrees();
+
+    if (latSpan > maxSpan || lonSpan > maxSpan) {
+      throw new BadRequestException(
+        `"${rawCity}" cubre un area demasiado amplia para Overpass. Escribe una ciudad/municipio mas especifico o envia bbox.`,
+      );
+    }
+  }
+
+  private async waitForNominatimSlot(): Promise<void> {
+    const queued = this.nominatimQueue.then(async () => {
+      const minimumGapMs = 1100;
+      const elapsed = Date.now() - this.lastNominatimRequestAt;
+      if (elapsed > 0 && elapsed < minimumGapMs) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, minimumGapMs - elapsed),
+        );
+      }
+      this.lastNominatimRequestAt = Date.now();
+    });
+
+    this.nominatimQueue = queued.catch(() => undefined);
+    await queued;
   }
 
   private normalizeElement(input: {
@@ -548,6 +709,20 @@ export class ProspectsService {
       this.configService.get<string>('OVERPASS_TIMEOUT_SECONDS', '25'),
     );
     return Number.isFinite(value) && value > 0 ? value : 25;
+  }
+
+  private nominatimTimeoutMs(): number {
+    const value = Number(
+      this.configService.get<string>('NOMINATIM_TIMEOUT_MS', '8000'),
+    );
+    return Number.isFinite(value) && value > 0 ? value : 8000;
+  }
+
+  private maxGeocodedBboxDegrees(): number {
+    const value = Number(
+      this.configService.get<string>('PROSPECTS_MAX_BBOX_DEGREES', '2'),
+    );
+    return Number.isFinite(value) && value > 0 ? value : 2;
   }
 
   private applyContactFilter(

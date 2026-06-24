@@ -46,7 +46,7 @@ Operaciones conectadas a API:
 - busqueda real Overpass + guardado: `POST /api/v1/admin/prospects/search-osm`
 - estado/notas: `PATCH /api/v1/admin/prospects/:id`
 
-El JSON local queda solo como respaldo operativo/importacion inicial cuando el admin no tiene `API_BASE_URL` configurado; no reemplaza la base real.
+El campo ciudad acepta ciudades nuevas. La API resuelve el bbox con Nominatim cuando no existe una ciudad frecuente precargada, y luego consulta Overpass. El JSON local queda solo como respaldo operativo/importacion inicial cuando el admin no tiene `API_BASE_URL` configurado; no reemplaza la base real.
 
 ## Performance budgets y alertas
 

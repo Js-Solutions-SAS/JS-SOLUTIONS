@@ -6,6 +6,8 @@ import {
   IsOptional,
   IsString,
   Max,
+  ArrayMaxSize,
+  ArrayMinSize,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -36,6 +38,8 @@ export class SearchProspectsDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMinSize(4)
+  @ArrayMaxSize(4)
   @Type(() => Number)
   @IsNumber({}, { each: true })
   bbox?: [number, number, number, number];
