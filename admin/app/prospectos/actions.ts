@@ -71,6 +71,7 @@ const DEFAULT_OPTIONS: ProspectOptions = {
     { value: "Medellin", label: "Medellin" },
     { value: "Cali", label: "Cali" },
     { value: "Pereira", label: "Pereira" },
+    { value: "Bucaramanga", label: "Bucaramanga" },
   ],
   verticals: [
     { value: "odontologias", label: "Odontologías" },

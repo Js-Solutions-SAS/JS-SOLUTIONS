@@ -60,6 +60,10 @@ const CITIES: Record<string, CityConfig> = {
   medellin: { label: 'Medellin', bbox: [6.157, -75.671, 6.356, -75.501] },
   cali: { label: 'Cali', bbox: [3.314, -76.614, 3.546, -76.443] },
   pereira: { label: 'Pereira', bbox: [4.741, -75.796, 4.879, -75.622] },
+  bucaramanga: {
+    label: 'Bucaramanga',
+    bbox: [7.069722, -73.169296, 7.263715, -73.04906],
+  },
 };
 
 const VERTICALS: Record<string, VerticalConfig> = {
@@ -320,7 +324,7 @@ export class ProspectsService {
     }
 
     throw new BadRequestException(
-      `Ciudad no soportada todavia: ${rawCity}. Usa Bogota, Medellin, Cali, Pereira o envia bbox.`,
+      `Ciudad no soportada todavia: ${rawCity}. Usa Bogota, Medellin, Cali, Pereira, Bucaramanga o envia bbox.`,
     );
   }
 

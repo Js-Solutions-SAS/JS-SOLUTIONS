@@ -60,6 +60,28 @@ function computeTimeout(timeoutMs?: number): number {
   return Number.isFinite(timeoutMs) ? Number(timeoutMs) : DEFAULT_TIMEOUT_MS;
 }
 
+function extractErrorMessage(
+  data: Record<string, unknown>,
+  fallback: string,
+): string {
+  if (typeof data.error === 'string') {
+    return data.error;
+  }
+
+  if (data.error && typeof data.error === 'object') {
+    const error = data.error as Record<string, unknown>;
+    if (typeof error.message === 'string') {
+      return error.message;
+    }
+  }
+
+  if (typeof data.message === 'string') {
+    return data.message;
+  }
+
+  return fallback;
+}
+
 export async function postJsonWithTimeout(
   url: string,
   options: JsonRequestOptions,
@@ -97,12 +119,10 @@ export async function postJsonWithTimeout(
       data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
 
     if (!response.ok) {
-      const errorMessage =
-        typeof normalizedData.error === 'string'
-          ? normalizedData.error
-          : typeof normalizedData.message === 'string'
-            ? normalizedData.message
-            : `Upstream respondió con estado ${response.status}`;
+      const errorMessage = extractErrorMessage(
+        normalizedData,
+        `Upstream respondió con estado ${response.status}`,
+      );
 
       return {
         ok: false,
@@ -168,12 +188,10 @@ export async function getJsonWithTimeout(
       data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
 
     if (!response.ok) {
-      const errorMessage =
-        typeof normalizedData.error === 'string'
-          ? normalizedData.error
-          : typeof normalizedData.message === 'string'
-            ? normalizedData.message
-            : `Upstream respondió con estado ${response.status}`;
+      const errorMessage = extractErrorMessage(
+        normalizedData,
+        `Upstream respondió con estado ${response.status}`,
+      );
 
       return {
         ok: false,

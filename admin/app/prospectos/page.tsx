@@ -308,7 +308,7 @@ export default function ProspectosPage() {
               value={searchCity}
               onChange={(e) => setSearchCity(e.target.value)}
               className="min-h-11 rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white outline-none transition focus:border-brand-gold/60 focus:ring-4 focus:ring-brand-gold/10"
-              placeholder="Cali, Medellin, Pereira"
+              placeholder="Cali, Medellin, Pereira, Bucaramanga"
               required
             />
           </div>
